@@ -6,7 +6,7 @@ package reedsolomon
 import (
 	"testing"
 
-	bitset "git.q8s.co/pschlump/qr_svr2/bitset"
+	bitset "github.com/pschlump/gintools/qr_svr2/bitset"
 )
 
 func TestGeneratorPoly(t *testing.T) {

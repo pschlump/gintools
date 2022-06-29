@@ -9,6 +9,7 @@ MODS=\
 	qr_svr2 \
 	run_template \
 	setDefault \
+	request_id \
 	table_rest 
 
 all:
