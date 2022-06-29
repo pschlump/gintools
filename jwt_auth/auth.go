@@ -17,6 +17,9 @@ package jwt_auth
 
 // xyzzy8888 -------------------------- TODO - add/remove 2fa secret
 
+// xyzzy TODO ; switch jwt to : https://github.com/golang-jwt/jwt
+//				https://pkg.go.dev/github.com/golang-jwt/jwt
+
 import (
 	"encoding/hex"
 	"fmt"
@@ -27,7 +30,9 @@ import (
 	"strings"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	// jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 	"github.com/pschlump/HashStrings"
@@ -40,6 +45,8 @@ import (
 	"github.com/pschlump/json"
 	"github.com/pschlump/scany/pgxscan"
 )
+
+// jwt "github.com/dgrijalva/jwt-go"
 
 type GinLoginType struct {
 	Path     string
@@ -2055,6 +2062,13 @@ func GetAuthToken(c *gin.Context) (UserId int, AuthToken string) {
 
 // -------------------------------------------------------------------------------------------------------------------------
 // new - modifified
+//
+// Use:
+//	AuthJWTPublic            string `json:"auth_jwt_public_file" default:""`                                                     // Public Key File
+//	AuthJWTPrivate           string `json:"auth_jwt_private_file" default:""`                                                    // Private Key File
+//	AuthJWTKeyType           string `json:"auth_jwt_key_type" default:"ES" validate:"v.In(['ES256','RS256', 'ES512', 'RS512'])"` // Key type ES = ESDSA or RS = RSA
+//	AuthJWTSource            string `json:"auth_jwt_source" default:"Authorization"`                                             // Valid forms for getting authorization
+
 func CreateJWTSignedCookie(c *gin.Context, DBAuthToken string) (rv string) {
 	if DBAuthToken != "" {
 		// SET: Cookie("X-Authentication", www, req)
