@@ -1,0 +1,103 @@
+{
+	  "__comment_version": "Version 0.0.0"
+	, "__comment_copyright": "Copyright (C) Philip Schlump, 2016."
+
+	, "db_host": "$ENV$PG_HOST"
+	, "db_user": "philip"
+	, "db_password": "$ENV$DB_PASS"
+	, "db_name": "philip"
+	, "db_flag": "HandleLogin"
+
+	, "log_file_name": "./log/email-log.out"
+
+	, "__comment_005": "This will cause the subdomain to set the database that PG is using to connect to.  So user1.q8s.co will be looked up in y_dbname and et the database to it."
+	, "subdomain_sets_pg_database": "yes"
+
+	, "auth_key": "$ENV$QR_TODAY_AUTH_TOKEN"
+	, "static_path":"./build"
+
+	, "auth_method":				"jwt"
+	, "x_auth_jwt_public_file" : 		"test-key/ecdsa-p256-public.pem"
+	, "x_auth_jwt_private_file": 		"test-key/ecdsa-p256-private.pem"
+	, "auth_jwt_public_file" : 		"prod-key/ecdsa-p256-public.pem"
+	, "auth_jwt_private_file": 		"prod-key/ecdsa-p256-private.pem"
+	, "auth_jwt_key_type":       	"ES256"
+
+	, "doc_md":"./www/api-doc.html"
+
+	, "upload_table": "t_ymux_documents"
+	, "upload_path": "../build/files"
+	, "url_upload_path": "/files"
+	, "push_to_aws": "yes"
+	, "s3_bucket": "nfc-documents"
+	, "s3_perms": "public-read"
+	, "base_aws_server_url": "https://nfc-documents.s3.amazonaws.com/"
+
+	, "aws_s3_bucket_url": "https://nfc-documents.s3.amazonaws.com/"
+	, "aws_s3_bucket": "nfc-documents"
+	, "aws_s3_perms": "public-read"
+
+
+	, "use_role_priv": "no"
+	, "auth_realm": "truckcoinswap.com"
+	, "auth_2fa_enabled": "no"
+	, "rfc_6238_2fa_on": "no"
+	, "auth_login_on_register": "yes"
+	, "auth_email_confirm": "no"
+	, "use_registration_token": "no"
+
+	, "__comment_002": "Thumbnail Paths"
+	, "__comment_004": "Output image path and URL"
+	, "thumbnail_path": "../build/thumb"
+	, "thumbnail_path_url": "/thumb"
+	, "__comment_003": "Input image path and URL"
+	, "image_path" :"../build/files"
+	, "image_url": "/files"
+
+	, "__comment_001": "path_rewrite is for React so that paths/bookmarks like '/info' will redirect to index.html"
+	, "base_server_url" : "http://localhost:2003"
+	, "qr_base_server_url" : "http://localhost:2003"
+	, "__comment_001": "ch2 is a 2 char prefix of qrid, qrid8 is 8 char prefix if UUID of QrID, qrext is txt/svg/png"
+	, "qr_file_path" : "./www/qr/%{qr2%}/%{qrid10%}"
+	, "path_rewrite": [
+			{
+				  "from": [ "/D" ]
+				, "to": "/idisplay"
+				, "client": 303
+				, "location": "%{BaseServerUrl%}/idisplay"
+			},
+			{
+				  "from": [ "/q" ]
+				, "to": "/qr_code"
+				, "client": 303
+				, "location": "%{BaseServerUrl%}/qr_code"
+			},
+			{
+				  "from": [ "/table", "/api", "/erd", "/idisplay", "/login" ]
+				, "to": "/"
+			}
+		]
+	, "ticker_seconds" : 240
+
+	, "CORS_CheckTable" : true
+
+	, "static_files":"./www"
+	, "host":"0.0.0.0"
+	, "port":"2003"
+	, "db_flags": [ "debug-log", "get-issue-detail.01"] 
+
+	, "base_server_url": "http://localhost:2003/"
+	, "auth_application_name": "TruckCoinSwap.com"
+
+	, "template_search_path": "./tmpl/%{user_id%};./tmpl" 
+	, "template_location_html_tmpl": "location.html.tmpl"
+
+	, "no_email_send_list": [
+		"bob@example.com",
+		"bob@truckcoinswap.com",
+		"bob1@truckcoinswap.com",
+		"bob2@truckcoinswap.com",
+		"bob3@truckcoinswap.com"
+	]
+	, "token_header_vs_cookie": "both"
+}
