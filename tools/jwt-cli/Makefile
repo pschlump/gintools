@@ -107,3 +107,13 @@ test005:
 gen_es384:
 		./jwt-cli --generate jane --alg ES384
 
+test006: 
+	mkdir -p ./testdata ./out ./ref
+	echo '{"foo":"bar","auth_token":"123-456-7890"}' >./testdata/data006.json
+	./jwt-cli -key  ./jane-private.pem -alg ES256 -sign ./testdata/data006.json --out ./out/test006.token --claim auth_token=331144331144331144
+	./jwt-cli -key  ./jane-public.pem  -alg ES256 -show ./out/test006.token --out ./out/test006.out 
+	./jwt-cli -key  ./jane-public.pem  -alg ES256 -verify ./out/test006.token --out ./out/test006.out --debug VerifyToken
+	diff -w ./out/test006.out ./ref/test006.out
+	@echo PASS
+
+
