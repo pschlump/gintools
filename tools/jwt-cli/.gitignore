@@ -6,3 +6,7 @@ setup.sh
 old
 go.tar
 note
+private-key.pem
+public-key.pem
+from.1
+todo.1

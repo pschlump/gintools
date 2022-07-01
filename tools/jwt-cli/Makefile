@@ -3,7 +3,10 @@ all:
 	go build
 
 all_types: create_and_sign ct2 ct3
-	
+
+install: all
+	cp jwt-cli ~/bin
+
 create_and_sign:
 	echo '{"foo":"bar"}' | ./jwt-cli -key ./test/sample_key -alg RS256 -sign - | tee edSignedToken.txt | ./jwt-cli -key ./test/sample_key.pub -alg RS256 -verify -
 

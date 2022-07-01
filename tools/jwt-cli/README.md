@@ -1,5 +1,11 @@
 # `jwt-cli` command-line tool
 
+This program is based on the original jwt-cli tool that is a part of the
+`"github.com/golang-jwt/jwt/v4"` package.  There have been a huge number
+of improvements and changes.
+
+
+
 This is a simple tool to sign, verify and show JSON Web Tokens from the command line.
 
 The following will create and sign a token, then verify it and output the original claims:
