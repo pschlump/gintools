@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.44
 	github.com/fatih/structtag v1.2.0
 	github.com/gin-gonic/gin v1.8.1
-	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/jackc/pgproto3/v2 v2.3.0
 	github.com/jackc/pgx/v4 v4.16.1
 	github.com/jinzhu/copier v0.3.5

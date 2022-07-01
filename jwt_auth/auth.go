@@ -30,10 +30,8 @@ import (
 	"strings"
 	"time"
 
-	// jwt "github.com/dgrijalva/jwt-go"
-	jwt "github.com/golang-jwt/jwt"
-
 	"github.com/gin-gonic/gin"
+	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/jinzhu/copier"
 	"github.com/pschlump/HashStrings"
 	"github.com/pschlump/dbgo"
@@ -1968,6 +1966,16 @@ func GetAuthToken(c *gin.Context) (UserId int, AuthToken string) {
 		// Note that we are passing the key in this method as well. This method will return an error
 		// if the token is invalid (if it has expired according to the expiry time we set on sign in),
 		// or if the signature does not match
+		//
+		// See: https://stackoverflow.com/questions/68481150/how-to-parse-a-jwt-token-with-rsa-in-jwt-go-parsewithclaims
+		//		https://stackoverflow.com/questions/68568841/jwt-sign-and-parse-using-es256
+		//		https://github.com/dgrijalva/jwt-go/blob/008eba19055c071829e8317937b39845a9d2019b/ecdsa.go#L70
+		//		https://github.com/dgrijalva/jwt-go/blob/master/ecdsa_test.go
+		//		https://pkg.go.dev/github.com/golang-jwt/jwt/v4#section-readme
+		//		https://pkg.go.dev/github.com/golang-jwt/jwt#example-NewWithClaims-CustomClaimsType
+		//		https://techdocs.akamai.com/iot-token-access-control/docs/generate-ecdsa-keys
+		// Config Colums can be set to $ENV$ - to pull keys from env, or $FILE$ to read ./keys/ed25519-public.pem etc.
+		//
 		tkn, err := jwt.ParseWithClaims(jwtTok, claims, func(token *jwt.Token) (interface{}, error) {
 			data, err := hex.DecodeString(gCfg.JwtKey)
 			if err != nil {
@@ -2015,7 +2023,7 @@ func GetAuthToken(c *gin.Context) (UserId int, AuthToken string) {
 			select t1.user_id as "user_id", json_agg(t3.priv_name)::text as "privileges"
 			from q_qr_users as t1
 				join q_qr_auth_tokens as t2 on ( t1.user_id = t2.user_id )
-				join q_qr_user_to_priv as t3 on ( t1.user_id = t3.user_id )
+				left join q_qr_user_to_priv as t3 on ( t1.user_id = t3.user_id )
 			where t2.token = $1
 		      and ( t1.start_date < current_timestamp or t1.start_date is null )
 		      and ( t1.end_date > current_timestamp or t1.end_date is null )

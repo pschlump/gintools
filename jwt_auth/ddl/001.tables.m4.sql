@@ -660,12 +660,13 @@ CREATE TABLE if not exists q_qr_tmp_token (
 	tmp_token_id 		serial primary key not null,
 	user_id 			int not null,
 	token			 	uuid not null,
-	sip_x_value				text,
-	sip_e_value				text,
-	sip_x_value				text,
-	sip_y_value				text,
 	expires 			timestamp not null
 );
+
+--	sip_x_value				text,
+--	sip_e_value				text,
+--	sip_v_value				text,
+--	sip_y_value				text,
 
 create unique index q_qr_tmp_token_u1 on q_qr_tmp_token ( token );
 create index q_qr_tmp_token_p1 on q_qr_tmp_token ( user_id );
@@ -943,6 +944,10 @@ insert into q_qr_priv ( priv_id, priv_name ) values
 
 	, ( 2013, 'May Login' )
 	, ( 2014, 'May Add/Rmeove Role From User' )
+	, ( 2015, 'May Insert BOL' )
+	, ( 2016, 'May Update BOL' )
+	, ( 2017, 'May Delete BOL' )
+	, ( 2020, 'May Select BOL' )
 	, ( 2018, 'May Register' )
 	, ( 2019, 'May BOL' )
 ;
@@ -965,8 +970,8 @@ insert into q_qr_role_priv ( role_id,  priv_id ) values
 	, ( 1001, 2012 )
 	, ( 1001, 2013 )
 	, ( 1001, 2014 )
-	, ( 1003, 2018 )
-	, ( 1003, 2019 )
+	, ( 1001, 2018 )
+	, ( 1001, 2019 )
 
 	, ( 1002, 2002 )
 	, ( 1002, 2004 )
@@ -3974,6 +3979,13 @@ select q_amdin_HasPriv ( 3::int, 'May Change Password' );
 
 
 
+drop table if exists x_tmp_values ;
+create table if not exists x_tmp_values (
+	name text,
+	value text
+);
+
+
 
 
 
@@ -4002,6 +4014,9 @@ DECLARE
 	l_email_verify_token text;
 	l_secret_2fa text;
 	v_cnt int;
+	l_auth_token uuid;
+	l_junk1 int;
+	l_privilage text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2017, 2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -4156,11 +4171,35 @@ BEGIN
 	select l_r1::jsonb -> 'email_verify_token' into l_email_verify_token;
 	l_email_verify_token = replace ( l_email_verify_token, '"', '' );
 	insert into t_output ( msg ) values ( 'l_email_verify_token = '||coalesce(l_email_verify_token,'--null--') );
-	insert into t_output ( msg ) values ( 'l_email_verify_token = '||coalesce(l_email_verify_token,'--null--') );
-	insert into t_output ( msg ) values ( 'l_email_verify_token = '||coalesce(l_email_verify_token,'--null--') );
-	insert into t_output ( msg ) values ( 'l_email_verify_token = '||coalesce(l_email_verify_token,'--null--') );
-	insert into t_output ( msg ) values ( 'l_email_verify_token = '||coalesce(l_email_verify_token,'--null--') );
-	insert into t_output ( msg ) values ( 'l_email_verify_token = '||coalesce(l_email_verify_token,'--null--') );
+
+
+	-- new -----------------------------------------------------------------------------------------------------------------------------------------
+	commit; 
+
+	select count(1) into l_cnt1 from q_qr_user_role;
+	if l_cnt1 = 0 then
+		insert into t_output ( msg ) values ( 'Test Failed: File:m4___file__ Line No:m4___line__ -- missing data in q_qr_user_role' );
+		l_fail = true;
+		n_err = n_err + 1;
+	end if;
+
+	select l_r1::jsonb -> 'user_id' into l_user_id;
+
+	--------------------------------- create an auth token -------------------------------
+	-- select token
+	-- 	into l_auth_token
+	-- 	from q_qr_auth_tokens
+	-- 	where user_id = l_user_id
+	-- 	limit 1
+	-- 	;
+
+	l_auth_token = uuid_generate_v4();
+	insert into q_qr_auth_tokens ( token, user_id ) values ( l_auth_token, l_user_id );
+	insert into t_output ( msg ) values ( 'l_auth_token = '||l_auth_token::text );
+	delete from x_tmp_values where name = 'l_auth_token';
+	insert into x_tmp_values ( name, value ) values ( 'l_auth_token', l_auth_token::text );
+	commit; 
+	-- end -----------------------------------------------------------------------------------------------------------------------------------------
 
 	commit; 
 
@@ -4359,3 +4398,86 @@ select msg from t_output ;
 -- Just like leonbloy suggested, using two schemas in a database is the way to go. Suppose a source schema (old DB) and a target schema (new DB), you can try
 -- something like this (you should consider column names, types, etc.):
 -- 		INSERT INTO target.Awards SELECT * FROM source.Nominations;
+DO $$
+DECLARE
+	p_email text;
+	p_hmac_password text;
+	p_userdata_password text;
+	p_first_name text;
+	p_last_name text;
+	p_pw text;
+	l_user_id int;
+	l_status text;
+	l_r1 text;
+	l_r2 text;
+	l_cnt1 int;
+	l_cnt2 int;
+	l_fail bool;
+	l_bool bool;
+	n_err int;
+	l_email_verify_token text;
+	l_secret_2fa text;
+	v_cnt int;
+	l_auth_token uuid;
+	l_junk1 int;
+	l_privilage text;
+BEGIN
+	-- Copyright (C) Philip Schlump, 2008-2017, 2021, 2022.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	l_fail = false;
+	n_err = 0;
+
+	select value::uuid
+		into l_auth_token
+		from x_tmp_values
+		where name = 'l_auth_token'
+		;
+	if not found then
+		insert into t_output ( msg ) values ( 'Test Failed: File:m4___file__ Line No:m4___line__ -- missing data in x_tmp_values, key=''l_auth_token'' -no rows found-' );
+		l_fail = true;
+		n_err = n_err + 1;
+	end if;
+
+	select t1.user_id as "user_id", json_agg(t3.priv_name)::text as "privileges"
+		into l_junk1, l_privilage
+		from q_qr_users as t1
+			join q_qr_auth_tokens as t2 on ( t1.user_id = t2.user_id )
+			left join q_qr_user_to_priv as t3 on ( t1.user_id = t3.user_id )
+		where t2.token = l_auth_token
+		  and ( t1.start_date < current_timestamp or t1.start_date is null )
+		  and ( t1.end_date > current_timestamp or t1.end_date is null )
+		  and t1.email_verified = 'y'
+		  and ( t1.setup_complete_2fa = 'n' or t1.setup_complete_2fa is null )
+		  and t2.expires > current_timestamp
+		group by t1.user_id
+		;
+	if not found then
+		insert into t_output ( msg ) values ( 'Test Failed: File:m4___file__ Line No:m4___line__ -- missing data in role/priv/token -no rows found-' );
+		l_fail = true;
+		n_err = n_err + 1;
+	end if;
+	if l_junk1 <> l_user_id then
+		insert into t_output ( msg ) values ( 'Test Failed: File:m4___file__ Line No:m4___line__ -- missing data in role/priv/token - bad user id' );
+		l_fail = true;
+		n_err = n_err + 1;
+	end if;
+	if l_privilage::text = '[null]' then
+		insert into t_output ( msg ) values ( 'Test Failed: File:m4___file__ Line No:m4___line__ -- missing data in role/priv/token - bad user id' );
+		l_fail = true;
+		n_err = n_err + 1;
+	end if;
+
+	if not l_fail then 
+		insert into t_output ( msg ) values ( 'PASS' );
+	else 
+		insert into t_output ( msg ) values ( 'FAILED!  Errors = '||(n_err::text) );
+	end if;
+
+	commit;
+
+END
+$$ LANGUAGE plpgsql;
+
+drop table if exists x_tmp_values ;
+
+select msg from t_output ;

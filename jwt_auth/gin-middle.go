@@ -61,14 +61,14 @@ const (
 func CookieHeaderAuthMiddleware(ginSetupTable []GinLoginType) gin.HandlerFunc {
 
 	findInTable := func(path, method string) *GinLoginType {
-		dbgo.Printf("%(magenta)Looking for %s:%s\n", method, path)
+		// dbgo.Printf("%(magenta)Looking for %s:%s\n", method, path)
 		for _, vv := range ginSetupTable {
-			dbgo.Printf("%(magenta)   compare to %s:%s\n", vv.Method, vv.Path)
+			// dbgo.Printf("%(magenta)   compare to %s:%s\n", vv.Method, vv.Path)
 			if vv.Path == path && vv.Method == method {
 				return &vv
 			}
 		}
-		dbgo.Printf("%(magenta)!!!!!!%(red)Nope.... did not fined it\n")
+		// dbgo.Printf("%(magenta)!!!!!!%(red)Nope.... did not fined it\n")
 		return nil
 	}
 

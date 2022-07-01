@@ -585,7 +585,7 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 			if err != nil {
 				return
 			}
-			stmt := fmt.Sprintf("select * from %q %s order by %s", CrudData.TableName, where, orderBy)
+			stmt := fmt.Sprintf("select %s from %q %s order by %s", GenProjected(CrudData.ProjectedCols), CrudData.TableName, where, orderBy)
 			dbgo.DbPrintf("HandleCRUD", "AT: %s stmt(Where Generated) [%s] data=%s\n", dbgo.LF(), stmt, dbgo.SVar(bindColData))
 			rows, err := SQLQueryW(c, stmt, bindColData)
 			defer func() {
@@ -635,22 +635,38 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 			}
 
 			// page-ing should occure at this point!!			___page__ and page-size will be needed
-			stmt := fmt.Sprintf("select * from %q %s", CrudData.TableName, where)
+			stmt := fmt.Sprintf("select %s from %q %s", GenProjected(CrudData.ProjectedCols), CrudData.TableName, where)
 			dbgo.DbPrintf("HandleCRUD", "AT: %s stmt(Where Generated) [%s] data=%s\n", dbgo.LF(), stmt, dbgo.SVar(bindColData))
-			rows, err := SQLQueryW(c, stmt, bindColData)
-			defer func() {
-				if rows != nil && err == nil {
-					rows.Close()
+			if where == "" {
+				rows, err := SQLQueryW(c, stmt)
+				defer func() {
+					if rows != nil && err == nil {
+						rows.Close()
+					}
+				}()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
+					fmt.Fprintf(logFilePtr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
+					c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
+					return
 				}
-			}()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
-				fmt.Fprintf(logFilePtr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
-				c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
-				return
+				data, _, _ = RowsToInterface(rows)
+			} else {
+				rows, err := SQLQueryW(c, stmt, bindColData)
+				defer func() {
+					if rows != nil && err == nil {
+						rows.Close()
+					}
+				}()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
+					fmt.Fprintf(logFilePtr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
+					c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
+					return
+				}
+				// data, _, _ = sizlib.RowsToInterface(rows)
+				data, _, _ = RowsToInterface(rows)
 			}
-			// data, _, _ = sizlib.RowsToInterface(rows)
-			data, _, _ = RowsToInterface(rows)
 		}
 		dbgo.DbPrintf("HandleCRUD", "%sAT: %s data ->%s<-%s\n", dbgo.ColorYellow, dbgo.LF(), dbgo.SVarI(data), dbgo.ColorReset)
 
@@ -678,6 +694,20 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 						Name = "Name"
 					}
 					rawData = fmt.Sprintf(`var %s = {"status":"success","data":%s};`, Name, dbgo.SVarI(data))
+				case "AsJSWindow":
+					ContentType = "text/javascript; charset=utf-8"
+					Name_found, Name := GetVar("__rdata_name__", c)
+					if !Name_found || Name == "" {
+						Name = "Name"
+					}
+					rawData = fmt.Sprintf(`window.%s = {"status":"success","data":%s};`+"\n\n", Name, dbgo.SVarI(data))
+				case "AsJSWindowData":
+					ContentType = "text/javascript; charset=utf-8"
+					Name_found, Name := GetVar("__rdata_name__", c)
+					if !Name_found || Name == "" {
+						Name = "Name"
+					}
+					rawData = fmt.Sprintf(`window.%s = %s;`+"\n\n", Name, dbgo.SVarI(data))
 				case "AsTEXT":
 					ContentType = "text/plain; charset=utf-8"
 				case "PreFix", "PreFix2":
@@ -685,6 +715,32 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 					err = fmt.Errorf("Invalid __rdfmt__ value of %s, shold be '', array, AsJS, AsTEXT", aa)
 					rawData = fmt.Sprintf(`{"status":"error","msg":%q}`, err)
 					break
+				}
+			}
+			c.Writer.Header().Set("Content-Type", ContentType)
+		} else {
+			SetJSONHeaders(c)
+			rawData = fmt.Sprintf(`{"status":"success","data":%s}`, dbgo.SVarI(data))
+		}
+
+		if err != nil {
+			rawData, err = RunPostFunctions(c, CrudData.CrudBaseConfig, rawData) // xyzzy - should have extra params fro RDFmt, RDFmtFound
+		}
+
+		if RDFmtFound {
+			ss := strings.Split(RDFmt, ",")
+			for _, aa := range ss {
+				switch aa {
+				case "PreFix":
+					rawData = "while(1);" + rawData
+				case "PreFix2":
+					rawData = "for(;;);" + rawData
+				case "AsTEXT":
+					ContentType = "text/plain; charset=utf-8"
+					//default:
+					//	err = fmt.Errorf("Invalid __rdfmt__ value of %s, shold be '', array, AsJS, AsTEXT", aa)
+					//	rawData = fmt.Sprintf(`{"status":"error","msg":%q}`, err)
+					//	break
 				}
 			}
 			c.Writer.Header().Set("Content-Type", ContentType)
