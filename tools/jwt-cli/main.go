@@ -120,7 +120,7 @@ func start() error {
 	} else if *flagShow != "" {
 		return ShowToken(*flagShow, *flagKey, *flagAlg, *flagIndentJSON, out)
 	} else if *flagGenKeys != "" {
-		return generateKeys()
+		return generateKeys(*flagGenKeys, *flagKey, *flagAlg)
 	} else if *flagShowAlg {
 		return showAlg()
 	} else {
@@ -142,10 +142,18 @@ func showAlg() (err error) {
 // flagGenKeys  = flag.String("generate", "", "Name to generate keys ( name-private.pem, name-public.pem ).") // PJS
 // flagKeysType = flag.String("key-type", "ed25519", "Type of key to generate.")                              // PJS
 // flagKeysPath = flag.String("key-path", "./", "Directory to geneate keys in.")                              // PJS
-func generateKeys() error {
+func generateKeys(flagGenerate, flagKey, flagAlg string) (err error) {
 	// xyzzy - TODO -
-	// xyzzy - TODO -
-	return nil
+
+	if flagAlg == "EdDSA" {
+		fn_private := fmt.Sprintf("%s-private.pem", flagGenerate)
+		fn_public := fmt.Sprintf("%s-public.pem", flagGenerate)
+		err = GenerateSaveEd25519(fn_private, fn_public)
+	} else {
+		err = fmt.Errorf("Error: unable to geneate %s type keys -- not implemented yet", flagAlg)
+	}
+
+	return
 }
 
 // Verify a token and output the claims.  This is a great example
@@ -214,8 +222,8 @@ func SignToken(signData, Key, Alg string, Claims, Head ArgList, out *os.File) er
 	// parse the JSON of the claims
 	var claims jwt.MapClaims
 	if err := json.Unmarshal(tokData, &claims); err != nil {
-		// xyzzy - should report locaiton of error in JSON
-		return fmt.Errorf("Couldn't parse claims JSON: %s", err)
+		rv := jwtlib.PrintErrorJson(string(tokData), err)
+		return fmt.Errorf("Couldn't parse claims JSON: %s\n%s", err, rv)
 	}
 
 	// add command line claims

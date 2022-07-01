@@ -57,7 +57,6 @@ _ = ioutil.WriteFile("id_ed25519.pub", authorizedKey, 0644)
 
 import (
 	"crypto/ecdsa"
-	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
@@ -123,6 +122,7 @@ func generateRSAKey() (key *rsa.PrivateKey) {
 	return
 }
 
+/*
 // func GenerateEd25519Keys() (*ED25519Keys, error) {
 func GenerateEd25519Keys() (key ed25519.PrivateKey, err error) {
 	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
@@ -131,12 +131,12 @@ func GenerateEd25519Keys() (key ed25519.PrivateKey, err error) {
 	}
 	_ = publicKey
 
-	//publicED25519Key, err := ssh.NewPublicKey(publicKey)
-	//if err != nil {
-	//	return nil, err
-	//}
+	publicED25519Key, err := ssh.NewPublicKey(publicKey)
+	if err != nil {
+		return nil, err
+	}
 
-	// pubKeyBytes := ssh.MarshalAuthorizedKey(publicED25519Key)
+	pubKeyBytes := ssh.MarshalAuthorizedKey(publicED25519Key)
 
 	bytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
 	if err != nil {
@@ -144,20 +144,31 @@ func GenerateEd25519Keys() (key ed25519.PrivateKey, err error) {
 	}
 
 	privBlock := pem.Block{
-		Type:    "PRIVATE KEY",
+		Type:    "ED25519 PRIVATE KEY",
 		Headers: nil,
 		Bytes:   bytes,
 	}
 
 	privatePEM := pem.EncodeToMemory(&privBlock)
 
+	fmt.Printf("Private: ->%s<-\n", privatePEM)
+
 	//return &ED25519Keys{
 	//	Public:  pubKeyBytes,
 	//	Private: privatePEM,
-	//}, nil
+	//},
+	pubbytes, err := x509.MarshalPKCS8PublicKey(pubKeyBytes)
+	publicBlock := pem.Block{
+		Type:    "ED25519 PUBLIC KEY",
+		Headers: nil,
+		Bytes:   pubbytes,
+	}
+	publicPEM := pem.EncodeToMemory(&publicBlock)
+	fmt.Printf("Private: ->%s<-\n", publicPEM)
 
 	return (ed25519.PrivateKey)(privatePEM), nil
 }
+*/
 
 func generateCert(pub, priv interface{}, filename string) {
 	template := x509.Certificate{

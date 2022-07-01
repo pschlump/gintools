@@ -88,3 +88,18 @@ test004: all
 	diff -w ./out/test004.out ./ref/test004.out
 	@echo PASS
 
+
+#(base) philip@victoria jwt-cli % go run x.go
+#/var/folders/gd/89_p5db5627_l0sc9t55g_440000gn/T/go-build1755204152/b001/exe/x : generate pem formatted ed25519 keys
+#    provide a single argument for the private key name
+#    the public key name will have '.pub' appended
+
+test005: 
+	mkdir -p ./testdata ./out ./ref
+	echo '{"foo":"bar","auth_token":"123-456-7890"}' >./testdata/data005.json
+	./jwt-cli -key  ./bob     -alg EdDSA -sign ./testdata/data005.json --out ./out/test005.token --claim auth_token=331144331144331144
+	./jwt-cli -key  ./bob.pub -alg EdDSA -show ./out/test005.token --out ./out/test005.out 
+	./jwt-cli -key  ./bob.pub -alg EdDSA -verify ./out/test005.token --out ./out/test005.out --debug VerifyToken
+	diff -w ./out/test005.out ./ref/test005.out
+	@echo PASS
+
