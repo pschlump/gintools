@@ -149,6 +149,12 @@ func generateKeys(flagGenerate, flagKey, flagAlg string) (err error) {
 		fn_private := fmt.Sprintf("%s-private.pem", flagGenerate)
 		fn_public := fmt.Sprintf("%s-public.pem", flagGenerate)
 		err = GenerateSaveEd25519(fn_private, fn_public)
+
+	} else if jwtlib.IsEs(flagAlg) {
+		fn_private := fmt.Sprintf("%s-private.pem", flagGenerate)
+		fn_public := fmt.Sprintf("%s-public.pem", flagGenerate)
+		generateECKey(fn_public, fn_private)
+
 	} else {
 		err = fmt.Errorf("Error: unable to geneate %s type keys -- not implemented yet", flagAlg)
 	}

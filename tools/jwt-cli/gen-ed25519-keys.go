@@ -10,14 +10,13 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
-	"io/ioutil"
-
 	"fmt"
+	"io/ioutil"
 	"os"
 )
 
 // GenerateSaveEd25519 generates and saves ed25519 keys to disk after
-// encoding into PEM format
+// encoding into PEM format.
 func GenerateSaveEd25519(fn_private, fn_public string) error {
 
 	var (

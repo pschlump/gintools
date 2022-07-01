@@ -103,3 +103,7 @@ test005:
 	diff -w ./out/test005.out ./ref/test005.out
 	@echo PASS
 
+
+gen_es384:
+		./jwt-cli --generate jane --alg ES384
+
