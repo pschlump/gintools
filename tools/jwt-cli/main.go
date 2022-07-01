@@ -10,14 +10,14 @@ package main
 //     echo {\"foo\":\"bar\"} | bin/jwt -key test/sample_key -alg RS256 -sign - | bin/jwt -key test/sample_key.pub -verify -
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"strings"
-	"time"
 
 	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/pschlump/dbgo"
@@ -164,7 +164,8 @@ func generateKeys(flagGenerate, flagKey, flagAlg string) (err error) {
 		err = GenerateRSAKeys(fn_public, fn_private, flagAlg)
 
 	} else if jwtlib.IsHs(flagAlg) {
-		s := RandomSecret(128)
+		var s string
+		s, err = RandomHex(128 / 2)
 		ioutil.WriteFile(fmt.Sprintf("%s.key", flagGenerate), []byte(fmt.Sprintf("%s\n", s)), 0600)
 
 	} else {
@@ -174,18 +175,12 @@ func generateKeys(flagGenerate, flagKey, flagAlg string) (err error) {
 	return
 }
 
-// RandomSecret will generate a random secret of given length
-func RandomSecret(length int) string {
-	bytes := make([]rune, length)
-
-	rand.Seed(time.Now().UnixNano())
-	letterRunes := []rune("0123456789abcdef")
-	for i := range bytes {
-		// TODO - replace with cryptograpic random generation!
-		bytes[i] = letterRunes[rand.Intn(len(letterRunes))]
+func RandomHex(n int) (string, error) {
+	bytes := make([]byte, n)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
 	}
-
-	return string(bytes)
+	return hex.EncodeToString(bytes), nil
 }
 
 // Verify a token and output the claims.  This is a great example
