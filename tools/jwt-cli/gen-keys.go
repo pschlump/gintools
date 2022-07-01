@@ -60,32 +60,94 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"log"
+	"fmt"
 	"os"
 )
 
-func generateRSAKey() (key *rsa.PrivateKey) {
+//func generateRSAKey() (key *rsa.PrivateKey) {
+//
+//	key, err := rsa.GenerateKey(rand.Reader, 3072)
+//	if err != nil {
+//		log.Fatalf("Failed to generate RSA key: %s\n", err)
+//	}
+//
+//	keyDer := x509.MarshalPKCS1PrivateKey(key)
+//
+//	keyBlock := pem.Block{
+//		Type:  "RSA PRIVATE KEY",
+//		Bytes: keyDer,
+//	}
+//
+//	keyFile, err := os.Create("rsa_key.pem")
+//	if err != nil {
+//		log.Fatalf("Failed to open rsa_key.pem for writing: %s", err)
+//	}
+//	defer func() {
+//		keyFile.Close()
+//	}()
+//
+//	pem.Encode(keyFile, &keyBlock)
+//	return
+//}
 
-	key, err := rsa.GenerateKey(rand.Reader, 3072)
-	if err != nil {
-		log.Fatalf("Failed to generate RSA key: %s\n", err)
+// See: https://www.ibm.com/docs/en/sva/9.0.6?topic=jwt-support
+
+func GenerateRSAKeys(fn_public, fn_private, Alg string) (err error) {
+	var keyLen int = 2048
+	switch Alg {
+	case "PS256":
+		keyLen = 2048
+	case "PS384":
+		keyLen = 3072
+	case "PS512":
+		keyLen = 4096
+	case "RS256":
+		keyLen = 2048
+	case "RS384":
+		keyLen = 3072
+	case "RS512":
+		keyLen = 4096
 	}
 
-	keyDer := x509.MarshalPKCS1PrivateKey(key)
+	// generate key
+	// privatekey, err := rsa.GenerateKey(rand.Reader, 2048)
+	privatekey, err := rsa.GenerateKey(rand.Reader, keyLen)
+	if err != nil {
+		return fmt.Errorf("Cannot generate RSA key: %s\n", err)
+	}
+	publickey := &privatekey.PublicKey
 
-	keyBlock := pem.Block{
+	// dump private key to file
+	var privateKeyBytes []byte = x509.MarshalPKCS1PrivateKey(privatekey)
+	privateKeyBlock := &pem.Block{
 		Type:  "RSA PRIVATE KEY",
-		Bytes: keyDer,
+		Bytes: privateKeyBytes,
 	}
-
-	keyFile, err := os.Create("rsa_key.pem")
+	privatePem, err := os.Create(fn_private)
 	if err != nil {
-		log.Fatalf("Failed to open rsa_key.pem for writing: %s", err)
+		return fmt.Errorf("error when create private.pem: %s \n", err)
 	}
-	defer func() {
-		keyFile.Close()
-	}()
+	err = pem.Encode(privatePem, privateKeyBlock)
+	if err != nil {
+		return fmt.Errorf("error when encode private pem: %s \n", err)
+	}
 
-	pem.Encode(keyFile, &keyBlock)
-	return
+	// dump public key to file
+	publicKeyBytes, err := x509.MarshalPKIXPublicKey(publickey)
+	if err != nil {
+		return fmt.Errorf("error when dumping publickey: %s \n", err)
+	}
+	publicKeyBlock := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: publicKeyBytes,
+	}
+	publicPem, err := os.Create(fn_public)
+	if err != nil {
+		return fmt.Errorf("error when create public.pem: %s \n", err)
+	}
+	err = pem.Encode(publicPem, publicKeyBlock)
+	if err != nil {
+		return fmt.Errorf("error when encode public pem: %s \n", err)
+	}
+	return nil
 }

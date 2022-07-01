@@ -13,8 +13,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/pschlump/dbgo"
@@ -146,20 +149,43 @@ func generateKeys(flagGenerate, flagKey, flagAlg string) (err error) {
 	// xyzzy - TODO -
 
 	if flagAlg == "EdDSA" {
-		fn_private := fmt.Sprintf("%s-private.pem", flagGenerate)
-		fn_public := fmt.Sprintf("%s-public.pem", flagGenerate)
+		fn_private := fmt.Sprintf("%s-Ed25519-private.pem", flagGenerate)
+		fn_public := fmt.Sprintf("%s-Ed25519-public.pem", flagGenerate)
 		err = GenerateSaveEd25519(fn_private, fn_public)
 
 	} else if jwtlib.IsEs(flagAlg) {
-		fn_private := fmt.Sprintf("%s-private.pem", flagGenerate)
-		fn_public := fmt.Sprintf("%s-public.pem", flagGenerate)
+		fn_private := fmt.Sprintf("%s-EC-private.pem", flagGenerate)
+		fn_public := fmt.Sprintf("%s-EC-public.pem", flagGenerate)
 		_, err = GenerateECKey(fn_public, fn_private, flagAlg)
+
+	} else if jwtlib.IsRs(flagAlg) {
+		fn_private := fmt.Sprintf("%s-RSA-private.pem", flagGenerate)
+		fn_public := fmt.Sprintf("%s-RSA-public.pem", flagGenerate)
+		err = GenerateRSAKeys(fn_public, fn_private, flagAlg)
+
+	} else if jwtlib.IsHs(flagAlg) {
+		s := RandomSecret(128)
+		ioutil.WriteFile(fmt.Sprintf("%s.key", flagGenerate), []byte(fmt.Sprintf("%s\n", s)), 0600)
 
 	} else {
 		err = fmt.Errorf("Error: unable to geneate %s type keys -- not implemented yet", flagAlg)
 	}
 
 	return
+}
+
+// RandomSecret will generate a random secret of given length
+func RandomSecret(length int) string {
+	bytes := make([]rune, length)
+
+	rand.Seed(time.Now().UnixNano())
+	letterRunes := []rune("0123456789abcdef")
+	for i := range bytes {
+		// TODO - replace with cryptograpic random generation!
+		bytes[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+
+	return string(bytes)
 }
 
 // Verify a token and output the claims.  This is a great example

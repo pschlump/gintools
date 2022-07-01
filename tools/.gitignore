@@ -1,1 +1,6 @@
 gen-ed25519.go
+gen-ed25519.go
+gen-hs128.go
+gen-rsa.go
+private.pem
+public.pem

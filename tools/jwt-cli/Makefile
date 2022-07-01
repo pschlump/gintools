@@ -107,6 +107,12 @@ test005:
 gen_es384:
 		./jwt-cli --generate jane --alg ES384
 
+gen_rs384:
+		./jwt-cli --generate r384 --alg RS384
+
+gen_hs384:
+		./jwt-cli --generate h256 --alg HS256
+
 test006: 
 	mkdir -p ./testdata ./out ./ref
 	echo '{"foo":"bar","auth_token":"123-456-7890"}' >./testdata/data006.json

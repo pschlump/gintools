@@ -1,0 +1,5 @@
+{
+	"status":"error",
+	"msg": "error message",
+	"loation": "/Users/philip/go/src/git.q8s.co/pschlump/qr_svr2/tools/jsonSuccess/testdata/bad.json"
+}
