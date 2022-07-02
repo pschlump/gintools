@@ -3984,6 +3984,10 @@ create table if not exists x_tmp_values (
 	name text,
 	value text
 );
+drop table if exists x_tmp_pass_fail ;
+create table if not exists x_tmp_pass_fail (
+	name text
+);
 
 
 
@@ -4380,8 +4384,10 @@ BEGIN
 
 	if not l_fail then 
 		insert into t_output ( msg ) values ( 'PASS' );
+		insert into x_tmp_pass_fail ( name ) values ( 'PASS' );
 	else 
 		insert into t_output ( msg ) values ( 'FAILED!  Errors = '||(n_err::text) );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED!  Errors = '||(n_err::text) );
 	end if;
 
 END
@@ -4469,10 +4475,14 @@ BEGIN
 
 	if not l_fail then 
 		insert into t_output ( msg ) values ( 'PASS' );
+		insert into x_tmp_pass_fail ( name ) values ( 'PASS' );
 	else 
 		insert into t_output ( msg ) values ( 'FAILED!  Errors = '||(n_err::text) );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED!  Errors = '||(n_err::text) );
 	end if;
 
+	insert into t_output ( msg ) values ( ' ' );
+	insert into t_output ( msg ) values ( ' ' );
 	commit;
 
 END
@@ -4481,3 +4491,7 @@ $$ LANGUAGE plpgsql;
 drop table if exists x_tmp_values ;
 
 select msg from t_output ;
+
+select name from x_tmp_pass_fail;
+
+drop table if exists x_tmp_pass_fail ;

@@ -1,10 +1,15 @@
 package jwt_auth
 
-// Copyright (c) Philip Schlump, 2016-2018.
+// Copyright (C) Philip Schlump, 2016-2018, 2022.
 // MIT Licensed.  See LICENSE.mit file.
 // BSD Licensed.  See LICENSE.bsd file.
 
-//xyzzy-00000-remove-old-code
+// xyzzy-jwt -- 2000:
+// xyzzy-jwt -- 2134:
+// log-xyzzy-log
+//	AuthJWTSource            string `json:"auth_jwt_source" default:"Authorization"`                                             // Valid forms for getting authorization		--- DEPRICATED
+// if len(gCfg.JwtKey) == 0 && jwtlib.IsHs(gCfg.AuthJWTKeyType) {
+// change JwtKey to  AuthJWTKey
 
 // xyzzy443 - send email about this
 //		- get sendgrid account updated
@@ -15,13 +20,7 @@ package jwt_auth
 
 // xyzzy448 - test for un/pw and token registration of acocunt, test of login, test of parent account deleted.
 
-// xyzzy8888 -------------------------- TODO - add/remove 2fa secret
-
-// xyzzy TODO ; switch jwt to : https://github.com/golang-jwt/jwt
-//				https://pkg.go.dev/github.com/golang-jwt/jwt
-
 import (
-	"encoding/hex"
 	"fmt"
 	"net/http"
 	"os"
@@ -39,12 +38,11 @@ import (
 	"github.com/pschlump/gintools/email"
 	"github.com/pschlump/gintools/log_enc"
 	"github.com/pschlump/gintools/qr_svr2"
+	"github.com/pschlump/gintools/tools/jwt-cli/jwtlib"
 	"github.com/pschlump/htotp"
 	"github.com/pschlump/json"
 	"github.com/pschlump/scany/pgxscan"
 )
-
-// jwt "github.com/dgrijalva/jwt-go"
 
 type GinLoginType struct {
 	Path     string
@@ -263,7 +261,10 @@ func authHandleLogin(c *gin.Context) {
 
 	// xyzzy1212-  TokenHeaderVSCookie string `json:"token_header_vs_cookie" default:"cookie"`
 	if rvStatus.AuthToken != "" {
-		theJwtToken := CreateJWTSignedCookie(c, rvStatus.AuthToken)
+		theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken)
+		if err != nil {
+			return
+		}
 		dbgo.Fprintf(logFilePtr, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s\n", rvStatus.AuthToken, theJwtToken)
 
 		c.Set("__is_logged_in__", "y")
@@ -1334,7 +1335,10 @@ func authHandleValidate2faToken(c *gin.Context) {
 	dbgo.Fprintf(logFilePtr, "%(cyan)%(LF): rvStatus.AuthToken= ->%s<-\n", rvStatus.AuthToken)
 	if rvStatus.AuthToken != "" {
 		dbgo.Fprintf(logFilePtr, "%(cyan)%(LF): rv=%s\n", rv)
-		theJwtToken := CreateJWTSignedCookie(c, rvStatus.AuthToken)
+		theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken)
+		if err != nil {
+			return
+		}
 		dbgo.Fprintf(logFilePtr, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s\n", rvStatus.AuthToken, theJwtToken)
 		c.Set("__is_logged_in__", "y")
 		c.Set("__user_id__", fmt.Sprintf("%d", rvStatus.UserId))
@@ -1911,6 +1915,10 @@ func authHandleRemove2faSecret(c *gin.Context) {
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
+// Use:
+//	AuthJWTPublic            string `json:"auth_jwt_public_file" default:""`                                                     // Public Key File
+//	AuthJWTPrivate           string `json:"auth_jwt_private_file" default:""`                                                    // Private Key File
+//	AuthJWTKeyType           string `json:"auth_jwt_key_type" default:"ES" validate:"v.In(['ES256','RS256', 'ES512', 'RS512'])"` // Key type ES = ESDSA or RS = RSA
 type SQLUserIdPrivsType struct {
 	UserId     int    `json:"user_id,omitempty" db:"user_id"`
 	Privileges string `json:"privileges,omitempty"`
@@ -1959,54 +1967,56 @@ func GetAuthToken(c *gin.Context) (UserId int, AuthToken string) {
 		// get the user_id  -- if have user_id, then ...
 		// if valid - then reutrn it.
 
-		// Initialize a new instance of `Claims`
-		claims := &JwtClaims{}
-
 		// Parse the JWT string and store the result in `claims`.
 		// Note that we are passing the key in this method as well. This method will return an error
 		// if the token is invalid (if it has expired according to the expiry time we set on sign in),
 		// or if the signature does not match
-		//
-		// See: https://stackoverflow.com/questions/68481150/how-to-parse-a-jwt-token-with-rsa-in-jwt-go-parsewithclaims
-		//		https://stackoverflow.com/questions/68568841/jwt-sign-and-parse-using-es256
-		//		https://github.com/dgrijalva/jwt-go/blob/008eba19055c071829e8317937b39845a9d2019b/ecdsa.go#L70
-		//		https://github.com/dgrijalva/jwt-go/blob/master/ecdsa_test.go
-		//		https://pkg.go.dev/github.com/golang-jwt/jwt/v4#section-readme
-		//		https://pkg.go.dev/github.com/golang-jwt/jwt#example-NewWithClaims-CustomClaimsType
-		//		https://techdocs.akamai.com/iot-token-access-control/docs/generate-ecdsa-keys
-		// Config Colums can be set to $ENV$ - to pull keys from env, or $FILE$ to read ./keys/ed25519-public.pem etc.
-		//
-		tkn, err := jwt.ParseWithClaims(jwtTok, claims, func(token *jwt.Token) (interface{}, error) {
-			data, err := hex.DecodeString(gCfg.JwtKey)
-			if err != nil {
-				return []byte{}, err
-			}
-			return data, nil // return gCfg.JwtKey, nil
-		})
-		if err != nil {
-			dbgo.Fprintf(logFilePtr, "X-Authentication - %(LF)\n")
-			if err == jwt.ErrSignatureInvalid {
-				dbgo.Fprintf(logFilePtr, "X-Authentication - %(LF)\n")
-				dbgo.Fprintf(os.Stderr, "X-Authentication - Singature on ->%s<- is invalid %(LF)\n", jwtTok)
-				// log
-				c.Writer.WriteHeader(http.StatusUnauthorized) // 401
-				return
-			}
-			dbgo.Fprintf(logFilePtr, "X-Authentication - %(LF) err:%s\n", err)
-			dbgo.Fprintf(os.Stderr, "X-Authentication - %(LF) err:%s\n", err)
-			// log
-			c.Writer.WriteHeader(http.StatusBadRequest) // 406
-			return
+		var err error
+
+		// xyzzy-jwt -- New Verify Token on Login
+
+		// func VerifyToken(rawToken []byte, alg string, keyData []byte) (token *jwt.Token, err error) {
+		// token, err := jwtlib.VerifyToken([]byte(token), gCfg.AuthJWTKeyType, gCfg.AuthJWTPublic )
+		dbgo.Fprintf(os.Stderr, "%(green)== Authentication == New Section ======================================== at: %(LF)\n")
+
+		var tkn *jwt.Token
+		if len(gCfg.AuthJWTKey) == 0 && jwtlib.IsHs(gCfg.AuthJWTKeyType) {
+			fmt.Fprintf(os.Stderr, "Fatal Error: Invalid configuration, HS* key and AuthJWTKey not set\n")
+			fmt.Fprintf(logFilePtr, "Fatal Error: Invalid configuration, HS* key and AuthJWTKey not set\n")
+			os.Exit(1)
+		} else if len(gCfg.AuthJWTKey) > 0 && jwtlib.IsHs(gCfg.AuthJWTKeyType) {
+			tkn, err = jwtlib.VerifyToken([]byte(jwtTok), gCfg.AuthJWTKeyType, []byte(gCfg.AuthJWTKey))
+		} else {
+			tkn, err = jwtlib.VerifyToken([]byte(jwtTok), gCfg.AuthJWTKeyType, []byte(gCfg.AuthJWTPublic)) // Validate with Public
 		}
-		if !tkn.Valid {
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Invalid Token : %s\n", err)
+			fmt.Fprintf(logFilePtr, "Error: Invalid Token : %s\n", err)
+		}
+		if err != nil || tkn == nil || !tkn.Valid {
 			dbgo.Fprintf(logFilePtr, "X-Authentication - %(LF)\n")
 			dbgo.Fprintf(os.Stderr, "X-Authentication - %(LF) - token not valid\n")
-			// log
+			// log-xyzzy-log
 			c.Writer.WriteHeader(http.StatusUnauthorized) // 401
 			return
 		}
 
-		AuthToken = claims.AuthToken
+		// return NewWithClaims(method, MapClaims{})
+		// type MapClaims map[string]interface{}
+		cc, ok := tkn.Claims.(jwt.MapClaims)
+		if ok {
+			dbgo.Fprintf(os.Stderr, "%(green)== Mapped the claims to jwt.MapClaims\n")
+			AuthToken, ok = cc["auth_token"].(string)
+			if !ok {
+				AuthToken = ""
+				dbgo.Fprintf(os.Stderr, "%(red)== Failed! Mapped [auth_token] to string\n")
+			} else {
+				dbgo.Fprintf(os.Stderr, "%(green)== Mapped [auth_token] to string\n")
+			}
+		} else {
+			dbgo.Fprintf(os.Stderr, "%(red)== Failed! Mapped the claims to jwt.MapClaims\n")
+		}
+
 		dbgo.Fprintf(logFilePtr, "X-Authentication - AuthToken ->%s<- %(LF)\n", AuthToken)
 		dbgo.Fprintf(os.Stderr, "X-Authentication - Have an auth_token - %(green)AuthToken ->%s<-%(reset) %(LF)\n", AuthToken)
 
@@ -2069,44 +2079,48 @@ func GetAuthToken(c *gin.Context) (UserId int, AuthToken string) {
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
-// new - modifified
-//
 // Use:
 //	AuthJWTPublic            string `json:"auth_jwt_public_file" default:""`                                                     // Public Key File
 //	AuthJWTPrivate           string `json:"auth_jwt_private_file" default:""`                                                    // Private Key File
 //	AuthJWTKeyType           string `json:"auth_jwt_key_type" default:"ES" validate:"v.In(['ES256','RS256', 'ES512', 'RS512'])"` // Key type ES = ESDSA or RS = RSA
-//	AuthJWTSource            string `json:"auth_jwt_source" default:"Authorization"`                                             // Valid forms for getting authorization
 
-func CreateJWTSignedCookie(c *gin.Context, DBAuthToken string) (rv string) {
-	if DBAuthToken != "" {
+func CreateJWTSignedCookie(c *gin.Context, DBAuthToken string) (rv string, err error) {
+
+	if DBAuthToken != "" { // If the Database code created an auth-token, then this needs to be converted to a JWT-Token and sent back to the user (Coookie, Header etc)
+
 		// SET: Cookie("X-Authentication", www, req)
-		jwtClaims := JwtClaims{
-			AuthToken: DBAuthToken,
+		// xyzzy-jwt -- New Sign Token on Login
+
+		claims := jwt.MapClaims{
+			"auth_token": DBAuthToken,
 		}
 
-		// "github.com/dgrijalva/jwt-go"
-		//  https://www.sohamkamani.com/golang/jwt-authentication/
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtClaims)
-		data, err := hex.DecodeString(gCfg.JwtKey)
+		dbgo.Fprintf(os.Stderr, "%(green)== Authentication == New Sign/Cookie Section ======================================== at: %(LF)\n")
+
+		if len(gCfg.AuthJWTKey) == 0 && jwtlib.IsHs(gCfg.AuthJWTKeyType) {
+			fmt.Fprintf(os.Stderr, "Fatal Error: Invalid configuration, HS* key and AuthJWTKey not set\n")
+			fmt.Fprintf(logFilePtr, "Fatal Error: Invalid configuration, HS* key and AuthJWTKey not set\n")
+			os.Exit(1)
+		} else if len(gCfg.AuthJWTKey) > 0 && jwtlib.IsHs(gCfg.AuthJWTKeyType) {
+			dbgo.Fprintf(os.Stderr, "%(green)== HS type key - this is good.\n")
+			rv, err = jwtlib.SignToken([]byte("{}"), gCfg.AuthJWTKeyType, map[string]string{}, claims, []byte(gCfg.AuthJWTKey))
+		} else {
+			dbgo.Fprintf(os.Stderr, "%(green)== ES/RS/EdDSA type key - this is new. ->%s<-\n", gCfg.AuthJWTKeyType)
+			dbgo.Fprintf(os.Stderr, "%(green)== Private Key ->%s<-\n", gCfg.AuthJWTPrivate)
+			// jwtlib. SignToken(rawToken []byte, Alg string, Head map[string]string, claims jwt.MapClaims, keyData []byte) (signedToken string, err error) {
+			rv, err = jwtlib.SignToken([]byte("{}"), gCfg.AuthJWTKeyType, map[string]string{}, claims, []byte(gCfg.AuthJWTPrivate)) // Sign with Private
+		}
 		if err != nil {
 			log_enc.LogMiscError(c, err, fmt.Sprintf("Unable to convert JWT key to []byte from hex ->%s<-", err))
 			return
 		}
-		tokenString, err := token.SignedString(data)
-		if err != nil {
-			log_enc.LogMiscError(c, err, fmt.Sprintf("Unable to sign JWT token ->%s<- ->%x<-", gCfg.JwtKey, data))
-			return
-		}
-		rv = tokenString
 
-		// xyzzy1212-  TokenHeaderVSCookie string `json:"token_header_vs_cookie" default:"cookie"`
 		// "Progressive improvement beats delayed perfection" -- Mark Twain
 		if gCfg.TokenHeaderVSCookie == "header" || gCfg.TokenHeaderVSCookie == "both" {
-			// return { 'Authorization': 'Bearer ' + user.token };
-			c.Writer.Header().Set("Authorization", "Bearer "+tokenString)
+			c.Writer.Header().Set("Authorization", "Bearer "+rv)
 		}
 		if gCfg.TokenHeaderVSCookie == "cookie" || gCfg.TokenHeaderVSCookie == "both" {
-			SetCookie("X-Authentication", tokenString, c) // Will be a secure http cookie on TLS.
+			SetCookie("X-Authentication", rv, c)          // Will be a secure http cookie on TLS.
 			SetInsecureCookie("X-Is-Logged-In", "yes", c) // To let the JS code know that it is logged in.
 		}
 	}

@@ -21,7 +21,6 @@ type AppConfig struct {
 
 	EncryptionPassword     string `json:"encryption_password" default:"$ENV$QR_ENC_PASSWORD"`    // rv, err := SelectJson(stmt, pp.Un, pp.Pw, gCfg.EncryptionPassword)
 	UserdataPassword       string `json:"userdata_password" default:"$ENV$QR_USERDATA_PASSWORD"` // rv, err := SelectJson(stmt, pp.Un, pp.Pw, gCfg.EncryptionPassword)
-	JwtKey                 string `json:"jwt_key_password" default:"$ENV$QR_JWT_KEY"`
 	LogEncryptionPassword  string `json:"log_encryption_password" default:"$ENV$QR_LOG_ENCRYPTION_PASSWORD"`
 	FileEncryptionPassword string `json:"file_encryption_password" default:"$ENV$QR_UPLOAD_FILE_PASSWORD"`
 	EtagPassword           string `json:"etag_password" default:"$ENV$QR_ETAG_PASSWORD"`
@@ -66,6 +65,10 @@ type UploadConfig struct {
 
 // This file is BSD 3 Clause licensed.
 
+//	AuthJWTSource            string `json:"auth_jwt_source" default:"Authorization"`                                             // Valid forms for getting authorization		--- DEPRICATED
+// if len(gCfg.JwtKey) == 0 && jwtlib.IsHs(gCfg.AuthJWTKeyType) {
+// change JwtKey to  AuthJWTKey
+
 type BaseConfigType struct {
 	Mode string `json:"mode" default:"prod"`
 
@@ -98,28 +101,14 @@ type BaseConfigType struct {
 	EmailLogFileName string `json:"email_log_file_name" default:"./log/email-log.out"`
 
 	// Auth Related Stuff ------------------------------------------------------------------------------------------------------------------------------------------------------------
-	AuthRealm                string `json:"auth_realm" default:"*" pgsave:"AuthRealm"`                                           //
-	Auth2faEnabled           string `json:"auth_2fa_enabled" default:"no" pgsave:"Auth2faEnabled"`                               //
-	UseEmailConfirm          string `json:"use_email_confirm" default:"no" pgsave:"UseEmailConfirm"`                             //
-	AuthLoginOnRegister      string `json:"auth_login_on_register" default:"no" pgsave:"AuthLoginOnRegister"`                    //
-	UseRegistrationToken     string `json:"use_registration_token" default:"yes" pgsave:"UseRegistrationToken"`                  //
-	UseTOTPSkew              int    `json:"use_totp_skew" default:"1" pgsave:"UseTOTPSkew"`                                      //
-	AuthMethod               string `json:"auth_method" default:"key" validate:"v.In(['key','jwt'])" pgsave:"AuthMethod"`        // key or jwt for the moment
-	AuthKey                  string `json:"auth_key" default:""`                                                                 //
-	AuthJWTPublic            string `json:"auth_jwt_public_file" default:""`                                                     // Public Key File
-	AuthJWTPrivate           string `json:"auth_jwt_private_file" default:""`                                                    // Private Key File
-	AuthJWTKeyType           string `json:"auth_jwt_key_type" default:"ES" validate:"v.In(['ES256','RS256', 'ES512', 'RS512'])"` // Key type ES = ESDSA or RS = RSA
-	AuthJWTSource            string `json:"auth_jwt_source" default:"Authorization"`                                             // Valid forms for getting authorization
-	AuthTokenValidate        string `json:"auto_token_validate" default:"no"`                                                    //
-	AuthTokenURI             string `json:"auth_token_uRI" default:"http://127.0.0.1:9019/api/admin/validate-token"`             //
-	AuthTokenLifetime        int    `json:"auth_token_lifetime" default:"3640" pgsave:"AuthTokenLifetime"`                       // Lifetime is in seconds - this is under 1 hour (3600 is hour)
-	AuthEmailConfirm         string `json:"auth_email_confirm" default:"yes" pgsave:"AuthEmailConfirm"`                          //
-	Auth2faSetupApp          string `json:"auth_2fa_setup_app" default:"http://2fa.simple-auth.com/setup.html"`                  // xyzzy - should be 192.154.97.75 2fa.simple-auth.com			// {{.base_server_url}}/setup.html
-	Auth2faAppNoEmail        string `json:"auth_2fa_app_no_email" default:"http://2fa.simple-auth.com/app.html"`                 // xyzzy - should be 192.154.97.75 2fa.simple-auth.com			// {{.base_server_url}}/index.html
-	AuthSelfURL              string `json:"auth_self_url" default:"http://2fa.simple-auth.com"`                                  // where to call to get info on this user.						// {{.base_server_url}}
-	AuthQrURL                string `json:"auth_qr_url" default:"{{.BaseServerUrl}}"`                                            // where to call to QR images painted
-	AuthApplicationName      string `json:"auth_application_name" default:"Simple Auth"`                                         // Name of applicaiton for use in templates
-	AuthRedirect2faSetupPage string `json:"auth_redirect_2fa_setup_page" default:"/2fa-setup-page.html"`                         // page to redirect to when 2fa setup is used.
+	AuthRealm           string `json:"auth_realm" default:"*" pgsave:"AuthRealm"`   //
+	AuthKey             string `json:"auth_key" default:""`                         //
+	AuthJWTPublic       string `json:"auth_jwt_public_file" default:""`             // Public Key File
+	AuthJWTPrivate      string `json:"auth_jwt_private_file" default:""`            // Private Key File
+	AuthJWTKeyType      string `json:"auth_jwt_key_type" default:"HS256"`           // Key type ES = ESDSA or RS = RSA
+	AuthJWTKey          string `json:"jwt_key_password" default:"$ENV$QR_JWT_KEY"`  //
+	AuthApplicationName string `json:"auth_application_name" default:"Simple Auth"` // Name of applicaiton for use in templates
+	// UseRegistrationToken string `json:"use_registration_token" default:"yes" pgsave:"UseRegistrationToken"` //
 	// End Auth realted -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 	// CORS Related Stuff ------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -131,25 +120,7 @@ type BaseConfigType struct {
 	// End CORS Related Stuff ------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 	// debug flags:	 Comma seperated values in the config file.
-	// 	 test-http-end-points			Turn on extra end-points for testing code.   Tests are in Makefile.
-	//	 dump-db-flag				  	Print out the db flags that are set.
-	//   GetVal							Echo variables that are fetched.
-	//   RedisClient					Report on connedtion to Redis
-	//   Cli.Where						Dump out where the writes to the output http buffer occure.
-	//   Cli.Write
-	//   cli
-	//   test-print-command-success
-	// From MonAliveLib
-	// 		MonAliveLib.report-config	Reprot if defauilt config is used.
 	DebugFlag string `json:"db_flag"`
-
-	// xyzzy - Demo Mode - xyzzy
-	// URL := "http://www.2c-why.com/Ran/RandomValue"
-	RandomOracleURL string `json:"random_oracle_url" default:"http://www.2c-why.com/Ran/RandomValue"`
-
-	// 1. template(s) for ./desc.html -> ./tmpl/desc.html.tmpl
-	DescHtmlTemplate string `json:"desc_html_tmpl" default:"./tmpl/desc.html.tmpl"`
-	DocMdFile        string `json:"doc_md" default:"./tmpl/api-doc.md"`
 
 	// Defauilt file for TLS setup (Shoud include path), both must be specified.
 	// These can be over ridden on the command line.
@@ -173,12 +144,6 @@ type BaseConfigType struct {
 	// Path for static files
 	StaticPath string `json:"static_path" default:"www"`
 
-	// Remote validation of "auth_token" from JWT Token.
-	RemoteAuthServer       string `json:"remote_auth_server" default:"http://www.simple-auth.com:9019"`
-	RemoteAuthGetTokenInfo string `json:"remote_auth_server" default:"http://www.simple-auth.com:9019/api/v1/get-token-info"`
-	RemoteAuthTTL          int    `json:"remote_auth_ttl" default:"120"`                  // In seconds
-	RemoteAuthKey          string `json:"remote_auth_ttl" default:"$ENV$SIMPLE_AUTH_KEY"` // In seconds
-
 	// JS/HTML can be templated to produce a configuration
 	// var URLRegister = "http://127.0.0.1:9019/api/session/register_immediate";
 	// var URLRegister = "http://www.simple-auth.com:9019/api/session/register_immediate";
@@ -186,41 +151,17 @@ type BaseConfigType struct {
 	TemplatedFiles      string `default:"/js/x-config.js"`
 	URL__Auth__Register string `json:"URL__Auth__Register" default:"$ENV$URL__Auth__Register"`
 
-	JWTUsed            bool
-	URL__JWT__Validate string `json:"URL__JWT__Validate" default:"$ENV$URL__JWT__Validate"`
-	JWT_KeyFile        string `json:"jwt_key_file_dir" default:"./test-key"`
-	JWT_Ecdsa          string `json:"jwt_ecdsa" default:"no"` // using RSA until figure out how to sign ecdsa for test
-	JWT_RSA            string `json:"jwt_rsa" default:"yes"`
-
 	// Authentication configuration items
-	PasswordResetPage string `json:"password_reset_uri" default:"/password_reset.html?token={{.token}}"`
-
-	// Authentication configuration items
-	AppliationMainPage       string `json:"main_uri" default:"/index.html"`
-	ImmediateLoginOnRegister string `json:"immediate_login_on_register" default:"yes"`
-	EmailTmplDir             string `json:"email_template_dir" default:"./tmpl"`
-	EmailFromName            string `json:"email_from_name" default:"Authentication"`
-	EmailFromAddress         string `json:"email_from_address" default:"pschlump@gmail.com"`
-	RFC6238_2fa_on           string `json:"rfc_6238_2fa_on" default:"no"`
-	RFC6238_2fa_NDigits      int    `json:"rfc_6238_2fa_n_digits" default:"6"`
-	RFC6238_RedisKey         string `json:"rfc_6238_redi_key" default:"qr2fa:"`
-	RFC6238_QR_TTL           int    `json:"rfc_6238_ttl" default:"172800"` // 2 days = 24 * 60 * 60 * 2
-	Use14DayCookie           string `json:"use_14_day_cookie" default:"yes"`
-	// see also: insert into "t_ymux_config" ( "name", "ty", "value", "i_value" ) values ( 'rfc_6238_n_digits', 'i', '6', 6 );
-	// TableAuthToken           string `json:"table_auth_token" default:"t_auth_token"`
-	// TableUser                string `json:"table_user" default:"t_user"`
+	// AppliationMainPage string `json:"main_uri" default:"/index.html"`
+	EmailTmplDir     string `json:"email_template_dir" default:"./tmpl"`
+	EmailFromName    string `json:"email_from_name" default:"Authentication"`
+	EmailFromAddress string `json:"email_from_address" default:"pschlump@gmail.com"`
 
 	UseRolePriv string `json:"use_role_priv" default:"yes"`
 
 	CachForPwned string `json:"cache_for_pwned" default:"./pwned_cache"`
 
 	BaseServerUrl string `json:"base_server_url" default:"http://www.2c-why.com"` // urlBase := "http://www.q8s.com"
-
-	// xyzzy - Demo Mode - xyzzy
-	DemoFlag       string `json:"demo_flag" default:"no"` // if "yes" then in demo mode. CSV value, yes,RandomOracle,2FA,Login,QRCode,Geth
-	demoProcessed  bool
-	demoFlag       bool
-	demoComponents map[string]bool
 
 	BusinessAuthToken string `json:"business_auth_token" default:"no"` // Not implemented yet - jsut read in.  Requires a "auth-token" for user to register.
 

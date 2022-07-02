@@ -112,7 +112,7 @@ create index q_qr_user_seen_before_p2 on q_qr_manifest_version ( created );
 CREATE OR REPLACE function q_qr_manifest_version_upd()
 RETURNS trigger AS $$
 BEGIN
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -145,7 +145,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -225,7 +225,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -321,7 +321,7 @@ CREATE TABLE if not exists t_valid_cors_origin (
 CREATE OR REPLACE function t_valid_cors_origin_upd()
 RETURNS trigger AS $$
 BEGIN
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -392,7 +392,7 @@ create table if not exists q_qr_headers (
 CREATE OR REPLACE function q_qr_headers_upd()
 RETURNS trigger AS $$
 BEGIN
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -469,7 +469,7 @@ create index q_qr_saved_state_p1 on q_qr_saved_state ( expires );
 CREATE OR REPLACE function q_qr_saved_state_upd()
 RETURNS trigger AS $$
 BEGIN
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -584,7 +584,7 @@ CREATE INDEX q_qr_users_enc_p5 on q_qr_users using HASH ( last_name_hmac );
 CREATE OR REPLACE function q_qr_users_upd()
 RETURNS trigger AS $$
 BEGIN
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -626,7 +626,7 @@ CREATE TABLE if not exists q_qr_user_pii (
 CREATE OR REPLACE function q_qr_user_pii_upd()
 RETURNS trigger AS $$
 BEGIN
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -914,7 +914,7 @@ create unique index q_qr_config_u1 on q_qr_config ( name ) ;
 CREATE OR REPLACE function q_qr_config_upd()
 RETURNS trigger AS $$
 BEGIN
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -1375,7 +1375,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	select value into l_data from q_qr_config where name = p_name;
 	if not found then
 		l_data = '';
@@ -1393,7 +1393,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	select b_value into l_data from q_qr_config where name = p_name;
 	if not found then
 		l_data = false;
@@ -1426,7 +1426,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -1516,7 +1516,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -1583,7 +1583,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -1672,7 +1672,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -1755,7 +1755,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -1868,7 +1868,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -2060,7 +2060,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -2111,7 +2111,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -2315,7 +2315,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -2507,7 +2507,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -2595,7 +2595,7 @@ create or replace function q_auth_v1_delete_user ( p_user_id int )
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 
 	delete from q_qr_auth_security_log where user_id = p_user_id;
 	delete from q_qr_auth_tokens where user_id = p_user_id;
@@ -2635,7 +2635,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -2731,7 +2731,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -2809,7 +2809,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -3186,7 +3186,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -3279,7 +3279,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
@@ -3473,7 +3473,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
@@ -3660,7 +3660,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -3740,7 +3740,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -3790,7 +3790,7 @@ create or replace function q_auth_v1_setup_2fa_test ( p_user_id int )
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 
 	update q_qr_users as t1
 		set setup_complete_2fa = 'y'
@@ -3825,7 +3825,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -3961,7 +3961,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -4047,7 +4047,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -4094,7 +4094,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 3f45ffd2a3358702c1ad640fe2232c8b9cf2bd8e tag: v1.0.0 build_date: Fri Jul  1 04:41:49 MDT 2022
+	-- version: b1cacf6aa67c01dc6795ac5751b2c9d5898a61d2 tag: v1.0.2 build_date: Fri Jul  1 20:48:34 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -4227,6 +4227,10 @@ create table if not exists x_tmp_values (
 	name text,
 	value text
 );
+drop table if exists x_tmp_pass_fail ;
+create table if not exists x_tmp_pass_fail (
+	name text
+);
 
 
 
@@ -4270,28 +4274,28 @@ BEGIN
 	-- Check Data (Privileges) ------------------------------------------------------------------------------------------
 	select count(1) into l_cnt1 from q_qr_role;
 	if l_cnt1 = 0 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4030 -- missing data in q_qr_role' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4034 -- missing data in q_qr_role' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 
 	select count(1) into l_cnt1 from q_qr_priv;
 	if l_cnt1 = 0 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4037 -- missing data in q_qr_priv' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4041 -- missing data in q_qr_priv' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 
 	select count(1) into l_cnt1 from q_qr_role_priv;
 	if l_cnt1 = 0 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4044 -- missing data in q_qr_role_priv' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4048 -- missing data in q_qr_role_priv' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 
 	select count(1) into l_cnt1 from q_qr_user_role;
 	if l_cnt1 = 0 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4051 -- missing data in q_qr_user_role' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4055 -- missing data in q_qr_user_role' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -4350,7 +4354,7 @@ BEGIN
 
 	l_bool = q_get_config_bool ( 'confg.test' );
 	if l_bool = true then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4110 -- config not working' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4114 -- config not working' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -4358,21 +4362,21 @@ BEGIN
 	update q_qr_config set b_value = true, value = 'yes' where name = 'config.test';
 	GET DIAGNOSTICS v_cnt = ROW_COUNT;
 	if v_cnt != 1 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4118 -- config not working' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4122 -- config not working' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 
 	l_bool = q_get_config_bool ( 'config.test' );
 	if l_bool = false then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4125 -- config not working' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4129 -- config not working' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 
 	l_bool = q_get_config_bool ( 'missing.test' );
 	if l_bool != false then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4132 -- config not working' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4136 -- config not working' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -4400,13 +4404,13 @@ BEGIN
 	--  	Register Output:   {"status":"success", "user_id":4, "email_verify_token":"5ed065f3-7b59-477c-942a-5479bd22c2d7", "secret_2fa":"cf1756e5ef"}
 	insert into t_output ( msg ) values ( 'Register Output:   '||l_r1 );
 	if l_status != '"success"' then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4160 -- failed to register, expected ->"success"<- got ->'||l_status||'<-' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4164 -- failed to register, expected ->"success"<- got ->'||l_status||'<-' );
 		insert into t_output ( msg ) values ( '   '||l_r1 );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 	if l_cnt1 >= l_cnt2 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4166 -- failed to register new user.  Row count did not increase.' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4170 -- failed to register new user.  Row count did not increase.' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -4421,7 +4425,7 @@ BEGIN
 
 	select count(1) into l_cnt1 from q_qr_user_role;
 	if l_cnt1 = 0 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4181 -- missing data in q_qr_user_role' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4185 -- missing data in q_qr_user_role' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -4470,7 +4474,7 @@ BEGIN
 			select get_user_list( 'my long secret password', 'user info password' )
 		) as t1;
 	if l_cnt1 = 0 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4230 -- failed to create user' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4234 -- failed to create user' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -4512,7 +4516,7 @@ BEGIN
 	select q_amdin_HasPriv ( l_user_id, 'May X' )
 		into l_bool;
 	if l_bool != false then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4272 -- return true on non-existent privilege.  user_id='||l_user_id::text );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4276 -- return true on non-existent privilege.  user_id='||l_user_id::text );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -4521,7 +4525,7 @@ BEGIN
 	select q_amdin_HasPriv ( l_user_id, 'May Change Password' )
 		into l_bool;
 	if l_bool != true then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4281 -- return false on privilege that should exist.  user_id='||l_user_id::text );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4285 -- return false on privilege that should exist.  user_id='||l_user_id::text );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -4623,8 +4627,10 @@ BEGIN
 
 	if not l_fail then 
 		insert into t_output ( msg ) values ( 'PASS' );
+		insert into x_tmp_pass_fail ( name ) values ( 'PASS' );
 	else 
 		insert into t_output ( msg ) values ( 'FAILED!  Errors = '||(n_err::text) );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED!  Errors = '||(n_err::text) );
 	end if;
 
 END
@@ -4676,7 +4682,7 @@ BEGIN
 		where name = 'l_auth_token'
 		;
 	if not found then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4436 -- missing data in x_tmp_values, key=''l_auth_token'' -no rows found-' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4442 -- missing data in x_tmp_values, key=''l_auth_token'' -no rows found-' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -4695,27 +4701,31 @@ BEGIN
 		group by t1.user_id
 		;
 	if not found then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4455 -- missing data in role/priv/token -no rows found-' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4461 -- missing data in role/priv/token -no rows found-' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 	if l_junk1 <> l_user_id then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4460 -- missing data in role/priv/token - bad user id' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4466 -- missing data in role/priv/token - bad user id' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 	if l_privilage::text = '[null]' then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4465 -- missing data in role/priv/token - bad user id' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4471 -- missing data in role/priv/token - bad user id' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 
 	if not l_fail then 
 		insert into t_output ( msg ) values ( 'PASS' );
+		insert into x_tmp_pass_fail ( name ) values ( 'PASS' );
 	else 
 		insert into t_output ( msg ) values ( 'FAILED!  Errors = '||(n_err::text) );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED!  Errors = '||(n_err::text) );
 	end if;
 
+	insert into t_output ( msg ) values ( ' ' );
+	insert into t_output ( msg ) values ( ' ' );
 	commit;
 
 END
@@ -4724,3 +4734,7 @@ $$ LANGUAGE plpgsql;
 drop table if exists x_tmp_values ;
 
 select msg from t_output ;
+
+select name from x_tmp_pass_fail;
+
+drop table if exists x_tmp_pass_fail ;
