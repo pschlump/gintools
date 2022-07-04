@@ -20,9 +20,17 @@ package jwt_auth
 
 // xyzzy448 - test for un/pw and token registration of acocunt, test of login, test of parent account deleted.
 
+// xyzzy000 - on /regPt2/email/token -
+
+// xyzzy000 - on data.go:AuthConfirmEmailURI     string `json:"auth_confirm_email_uri" default:"/confirm-email"`                           // Redirect to this URI for info on confirming email.
+// 			AuthConfirmEmailURI string `json:"auth_confirm_email_uri" default:"/confirm-email"` // Redirect to this URI for info on confirming email.
+// from tmpl/welcome_registration.tmpl
+// <a href="{{.server}}api/v1/auth/email-confirm?email_verify_token={{.token}}&redirect_to=yes"> {{.server}}confirm-email.html </a><br>
+
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -61,16 +69,14 @@ var GinSetupTable = []GinLoginType{
 
 	// No Login UseLogin
 	{Method: "POST", Path: "/api/v1/auth/login", Fx: authHandleLogin, UseLogin: PublicApiCall},
-	{Method: "POST", Path: "/api/v1/auth/register", Fx: authHandleRegister, UseLogin: PublicApiCall},                                             // un + pw + first_name + last_name
-	{Method: "POST", Path: "/api/v1/auth/validate-2fa-token", Fx: authHandleValidate2faToken, UseLogin: PublicApiCall},                           // 2nd step 2fa - create auth-token / jwtToken Sent
-	{Method: "POST", Path: "/api/v1/auth/email-confirm", Fx: authHandlerEmailConfirm, UseLogin: PublicApiCall},                                   // token
+	{Method: "POST", Path: "/api/v1/auth/register", Fx: authHandleRegister, UseLogin: PublicApiCall},                   // un + pw + first_name + last_name
+	{Method: "POST", Path: "/api/v1/auth/validate-2fa-token", Fx: authHandleValidate2faToken, UseLogin: PublicApiCall}, // 2nd step 2fa - create auth-token / jwtToken Sent
+	// {Method: "POST", Path: "/api/v1/auth/email-confirm", Fx: authHandlerEmailConfirm, UseLogin: PublicApiCall},                                   // token
 	{Method: "GET", Path: "/api/v1/auth/email-confirm", Fx: authHandlerEmailConfirm, UseLogin: PublicApiCall},                                    // token
 	{Method: "POST", Path: "/api/v1/auth/recover-password-01-setup", Fx: authHandleRecoverPassword01Setup, UseLogin: PublicApiCall},              //
 	{Method: "GET", Path: "/api/v1/auth/recover-password-01-setup", Fx: authHandleRecoverPassword01Setup, UseLogin: PublicApiCall},               //
 	{Method: "POST", Path: "/api/v1/auth/recover-password-02-fetch-info", Fx: authHandleRecoverPassword02FetchInfo, UseLogin: PublicApiCall},     //
-	{Method: "GET", Path: "/api/v1/auth/recover-password-02-fetch-info", Fx: authHandleRecoverPassword02FetchInfo, UseLogin: PublicApiCall},      //
 	{Method: "POST", Path: "/api/v1/auth/recover-password-03-set-password", Fx: authHandleRecoverPassword03SetPassword, UseLogin: PublicApiCall}, //
-	{Method: "GET", Path: "/api/v1/auth/recover-password-03-set-password", Fx: authHandleRecoverPassword03SetPassword, UseLogin: PublicApiCall},  //
 	{Method: "GET", Path: "/api/v1/auth/no-login-status", Fx: authHandleNoLoginStatus, UseLogin: PublicApiCall},                                  //
 	{Method: "POST", Path: "/api/v1/auth/no-login-status", Fx: authHandleNoLoginStatus, UseLogin: PublicApiCall},                                 //
 	{Method: "GET", Path: "/api/v1/auth/2fa-has-been-setup", Fx: authHandle2faHasBeenSetup, UseLogin: PublicApiCall},                             //
@@ -397,16 +403,16 @@ func authHandleRegister(c *gin.Context) {
 	// ---------------------------------------------------------------------------------------------------------------------
 	// ConfirmEmailAccount(c, RegisterResp.EmailVerifyToken)
 
-	email.SendEmail(
-		"welcome_registration", // Email Template
+	email.SendEmail("welcome_registration", // Email Template
 		"username", pp.Email,
 		"email", pp.Email,
+		"email_url_encoded", url.QueryEscape(pp.Email),
 		"first_name", pp.FirstName,
 		"last_name", pp.LastName,
 		"real_name", pp.FirstName+" "+pp.LastName,
 		"token", RegisterResp.EmailVerifyToken,
 		"user_id", RegisterResp.UserId,
-		"server", gCfg.BaseServerUrl,
+		"server", gCfg.BaseServerURL,
 		"application_name", gCfg.AuthApplicationName,
 		"realm", gCfg.AuthRealm,
 	)
@@ -510,11 +516,14 @@ func MintQRPng(c *gin.Context, InputString string) (qrurl string) {
 
 type RvEmailConfirm struct {
 	StdErrorReturn
+	Email    string `json:"email,omitempty"`
 	TmpToken string `json:"tmp_token,omitempty"` // May be "" - used in 2fa part 1 / 2
 }
 
 type ApiAuthEmailValidate struct {
+	Email            string `json:"email"              form:"email"             `
 	EmailVerifyToken string `json:"email_verify_token" form:"email_verify_token"   binding:"required"`
+	RedirectTo       string `json:"redirect_to"        form:"redirect_to"`
 }
 
 type EmailConfirmSuccess struct {
@@ -523,9 +532,8 @@ type EmailConfirmSuccess struct {
 }
 
 // authHandlerEmailConfirm uses the token to lookup a user and confirms that the email that received the token is real.
-// `redirect_to` is ignored at this point.
 //
-// From: router.POST("/api/v1/auth/email-confirm", authHandlerEmailConfirm)
+// From: router.GET("/api/v1/auth/email-confirm", authHandlerEmailConfirm)
 
 // authHandleEmailConfirm godoc
 // @Summary Confirm the email from registration.
@@ -542,8 +550,12 @@ type EmailConfirmSuccess struct {
 // @Failure 401 {object} jwt_auth.StdErrorReturn
 // @Failure 406 {object} jwt_auth.StdErrorReturn
 // @Failure 500 {object} jwt_auth.StdErrorReturn
-// @Router /v1/auth/email-confirm [post]
+// @Router /v1/auth/email-confirm [get]
 func authHandlerEmailConfirm(c *gin.Context) {
+	// xyzzy000 - on data.go:AuthConfirmEmailURI     string `json:"auth_confirm_email_uri" default:"/confirm-email"`                           // Redirect to this URI for info on confirming email.
+	// 			AuthConfirmEmailURI string `json:"auth_confirm_email_uri" default:"/confirm-email"` // Redirect to this URI for info on confirming email.
+	// from tmpl/welcome_registration.tmpl
+	// <a href="{{.server}}api/v1/auth/email-confirm?email_verify_token={{.token}}&redirect_to=yes"> {{.server}}confirm-email.html </a><br>
 	var err error
 	var pp ApiAuthEmailValidate
 	if err := BindFormOrJSON(c, &pp); err != nil {
@@ -562,6 +574,27 @@ func authHandlerEmailConfirm(c *gin.Context) {
 		rvEmailConfirm.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvEmailConfirm))
 		c.JSON(http.StatusBadRequest, logJsonReturned(rvEmailConfirm.StdErrorReturn)) // 400
+		return
+	}
+
+	// handle redirect.
+	if pp.RedirectTo == "yes" {
+		c.Writer.WriteHeader(http.StatusSeeOther) // 303
+		to := gCfg.BaseServerURL + gCfg.AuthConfirmEmailURI + "/" + url.QueryEscape(rvEmailConfirm.Email) + "/" + url.QueryEscape(rvEmailConfirm.TmpToken)
+		c.Writer.Header().Set("Location", to)
+		fmt.Fprintf(c.Writer, `
+<html>
+<body>
+	If the browser fails to redirect you then click on the link below:<br>
+	<br>
+	<a href="%s">%s</a><br>
+	<br>
+<script>
+window.location = "%s";
+</script>
+</body>
+</html>
+`, to, to, to)
 		return
 	}
 
@@ -641,6 +674,7 @@ func authHandleChangePassword(c *gin.Context) {
 		// xyzzy443 - send email about change
 
 		// email.SendEmail("password_updated", "username", un, "email", emailaddr, "real_name", real_name, "token", recovery_token, "realm", gCfg.AuthRealm, "server", gCfg.AuthSelfURL)
+		// "email_url_encoded", url.QueryEscape(pp.Email),
 	}
 
 	out := ReturnSuccess{Status: "success"}
@@ -708,12 +742,14 @@ func authHandleRecoverPassword01Setup(c *gin.Context) {
 	email.SendEmail("recover_password",
 		"username", pp.Email,
 		"email", pp.Email,
+		"email_url_encoded", url.QueryEscape(pp.Email),
 		"token", rvStatus.RecoveryToken,
 		"first_name", rvStatus.FirstName,
 		"last_name", rvStatus.LastName,
 		"application_name", gCfg.AuthApplicationName,
 		"realm", gCfg.AuthRealm,
-		"server", gCfg.BaseServerUrl,
+		"server", gCfg.BaseServerURL,
+		"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
 	)
 
 	out := ReturnSuccess{Status: "success"}
@@ -855,11 +891,12 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 	email.SendEmail("password_updated",
 		"username", pp.Email,
 		"email", pp.Email,
+		"email_url_encoded", url.QueryEscape(pp.Email),
 		"first_name", rvStatus.FirstName,
 		"last_name", rvStatus.LastName,
 		"token", rvStatus.RecoveryToken,
 		"realm", gCfg.AuthRealm,
-		"server", gCfg.BaseServerUrl,
+		"server", gCfg.BaseServerURL,
 	)
 
 	var out RecoverPassword03SetPasswordSuccess
@@ -1184,7 +1221,7 @@ var PrivilegedNames = []string{"__is_logged_in__", "__user_id__", "__auth_token_
 
 // authHandleValidate2faToken is called after login to validate a 2fa token and after registration to comnplete the registration.
 //
-// This calls: "q_auth_v1_validate_2fa_token ( $1, $2, $3, $4 )" in the databse.
+// This calls: "q_auth_v1_validate_2fa_token ( $1, $2, $3, $4, $5 )" in the databse.
 // This sets q_qr_users.setup_complete_2fa  = 'y' to mark the account as fully registered.
 // Login requires that this is a 'y' before login occures.
 //
@@ -1314,8 +1351,9 @@ func authHandleValidate2faToken(c *gin.Context) {
 	// TODO - stuff
 	// rv, stmt, err := ConfirmEmailAccount(c, pp.EmailVerifyToken)
 	// create or replace function q_auth_v1_validate_2fa_token ( p_un varchar, p_2fa_secret varchar, p_hmac_password varchar )
-	stmt = "q_auth_v1_validate_2fa_token ( $1, $2, $3, $4 )"
-	rv, e0 = CallDatabaseJSONFunction(c, stmt, "e!e.", pp.Email, pp.TmpToken /*p_tmp_token*/, rvSecret.Secret2fa, gCfg.EncryptionPassword)
+	stmt = "q_auth_v1_validate_2fa_token ( $1, $2, $3, $4, $5 )"
+	rv, e0 = CallDatabaseJSONFunction(c, stmt, "e!e.", pp.Email, pp.TmpToken /*p_tmp_token*/, rvSecret.Secret2fa, gCfg.EncryptionPassword, gCfg.UserdataPassword)
+
 	if e0 != nil {
 		err = e0
 		return
@@ -2130,9 +2168,9 @@ func CreateJWTSignedCookie(c *gin.Context, DBAuthToken string) (rv string, err e
 // -------------------------------------------------------------------------------------------------------------------------
 func Confirm2faSetupAccount(c *gin.Context, UserId int) {
 	// create or replace function q_auth_v1_setup_2fa ( p_user_id varchar )
-	stmt := "q_auth_v1_setup_2fa_test ( $1 )"
+	stmt := "q_auth_v1_setup_2fa_test ( $1, $2, $3 )"
 	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)
-	rv, err := CallDatabaseJSONFunction(c, stmt, "!", UserId)
+	rv, err := CallDatabaseJSONFunction(c, stmt, "!", UserId, gCfg.EncryptionPassword, gCfg.UserdataPassword)
 	if err != nil {
 		return
 	}
@@ -2149,9 +2187,9 @@ func GenerateSecret() string {
 //  ConfirmEmailAccount uses the token to lookup a user and confirms that the email that received the token is real.
 func ConfirmEmailAccount(c *gin.Context, EmailVerifyToken string) (rv, stmt string, err error) {
 	// create or replace function q_auth_v1_email_verify ( p_email_verify_token varchar )
-	stmt = "q_auth_v1_email_verify ( $1 )"
+	stmt = "q_auth_v1_email_verify ( $1, $2, $3 )"
 	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)
-	rv, err = CallDatabaseJSONFunction(c, stmt, "!", EmailVerifyToken)
+	rv, err = CallDatabaseJSONFunction(c, stmt, "!", EmailVerifyToken, gCfg.EncryptionPassword, gCfg.UserdataPassword)
 	if err != nil {
 		return
 	}

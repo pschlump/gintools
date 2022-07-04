@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	jsonSyntaxErroLib "github.com/pschlump/check-json-syntax/lib"
+	"github.com/pschlump/dbgo"
 	"github.com/pschlump/json"
 	"github.com/pschlump/uuid"
 )
@@ -155,9 +156,9 @@ func main() {
 	}
 
 	if n_err == 0 {
-		fmt.Printf("\nPASS\n")
+		dbgo.Printf("\n%(green)PASS\n")
 	} else {
-		fmt.Printf("Failed: %d errors\n", n_err)
+		fmt.Printf("%(red)Failed: no of errors = %d\n", n_err)
 	}
 	os.Exit(n_err)
 }

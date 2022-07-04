@@ -91,15 +91,14 @@ func authHandleSipRegister(c *gin.Context) {
 	// ---------------------------------------------------------------------------------------------------------------------
 	// send email with validation - using: RegisterResp.EmailVerifyToken
 	// ---------------------------------------------------------------------------------------------------------------------
-	email.SendEmail(
-		"welcome_registration", // Email Template
+	email.SendEmail("welcome_registration", // Email Template
 		"username", pp.Email,
 		"email", pp.Email,
 		"first_name", pp.FirstName,
 		"last_name", pp.LastName,
 		"token", RegisterResp.EmailVerifyToken,
 		"user_id", RegisterResp.UserId,
-		"server", gCfg.BaseServerUrl,
+		"server", gCfg.BaseServerURL,
 		"application_name", gCfg.AuthApplicationName,
 		"realm", gCfg.AuthRealm,
 	)

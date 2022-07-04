@@ -101,13 +101,16 @@ type BaseConfigType struct {
 	EmailLogFileName string `json:"email_log_file_name" default:"./log/email-log.out"`
 
 	// Auth Related Stuff ------------------------------------------------------------------------------------------------------------------------------------------------------------
-	AuthRealm           string `json:"auth_realm" default:"*" pgsave:"AuthRealm"`   //
-	AuthKey             string `json:"auth_key" default:""`                         //
-	AuthJWTPublic       string `json:"auth_jwt_public_file" default:""`             // Public Key File
-	AuthJWTPrivate      string `json:"auth_jwt_private_file" default:""`            // Private Key File
-	AuthJWTKeyType      string `json:"auth_jwt_key_type" default:"HS256"`           // Key type ES = ESDSA or RS = RSA
-	AuthJWTKey          string `json:"jwt_key_password" default:"$ENV$QR_JWT_KEY"`  //
-	AuthApplicationName string `json:"auth_application_name" default:"Simple Auth"` // Name of applicaiton for use in templates
+	AuthRealm               string `json:"auth_realm" default:"*" pgsave:"AuthRealm"`                                //
+	AuthKey                 string `json:"auth_key" default:""`                                                      //
+	AuthJWTPublic           string `json:"auth_jwt_public_file" default:""`                                          // Public Key File
+	AuthJWTPrivate          string `json:"auth_jwt_private_file" default:""`                                         // Private Key File
+	AuthJWTKeyType          string `json:"auth_jwt_key_type" default:"HS256"`                                        // Key type ES = ESDSA or RS = RSA
+	AuthJWTKey              string `json:"jwt_key_password" default:"$ENV$QR_JWT_KEY"`                               //
+	AuthApplicationName     string `json:"auth_application_name" default:"Simple Auth"`                              // Name of applicaiton for use in templates
+	AuthPasswordRecoveryURI string `json:"auth_password_recovery_uri" default:"forgotten-password/web-set-password"` // Path inside app to the form that changes a password
+	AuthConfirmEmailURI     string `json:"auth_confirm_email_uri" default:"regPt2"`                                  // Redirect to this URI for info on confirming email.
+
 	// UseRegistrationToken string `json:"use_registration_token" default:"yes" pgsave:"UseRegistrationToken"` //
 	// End Auth realted -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -161,9 +164,9 @@ type BaseConfigType struct {
 
 	CachForPwned string `json:"cache_for_pwned" default:"./pwned_cache"`
 
-	BaseServerUrl string `json:"base_server_url" default:"http://www.2c-why.com"` // urlBase := "http://www.q8s.com"
+	BaseServerURL string `json:"base_server_url" default:"http://www.erc777.com/"`
 
-	BusinessAuthToken string `json:"business_auth_token" default:"no"` // Not implemented yet - jsut read in.  Requires a "auth-token" for user to register.
+	// BusinessAuthToken string `json:"business_auth_token" default:"no"` // Not implemented yet - jsut read in.  Requires a "auth-token" for user to register.
 
 	EmailRegistrationToken string `json:"email_registration_token" default:"no"`
 

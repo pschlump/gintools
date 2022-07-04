@@ -6,17 +6,18 @@ m4_include(setup.m4)
 m4_include(ver.m4)
 m4_do_not_edit()
 
--- xyzzy - TODO xyzzy889900
+-- xyzzy - TODO xyzzy889900 - add / remove priv from user.  In Dev.
+
+-- xyzzy-Slow!! - better to do select count - and verify where before update.
 
 
-
--- Length should be 14 chars on ont-time-passwords
+-- Length should be 14 chars on on-one-time-passwords
 -- -- --			l_tmp = substr(l_tmp,0,7) || substr(l_tmp,10,2);		-- this is bad
 -- -- --			l_tmp = substr(l_tmp,0,7) || substr(l_tmp,10,5);		-- Change to....
 
 
--- {"status":"error","msg":"Too many failed login attempts - please wait 1 minute.","code":"0031","location":"m4___file__ m4___line__"}
--- -- -- This is not working
+-- fix all of these
+--		insert into t_output ( msg ) values ( '  l_user_id ->'||coalesce(to_json(l_user_id)::text,'""')||'<-');
 
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -83,6 +84,7 @@ create index t_output_p1 on t_output ( created );
 
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- id.json - tracking table to see if user has been seen before on this device.
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 create table if not exists q_qr_manifest_version (
 	  id			uuid DEFAULT uuid_generate_v4() not null primary key
@@ -652,9 +654,11 @@ CREATE OR REPLACE view q_qr_expired_token as
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Tmp Token Table -- used for 2fa 2nd part validateion
+--
+-- This is a table of temporary access tokens.  The lifespan is usualy 10 minutes.
+--
+-- This is the place to put temporary data during login - tmp_token will be passed from call to call.
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
--- xyzzy - this is the place to put temporary data during login - tmp_token will be passed from call to call.
 
 CREATE TABLE if not exists q_qr_tmp_token (
 	tmp_token_id 		serial primary key not null,
@@ -1189,6 +1193,7 @@ BEGIN
 
 	l_recovery_token		= uuid_generate_v4();
 
+
 	if not l_fail then
 		select
 			  user_id
@@ -1208,10 +1213,24 @@ BEGIN
 		  and t1.setup_complete_2fa = 'y'
 		;
 		if not found then
+
+			-- Select to get l_user_id for email.  If it is not found above then this may not be a fully setup user.
+			-- The l_user_id is used below in a delete to prevet marking of devices as having been seen.
+			select
+				  user_id
+			into
+				  l_user_id
+			from q_qr_users as t1
+			where t1.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
+			;
+
 			l_fail = true;
 			l_data = '{"status":"error","msg":"Invalid Username or Account not valid or not email validated","code":"0003","location":"m4___file__ m4___line__"}'; 
 		end if;
 	end if;
+
+	-- Delete all the id.json rows for this user - every marked device will nedd to 2fa after this request.
+	delete from q_qr_manifest_version where user_id = l_user_id;
 
 	if not l_fail then
 		update q_qr_users as t1
@@ -1641,7 +1660,7 @@ BEGIN
 
 	if not l_fail then
 
-				-- xyzzy - TODO xyzzy889900
+		-- xyzzy - TODO xyzzy889900
 
 		-- If found then the priv is a per-user role priv and easy to delete.
 		select role_id, priv_id
@@ -2024,7 +2043,7 @@ BEGIN
 			||', "email_verify_token":' ||coalesce(to_json(l_email_verify_token)::text,'""')
 			||', "require_2fa":' 		||coalesce(to_json('y'::text)::text,'""')
 			||', "tmp_token":'   		||coalesce(to_json(l_tmp_token)::text,'""')
-			||', "secret_2a":' 			||coalesce(to_json(l_secret_2fa)::text,'""')
+			||', "secret_2fa":'			||coalesce(to_json(l_secret_2fa)::text,'""')
 			||', "otp":' 				||l_otp_str
 			||'}';
 
@@ -2226,7 +2245,7 @@ BEGIN
 			||', "email_verify_token":' ||coalesce(to_json(l_email_verify_token)::text,'""')
 			||', "require_2fa":' 		||coalesce(to_json('y'::text)::text,'""')
 			||', "tmp_token":'   		||coalesce(to_json(l_tmp_token)::text,'""')
-			||', "secret_2a":' 			||coalesce(to_json(l_secret_2fa)::text,'""')
+			||', "secret_2fa":' 			||coalesce(to_json(l_secret_2fa)::text,'""')
 			||', "otp":' 				||l_otp_str
 			||'}';
 
@@ -2405,7 +2424,7 @@ BEGIN
 	end if;
 
 	if not l_fail then
-		-- Xyzzy - better to do select count - and verify where before update.
+		-- xyzzy-Slow!! - better to do select count - and verify where before update.
 		update q_qr_users as t1
 			set 
 				  password_hash = crypt(p_new_pw, gen_salt('bf') )
@@ -2455,6 +2474,17 @@ BEGIN
 			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Account not valid or not email validated', '0015', 'File:m4___file__ Line No:m4___line__');
 		end if;
 	end if;
+
+	-- Delete all the id.json rows for this user - every marked device will nedd to 2fa after this request.
+	-- Select to get l_user_id for email.  If it is not found above then this may not be a fully setup user.
+	-- The l_user_id is used below in a delete to prevet marking of devices as having been seen.
+	delete from q_qr_manifest_version 
+		where user_id = (
+			select user_id
+			from q_qr_users as t1
+			where t1.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
+		)
+	;
 
 	if not l_fail then
 		l_data = '{"status":"success"'
@@ -2513,6 +2543,17 @@ BEGIN
 			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Account not valid or not email validated', '0017', 'File:m4___file__ Line No:m4___line__');
 		end if;
 	end if;
+
+	-- Delete all the id.json rows for this user - every marked device will nedd to 2fa after this request.
+	-- Select to get l_user_id for email.  If it is not found above then this may not be a fully setup user.
+	-- The l_user_id is used below in a delete to prevet marking of devices as having been seen.
+	delete from q_qr_manifest_version 
+		where user_id = (
+			select user_id
+			from q_qr_users as t1
+			where t1.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
+		)
+	;
 
 	if not l_fail then
 		l_data = '{"status":"success"'
@@ -2784,6 +2825,7 @@ BEGIN
 		l_auth_token = NULL;
 		if l_require_2fa = 'y' and p_am_i_known is not null then
 			if p_am_i_known <> '' then
+				-- id.json - check to see if user has been seen before on this device.
 				select
 						  t1.id			
 					into
@@ -3402,7 +3444,9 @@ $$ LANGUAGE plpgsql;
 -- Updates q_qr_users
 --
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-create or replace function q_auth_v1_email_verify ( p_email_verify_token varchar )
+drop function q_auth_v1_email_verify ( p_email_verify_token varchar );
+
+create or replace function q_auth_v1_email_verify ( p_email_verify_token varchar, p_hmac_password varchar, p_userdata_password varchar )
 	returns text
 	as $$
 DECLARE
@@ -3410,10 +3454,10 @@ DECLARE
 	l_fail					bool;
 	v_cnt 					int;
 	l_verified				text;
+	l_email					text;
 	l_debug_on 				bool;
 	l_tmp_token				uuid;	-- when 2fa is on this is returnd as not null (UUID)
 	l_user_id				int;
-	-- xyzzy (DONE) - may need to return the tmp_token --------------------------- <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< xyzzy78978979879
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -3428,18 +3472,20 @@ BEGIN
 		insert into t_output ( msg ) values ( '  ' );
 	end if;
 
-	select user_id
+	select t1.user_id
+		    , pgp_sym_decrypt(t1.email_enc,p_userdata_password)::text as email
 		into l_user_id 
-		from q_qr_users 
-		where email_verify_expire > current_timestamp
-			and email_verify_token = p_email_verify_token::uuid
+			, l_email
+		from q_qr_users as t1
+		where t1.email_verify_expire > current_timestamp
+			and t1.email_verify_token = p_email_verify_token::uuid
 		;
 	if not found then
 		l_fail = true;
 		l_data = '{"status":"error","msg":"Unable to validate account via email.  Please register again.","code":"0058","location":"m4___file__ m4___line__"}'; 
 	end if;
 	if l_debug_on then
-		insert into t_output ( msg ) values ( '  l_user_id ->'||l_user_id||'<-');
+		insert into t_output ( msg ) values ( '  l_user_id ->'||coalesce(to_json(l_user_id)::text,'""')||'<-');
 	end if;
 
 	if not l_fail then
@@ -3472,7 +3518,8 @@ BEGIN
 			insert into t_output ( msg ) values ( '  l_tmp_token ->'||l_tmp_token||'<-');
 		end if;
 		l_data = '{"status":"success"'
-			||', "tmp_token":'   ||coalesce(to_json(l_tmp_token)::text,'""')
+			||', "email":'   	||coalesce(to_json(l_email)::text,'""')
+			||', "tmp_token":'  ||coalesce(to_json(l_tmp_token)::text,'""')
 			||'}';
 	end if;
 
@@ -3541,7 +3588,9 @@ $$ LANGUAGE plpgsql;
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- stmt = "q_auth_v1_setup_2fa_test ( $1 )"
-create or replace function q_auth_v1_setup_2fa_test ( p_user_id int )
+drop function q_auth_v1_setup_2fa_test ( p_user_id int );
+
+create or replace function q_auth_v1_setup_2fa_test ( p_user_id int, p_hmac_password varchar, p_userdata_password varchar )
 	returns text
 	as $$
 BEGIN
@@ -3566,7 +3615,9 @@ $$ LANGUAGE plpgsql;
 -- This is called after validatio of the TOTP/HOTP token.
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-create or replace function q_auth_v1_validate_2fa_token ( p_email varchar, p_tmp_token varchar, p_2fa_secret varchar, p_hmac_password varchar )
+drop function q_auth_v1_validate_2fa_token ( p_email varchar, p_tmp_token varchar, p_2fa_secret varchar, p_hmac_password varchar );
+
+create or replace function q_auth_v1_validate_2fa_token ( p_email varchar, p_tmp_token varchar, p_2fa_secret varchar, p_hmac_password varchar, p_userdata_password varchar )
 	returns text
 	as $$
 DECLARE
@@ -3952,7 +4003,8 @@ select q_auth_v1_login ( 'bob@example.com', 'bob the builder', '181d4e23-9595-47
 select * from t_output;
 delete from t_output;
 
-select q_auth_v1_email_verify ( t2.email_verify_token::text )
+-- create or replace function q_auth_v1_email_verify ( p_email_verify_token varchar, p_hmac_password varchar, p_userdata_password varchar )
+select q_auth_v1_email_verify ( t2.email_verify_token::text , 'my long secret password', 'user info password' ) 
 	from q_qr_users as t2
 	where t2.email_hmac = q_auth_v1_hmac_encode ( 'bob@example.com', 'my long secret password' )
 ;
@@ -4021,6 +4073,7 @@ DECLARE
 	l_auth_token uuid;
 	l_junk1 int;
 	l_privilage text;
+	l_cnt_auth_tokens int;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2017, 2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -4196,25 +4249,33 @@ BEGIN
 	-- 	where user_id = l_user_id
 	-- 	limit 1
 	-- 	;
-
 	l_auth_token = uuid_generate_v4();
-	insert into q_qr_auth_tokens ( token, user_id ) values ( l_auth_token, l_user_id );
+	insert into q_qr_auth_tokens ( token, user_id ) values ( l_auth_token, l_user_id ); -- expires in 31 days
 	insert into t_output ( msg ) values ( 'l_auth_token = '||l_auth_token::text );
 	delete from x_tmp_values where name = 'l_auth_token';
 	insert into x_tmp_values ( name, value ) values ( 'l_auth_token', l_auth_token::text );
+	select count(1) into l_cnt_auth_tokens;
+	if not found or l_cnt_auth_tokens = 0 then 
+		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:m4___file__ Line No:m4___line__ -- missing data in q_qr_user_role' );
+	end if;
 	commit; 
+
 	-- end -----------------------------------------------------------------------------------------------------------------------------------------
 
 	commit; 
 
 	select l_r1::jsonb -> 'secret_2fa' into l_secret_2fa;
 	l_secret_2fa = replace ( l_secret_2fa, '"', '' );
-	insert into t_output ( msg ) values ( 'l_secret_2fa = '||l_secret_2fa );
+	insert into t_output ( msg ) values ( 'l_secret_2fa = '||coalesce(l_secret_2fa,'---null---') );
 
 	select l_r1::jsonb -> 'user_id' into l_user_id;
-	insert into t_output ( msg ) values ( 'l_user_id = '||l_user_id );
+	insert into t_output ( msg ) values ( 'l_user_id = '||coalesce(to_json(l_user_id)::text,'---null---') );
 
 	commit; 
+	select count(1) into l_cnt_auth_tokens;
+	if not found or l_cnt_auth_tokens = 0 then 
+		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:m4___file__ Line No:m4___line__ -- missing data in q_qr_user_role' );
+	end if;
 
 	-- set this user to be an "admin"
 	insert into q_qr_user_role ( user_id, role_id ) values
@@ -4235,6 +4296,10 @@ BEGIN
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
+	select count(1) into l_cnt_auth_tokens;
+	if not found or l_cnt_auth_tokens = 0 then 
+		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:m4___file__ Line No:m4___line__ -- missing data in q_qr_user_role' );
+	end if;
 
 
 
@@ -4248,15 +4313,15 @@ BEGIN
 
 
 	insert into t_output ( msg ) values ( 'Just before call' );
-	insert into t_output ( msg ) values ( 'l_email_verify_token = '||l_email_verify_token );
+	insert into t_output ( msg ) values ( 'l_email_verify_token = '||coalesce(l_email_verify_token, '---null---'));
 	commit;
 
 	-- Email Validate User
-	select q_auth_v1_email_verify ( l_email_verify_token )
+	select q_auth_v1_email_verify ( l_email_verify_token, 'my long secret password', 'user info password' ) 
 		into l_r2;
 
 	insert into t_output ( msg ) values ( 'Just after call' );
-	insert into t_output ( msg ) values ( 'l_r2 = '||l_r2 );
+	insert into t_output ( msg ) values ( 'l_r2 = '||coalesce(l_r2, '---null---') );
 	commit;
 
 	-- xyzzy - Attempt loing succede (1)
@@ -4264,6 +4329,10 @@ BEGIN
 		-- xyzzy - verify that we get a 2fa required.
 
 
+	select count(1) into l_cnt_auth_tokens;
+	if not found or l_cnt_auth_tokens = 0 then 
+		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:m4___file__ Line No:m4___line__ -- missing data in q_qr_user_role' );
+	end if;
 
 	-- test 1a ----------------------------------------------------------------------------------------------------------
 	-- Validate the Privileges (Roles) on user
@@ -4287,6 +4356,10 @@ BEGIN
 		n_err = n_err + 1;
 	end if;
 
+	select count(1) into l_cnt_auth_tokens;
+	if not found or l_cnt_auth_tokens = 0 then 
+		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:m4___file__ Line No:m4___line__ -- missing data in q_qr_user_role' );
+	end if;
 
 
 
@@ -4386,8 +4459,8 @@ BEGIN
 		insert into t_output ( msg ) values ( 'PASS' );
 		insert into x_tmp_pass_fail ( name ) values ( 'PASS' );
 	else 
-		insert into t_output ( msg ) values ( 'FAILED!  Errors = '||(n_err::text) );
-		insert into x_tmp_pass_fail ( name ) values ( 'FAILED!  Errors = '||(n_err::text) );
+		insert into t_output ( msg ) values ( 'FAILED!  No of Errors = '||(n_err::text) );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED!  No of Errors = '||(n_err::text) );
 	end if;
 
 END
@@ -4397,7 +4470,7 @@ $$ LANGUAGE plpgsql;
 select msg from t_output ;
 
 
--- 20 |  l_data= {"status":"success", "user_id":3, "email_verify_token":"18207657-b420-445a-aea5-6c061ffa1e89", "require_2fa":"y", "tmp_token":"e35940af-720c-4438-be52-36e8f8367398", "secret_2a":"RRFRUD6NOPVVO2ZV", "otp":["d7e317eb","d2ab7aa0","5c2e003d","a336f3c4","6fb1a96c","5a5d6db3","3b578288","0de795f7","2fa3a644","b5736cc4","854d8029","549a0584","92191c96","6587e7ab","080ef5ad","8d2eac1f","226a5c12","5207693d","99520939","3c78f96e"]} | 2022-04-23 09:39:46.31673
+-- 20 |  l_data= {"status":"success", "user_id":3, "email_verify_token":"18207657-b420-445a-aea5-6c061ffa1e89", "require_2fa":"y", "tmp_token":"e35940af-720c-4438-be52-36e8f8367398", "secret_2fa":"RRFRUD6NOPVVO2ZV", "otp":["d7e317eb","d2ab7aa0","5c2e003d","a336f3c4","6fb1a96c","5a5d6db3","3b578288","0de795f7","2fa3a644","b5736cc4","854d8029","549a0584","92191c96","6587e7ab","080ef5ad","8d2eac1f","226a5c12","5207693d","99520939","3c78f96e"]} | 2022-04-23 09:39:46.31673
 
 
 
@@ -4477,8 +4550,8 @@ BEGIN
 		insert into t_output ( msg ) values ( 'PASS' );
 		insert into x_tmp_pass_fail ( name ) values ( 'PASS' );
 	else 
-		insert into t_output ( msg ) values ( 'FAILED!  Errors = '||(n_err::text) );
-		insert into x_tmp_pass_fail ( name ) values ( 'FAILED!  Errors = '||(n_err::text) );
+		insert into t_output ( msg ) values ( 'FAILED!  No of Errors = '||(n_err::text) );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED!  No of Errors = '||(n_err::text) );
 	end if;
 
 	insert into t_output ( msg ) values ( ' ' );

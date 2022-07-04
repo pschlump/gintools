@@ -51,11 +51,13 @@ func LogApacheReq(data string) {
 // Log a SQL error.
 func LogSQLError(c *gin.Context, stmt string, err error, encPat string, data ...interface{}) {
 	// LogEncryptionPassword string `json:"log_encryption_password" default:"$ENV$QR_LOG_ENCRYPTION_PASSWORD"`
+	requestId := c.GetString("__request_id__")
 	LogIt("SQLError",
 		"url", c.Request.RequestURI,
 		"method", c.Request.Method,
 		"stmt", stmt,
 		"error", errToString(err),
+		"request_id", requestId,
 		// "data", EncryptLogData(encPat, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
 		"data", dbgo.SVar(data),
 		"AT", godebug.LF(-2),
@@ -68,12 +70,14 @@ func LogSQLError(c *gin.Context, stmt string, err error, encPat string, data ...
 
 // LogStoredProcError(www, req, stmt, SVar(RegisterResp), pp.Un, pp.Pw /*gCfg.EncryptionPassword,*/, pp.RealName /*, gCfg.UserdataPassword*/)
 func LogStoredProcError(c *gin.Context, stmt string, encPat string, data ...interface{}) {
+	requestId := c.GetString("__request_id__")
 	LogIt("StoredProcError",
 		"url", c.Request.RequestURI,
 		"method", c.Request.Method,
 		"stmt", stmt,
 		// "data", EncryptLogData(encPat, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
 		"data", dbgo.SVar(data),
+		"request_id", requestId,
 		"AT", godebug.LF(-2),
 	)
 	SetJsonHdr(c)
@@ -82,11 +86,13 @@ func LogStoredProcError(c *gin.Context, stmt string, encPat string, data ...inte
 
 // Log a misc error.
 func LogMiscError(c *gin.Context, err error, message string) {
+	requestId := c.GetString("__request_id__")
 	LogIt("MiscError",
 		"url", c.Request.RequestURI,
 		"method", c.Request.Method,
 		"error", errToString(err),
 		"message", message,
+		"request_id", requestId,
 		"AT", godebug.LF(-2),
 	)
 	c.JSON(http.StatusBadRequest, gin.H{ // 400
@@ -95,33 +101,38 @@ func LogMiscError(c *gin.Context, err error, message string) {
 	})
 }
 
-func LogS3Error(err error, message, RequestURI, Method string) {
+func LogS3Error(err error, message, RequestURI, Method, requestId string) {
 	LogIt("S3Error",
 		"url", RequestURI,
 		"method", Method,
 		"error", errToString(err),
 		"message", message,
+		"request_id", requestId,
 		"AT", godebug.LF(-2),
 	)
 }
 
 func LogAttentionError(c *gin.Context, err error, message string) {
+	requestId := c.GetString("__request_id__")
 	LogIt("AttentionError",
 		"url", c.Request.RequestURI,
 		"method", c.Request.Method,
 		"error", errToString(err),
 		"message", message,
+		"request_id", requestId,
 		"AT", godebug.LF(-2),
 	)
 }
 
 // Log a internal misc error.
 func LogInternalMiscError(c *gin.Context, err error, message string) {
+	requestId := c.GetString("__request_id__")
 	LogIt("InternalMiscError",
 		"url", c.Request.RequestURI,
 		"method", c.Request.Method,
 		"error", errToString(err),
 		"message", message,
+		"request_id", requestId,
 		"AT", godebug.LF(-2),
 	)
 	c.JSON(http.StatusInternalServerError, gin.H{ // 400
@@ -132,22 +143,26 @@ func LogInternalMiscError(c *gin.Context, err error, message string) {
 
 // Log a misc warning
 func LogMiscWarn(c *gin.Context, err error, message string) {
+	requestId := c.GetString("__request_id__")
 	LogIt("MiscWarning",
 		"url", c.Request.RequestURI,
 		"method", c.Request.Method,
 		"error", errToString(err),
 		"message", message,
+		"request_id", requestId,
 		"AT", godebug.LF(-2),
 	)
 }
 
 // Log an invalid parameter error.
 func LogParamError(c *gin.Context, pn, msg string) {
+	requestId := c.GetString("__request_id__")
 	LogIt("InvalidParameter",
 		"url", c.Request.RequestURI,
 		"method", c.Request.Method,
 		"param_name", pn,
 		"msg", msg,
+		"request_id", requestId,
 		"AT", godebug.LF(-2),
 	)
 	c.JSON(http.StatusNotAcceptable, gin.H{ // 400
@@ -158,9 +173,11 @@ func LogParamError(c *gin.Context, pn, msg string) {
 
 // Log an invalid method.
 func LogInvalidMethodError(c *gin.Context) {
+	requestId := c.GetString("__request_id__")
 	LogIt("InvalidMethod",
 		"url", c.Request.RequestURI,
 		"method", c.Request.Method,
+		"request_id", requestId,
 		"msg", "Invalid Method",
 		"AT", godebug.LF(-2),
 	)
@@ -172,11 +189,13 @@ func LogInvalidMethodError(c *gin.Context) {
 
 // Log an missing privilege.
 func LogPrivError(c *gin.Context, priv_missing, msg string) {
+	requestId := c.GetString("__request_id__")
 	LogIt("MissingPrivilege",
 		"url", c.Request.RequestURI,
 		"method", c.Request.Method,
 		"missing_priv", priv_missing,
 		"msg", msg,
+		"request_id", requestId,
 		"AT", dbgo.LF(-2),
 	)
 	c.JSON(http.StatusForbidden, gin.H{ // 403
@@ -187,10 +206,12 @@ func LogPrivError(c *gin.Context, priv_missing, msg string) {
 
 // log_enc.LogSQLPrivilage(c, aPriv, ".", user_id) // Don't need to encyprt user_id
 func LogSQLPrivelage(c *gin.Context, priv_missing, encPat string, user_id string) {
+	requestId := c.GetString("__request_id__")
 	LogIt("MissingPrivilege",
 		"url", c.Request.RequestURI,
 		"method", c.Request.Method,
 		"missing_priv", priv_missing,
+		"request_id", requestId,
 		"msg", "Misging Privelage",
 		// "user_id", user_id,
 		"user_id", EncryptLogData(encPat, user_id), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
