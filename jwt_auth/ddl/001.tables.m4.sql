@@ -464,7 +464,7 @@ CREATE TABLE if not exists q_qr_users (
 	last_name_enc			bytea not null,
 	last_name_hmac 			text not null,
 	acct_state				varchar(40) default 'registered' not null check ( acct_state in ( 'registered', 'change-pw', 'change-2fa', 'change-email', 'other' ) ),
-	email_verified			varchar(1) default 'n' not null,
+	email_validated			varchar(1) default 'n' not null,
 	email_verify_token		uuid,
 	email_verify_expire 	timestamp,
 	password_reset_token	uuid,
@@ -491,7 +491,7 @@ CREATE INDEX q_qr_users_enc_u2 on q_qr_users ( email_verify_token )
 
 CREATE INDEX q_qr_users_enc_p1 on q_qr_users using HASH ( email_hmac );
 
-CREATE INDEX q_qr_users_enc_p2 on q_qr_users ( email_verify_expire, email_verified )
+CREATE INDEX q_qr_users_enc_p2 on q_qr_users ( email_verify_expire, email_validated )
 	where email_verify_expire is not null;
 
 CREATE INDEX q_qr_users_enc_p3 on q_qr_users ( password_reset_token )
@@ -1209,7 +1209,7 @@ BEGIN
 		  and t1.account_type = 'login'
 		  and ( t1.start_date < current_timestamp or t1.start_date is null )
 		  and ( t1.end_date > current_timestamp or t1.end_date is null )
-		  and t1.email_verified = 'y'
+		  and t1.email_validated = 'y'
 		  and t1.setup_complete_2fa = 'y'
 		;
 		if not found then
@@ -1242,7 +1242,7 @@ BEGIN
 			  and t1.account_type = 'login'
 			  and ( t1.start_date < current_timestamp or t1.start_date is null )
 			  and ( t1.end_date > current_timestamp or t1.end_date is null )
-			  and t1.email_verified = 'y'
+			  and t1.email_validated = 'y'
 			  and t1.setup_complete_2fa = 'y'
 			  and t1.parent_user_id is null
 			;
@@ -1313,7 +1313,7 @@ BEGIN
 		  and t1.account_type = 'login'
 		  and ( t1.start_date < current_timestamp or t1.start_date is null )
 		  and ( t1.end_date > current_timestamp or t1.end_date is null )
-		  and t1.email_verified = 'y'
+		  and t1.email_validated = 'y'
 		  and t1.setup_complete_2fa = 'y'
 		;
 		if not found then
@@ -1379,7 +1379,7 @@ BEGIN
 		  and t1.account_type = 'login'
 		  and ( t1.start_date < current_timestamp or t1.start_date is null )
 		  and ( t1.end_date > current_timestamp or t1.end_date is null )
-		  and t1.email_verified = 'y'
+		  and t1.email_validated = 'y'
 		  and t1.setup_complete_2fa = 'y'
 		  and t1.parent_user_id is null
 		;
@@ -1401,7 +1401,7 @@ BEGIN
 		  	  and t1.account_type = 'login'
 		  	  and ( t1.start_date < current_timestamp or t1.start_date is null )
 		  	  and ( t1.end_date > current_timestamp or t1.end_date is null )
-			  and t1.email_verified = 'y'
+			  and t1.email_validated = 'y'
 			  and t1.setup_complete_2fa = 'y'
 		  	  and t1.parent_user_id is null
 			;
@@ -1913,7 +1913,7 @@ BEGIN
 	delete from q_qr_users
 		where email_verify_expire < current_timestamp - interval '30 days'
 		  and email_verify_token is not null
-		  and email_verified = 'n'
+		  and email_validated = 'n'
 		;
 	-- Cleanup any users that have expired saved state
 	delete from q_qr_saved_state
@@ -2117,7 +2117,7 @@ BEGIN
 	delete from q_qr_users
 		where email_verify_expire < current_timestamp - interval '30 days'
 		  and email_verify_token is not null
-		  and email_verified = 'n'
+		  and email_validated = 'n'
 		;
 	-- Cleanup any users that have expired saved state
 	delete from q_qr_saved_state
@@ -2294,7 +2294,7 @@ BEGIN
 	delete from q_qr_users
 		where email_verify_expire < current_timestamp - interval '30 days'
 		  and email_verify_token is not null
-		  and email_verified = 'n'
+		  and email_validated = 'n'
 		;
 	-- Cleanup any users that have expired saved state
 	delete from q_qr_saved_state
@@ -2324,7 +2324,7 @@ BEGIN
 		set
 			  t1.email_verify_token = l_email_verify_token
 			, t1.email_verify_expire = current_timestamp + interval '1 day'
-			, t1.email_verified = 'n'
+			, t1.email_validated = 'n'
 		where t1.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
 		  and email_verify_token = p_old_email_verify_token 
 		;
@@ -2436,7 +2436,7 @@ BEGIN
 							t1.account_type = 'login'
 						and t1.password_hash = crypt(p_pw, password_hash)
 						and t1.parent_user_id is null
-					    and t1.email_verified = 'y'
+					    and t1.email_validated = 'y'
 					    and t1.setup_complete_2fa = 'y'
 					)  or (
 							t1.account_type = 'un/pw' 
@@ -2448,7 +2448,7 @@ BEGIN
 							where t2.user_id = t1.parent_user_id
 							  and ( t1.start_date < current_timestamp or t1.start_date is null )
 							  and ( t1.end_date > current_timestamp or t1.end_date is null )
-							  and t2.email_verified = 'y'
+							  and t2.email_validated = 'y'
 					          and t2.setup_complete_2fa = 'y'
 						)
 					)  or (
@@ -2460,7 +2460,7 @@ BEGIN
 							where t3.user_id = t1.parent_user_id
 							  and ( t1.start_date < current_timestamp or t1.start_date is null )
 							  and ( t1.end_date > current_timestamp or t1.end_date is null )
-							  and t3.email_verified = 'y'
+							  and t3.email_validated = 'y'
 					          and t3.setup_complete_2fa = 'y'
 						)
 					)
@@ -2581,7 +2581,7 @@ DECLARE
 	l_data					text;
 	l_fail					bool;
   	l_user_id 				int;
-	l_email_verified		varchar(1);
+	l_email_validated		varchar(1);
 	l_start_date			timestamp;
 	l_end_date				timestamp;
 	l_require_2fa 			varchar(1);
@@ -2642,7 +2642,7 @@ BEGIN
 		with email_user as (
 			select
 				  user_id
-				, email_verified
+				, email_validated
 				, start_date
 				, end_date
 				, require_2fa
@@ -2660,7 +2660,7 @@ BEGIN
 		)
 		select
 				  user_id
-				, email_verified
+				, email_validated
 				, start_date
 				, end_date
 				, require_2fa
@@ -2673,7 +2673,7 @@ BEGIN
 				, validation_method		
 			into
 				  l_user_id
-				, l_email_verified
+				, l_email_validated
 				, l_start_date
 				, l_end_date
 				, l_require_2fa
@@ -2703,7 +2703,7 @@ BEGIN
 		if not found then -- BBB
 			select
 				  user_id
-				, email_verified
+				, email_validated
 				, start_date
 				, end_date
 				, require_2fa
@@ -2715,7 +2715,7 @@ BEGIN
 				, login_failures 		
 				, validation_method		
 			into l_user_id
-				, l_email_verified
+				, l_email_validated
 				, l_start_date
 				, l_end_date
 				, l_require_2fa
@@ -2796,10 +2796,10 @@ BEGIN
 	end if;
 
 	if not l_fail then
-		if l_email_verified = 'n' then
+		if l_email_validated = 'n' then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Account has not not been verified","code":"0020","location":"m4___file__ m4___line__"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has not been verified', '0020', 'File:m4___file__ Line No:m4___line__');
+			l_data = '{"status":"error","msg":"Account has not not been validated","code":"0020","location":"m4___file__ m4___line__"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has not been validated', '0020', 'File:m4___file__ Line No:m4___line__');
 		end if;
 	end if;
 	if not l_fail then
@@ -3065,7 +3065,7 @@ DECLARE
 	l_debug_on 				bool;
 	l_pw					text;
 	l_2fa_id				uuid;
-	l_email_verified		varchar(1);
+	l_email_validated		varchar(1);
 	l_start_date			timestamp;
 	l_end_date				timestamp;
 	l_privileges			jsonb;
@@ -3099,7 +3099,7 @@ BEGIN
 	delete from q_qr_users
 		where email_verify_expire < current_timestamp - interval '30 days'
 		  and email_verify_token is not null
-		  and email_verified = 'n'
+		  and email_validated = 'n'
 		;
 
 	-- Cleanup old auth tokens.
@@ -3110,7 +3110,7 @@ BEGIN
 	if not l_fail then
 		select
 			  user_id
-			, email_verified
+			, email_validated
 			, start_date
 			, end_date
 		    , pgp_sym_decrypt(first_name_enc,p_userdata_password)::text
@@ -3119,7 +3119,7 @@ BEGIN
 			, login_failures 		
 		into
 			  l_user_id
-			, l_email_verified
+			, l_email_validated
 			, l_start_date
 			, l_end_date
 			, l_first_name
@@ -3146,10 +3146,10 @@ BEGIN
 	end if;
 
 	if not l_fail then
-		if l_email_verified = 'n' then
+		if l_email_validated = 'n' then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Account has not not been verified","code":"0036","location":"m4___file__ m4___line__"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has not been verified', '0036', 'File:m4___file__ Line No:m4___line__');
+			l_data = '{"status":"error","msg":"Account has not not been validated","code":"0036","location":"m4___file__ m4___line__"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has not been validated', '0036', 'File:m4___file__ Line No:m4___line__');
 		end if;
 	end if;
 	if not l_fail then
@@ -3205,7 +3205,7 @@ BEGIN
 			, last_name_enc
 			, parent_user_id
 			, account_type
-			, email_verified		
+			, email_validated		
 		) VALUES (
 			  q_auth_v1_hmac_encode ( p_email, p_hmac_password )
 			, crypt(l_pw, gen_salt('bf') )
@@ -3259,7 +3259,7 @@ DECLARE
 	l_pw					text;
 	l_un					text;
 	l_2fa_id				uuid;
-	l_email_verified		varchar(1);
+	l_email_validated		varchar(1);
 	l_start_date			timestamp;
 	l_end_date				timestamp;
 	l_privileges			jsonb;
@@ -3293,7 +3293,7 @@ BEGIN
 	delete from q_qr_users
 		where email_verify_expire < current_timestamp - interval '30 days'
 		  and email_verify_token is not null
-		  and email_verified = 'n'
+		  and email_validated = 'n'
 		;
 
 	-- Cleanup old auth tokens.
@@ -3304,7 +3304,7 @@ BEGIN
 	if not l_fail then
 		select
 			  user_id
-			, email_verified
+			, email_validated
 			, start_date
 			, end_date
 		    , pgp_sym_decrypt(first_name_enc,p_userdata_password)::text
@@ -3313,7 +3313,7 @@ BEGIN
 			, login_failures 		
 		into
 			  l_user_id
-			, l_email_verified
+			, l_email_validated
 			, l_start_date
 			, l_end_date
 			, l_first_name
@@ -3340,10 +3340,10 @@ BEGIN
 	end if;
 
 	if not l_fail then
-		if l_email_verified = 'n' then
+		if l_email_validated = 'n' then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Account has not not been verified","code":"0041","location":"m4___file__ m4___line__"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has not been verified', '0041', 'File:m4___file__ Line No:m4___line__');
+			l_data = '{"status":"error","msg":"Account has not not been validated","code":"0041","location":"m4___file__ m4___line__"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has not been validated', '0041', 'File:m4___file__ Line No:m4___line__');
 		end if;
 	end if;
 	if not l_fail then
@@ -3399,7 +3399,7 @@ BEGIN
 			, last_name_enc
 			, parent_user_id
 			, account_type
-			, email_verified		
+			, email_validated		
 		) VALUES (
 			  q_auth_v1_hmac_encode ( p_email, p_hmac_password )
 			, crypt(l_pw, gen_salt('bf') )
@@ -3453,7 +3453,7 @@ DECLARE
 	l_data					text;
 	l_fail					bool;
 	v_cnt 					int;
-	l_verified				text;
+	l_validated				text;
 	l_email					text;
 	l_debug_on 				bool;
 	l_tmp_token				uuid;	-- when 2fa is on this is returnd as not null (UUID)
@@ -3490,7 +3490,7 @@ BEGIN
 
 	if not l_fail then
 		update q_qr_users 
-			set email_verified = 'y'
+			set email_validated = 'y'
 			  , email_verify_token = null
 			  , email_verify_expire = null
 		where email_verify_expire > current_timestamp
@@ -3504,7 +3504,7 @@ BEGIN
 			-- Cleanup any users that have expired tokens more than 30 days ago.
 			delete from q_qr_users
 				where email_verify_expire < current_timestamp - interval '30 days'
-				  and email_verified = 'n'
+				  and email_validated = 'n'
 				  and email_verify_token is not null
 				  and account_type	= 'login'
 				;
@@ -3552,7 +3552,7 @@ BEGIN
 	delete from q_qr_users
 		where email_verify_expire < current_timestamp - interval '30 days'
 		  and email_verify_token is not null
-		  and email_verified = 'n'
+		  and email_validated = 'n'
 		;
 	-- Cleanup any users that have expired saved state
 	delete from q_qr_saved_state
@@ -3630,6 +3630,7 @@ DECLARE
 	l_debug_on 				bool;
 	l_expires				text;
 	l_email_validated		text;
+	l_x2fa_validated		text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -3638,6 +3639,7 @@ BEGIN
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 	l_email_validated = 'n';
+	l_x2fa_validated = 'n';
 
 	if l_debug_on then
 		insert into t_output ( msg ) values ( 'In q_auth_v1_validate_2fa_token (v2)' );
@@ -3668,11 +3670,13 @@ BEGIN
 		;
 
 	select t1.user_id
-			, secret_2fa
-			, email_verified			
+			, t1.secret_2fa
+			, t1.email_validated	
+			, t1.setup_complete_2fa 
 		into l_user_id
 			, l_secret_2fa
 			, l_email_validated 
+			, l_x2fa_validated	
 		from q_qr_users as t1
 			join q_qr_tmp_token as t2 on ( t1.user_id = t2.user_id )
 		where t1.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
@@ -3683,6 +3687,8 @@ BEGIN
 		if l_debug_on then
 			insert into t_output ( msg ) values ( 'Failed to find the user - may be expired token' );
 		end if;
+		l_email_validated = 'n';
+		l_x2fa_validated = 'n';
 		select user_id
 				, secret_2fa
 			into l_user_id
@@ -3710,6 +3716,7 @@ BEGIN
 			set setup_complete_2fa 	= 'y'
 			where t2.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
 			;
+		l_x2fa_validated = 'y';
 		-- insert / create auth_token
 		l_auth_token = uuid_generate_v4();
 		BEGIN
@@ -3746,6 +3753,7 @@ BEGIN
 			||', "privileges":'  	 ||coalesce(to_json(l_privileges)::text,'""')
 			||', "secret_2fa":'  	 ||coalesce(to_json(l_secret_2fa)::text,'""')
 			||', "email_validated":' ||coalesce(to_json(l_email_validated)::text,'""')
+			||', "x2fa_validated":'  ||coalesce(to_json(l_x2fa_validated)::text,'""')
 			||'}';
 	end if;
 
@@ -3922,7 +3930,7 @@ BEGIN
 							t1.account_type = 'login'
 						and t1.password_hash = crypt(p_pw, password_hash)
 						and t1.parent_user_id is null
-					    and t1.email_verified = 'y'
+					    and t1.email_validated = 'y'
 					    and t1.setup_complete_2fa = 'y'
 					)  or (
 							t1.account_type = 'un/pw' 
@@ -3934,7 +3942,7 @@ BEGIN
 							where t2.user_id = t1.parent_user_id
 							  and ( t1.start_date < current_timestamp or t1.start_date is null )
 							  and ( t1.end_date > current_timestamp or t1.end_date is null )
-							  and t2.email_verified = 'y'
+							  and t2.email_validated = 'y'
 					          and t2.setup_complete_2fa = 'y'
 						)
 					)  or (
@@ -3946,7 +3954,7 @@ BEGIN
 							where t3.user_id = t1.parent_user_id
 							  and ( t1.start_date < current_timestamp or t1.start_date is null )
 							  and ( t1.end_date > current_timestamp or t1.end_date is null )
-							  and t3.email_verified = 'y'
+							  and t3.email_validated = 'y'
 					          and t3.setup_complete_2fa = 'y'
 						)
 					)
@@ -3998,7 +4006,7 @@ select * from q_qr_users;
 
 select q_auth_v1_login ( 'bob@example.com', 'bob the builder', '181d4e23-9595-47ec-9a26-1c8313d321f9', 'my long secret password', 'user info password' ); 
 -- select q_auth_v1_login ( 'bob@truckcoinswap.com', 'i-am-bob', '181d4e23-9595-47ec-9a26-1c8313d321f9', 'my long secret password', 'user info password' ) as "x";
---  {"status":"error","msg":"Account has not not been verified"}
+--  {"status":"error","msg":"Account has not not been validated"}
 
 select * from t_output;
 delete from t_output;
@@ -4525,7 +4533,7 @@ BEGIN
 		where t2.token = l_auth_token
 		  and ( t1.start_date < current_timestamp or t1.start_date is null )
 		  and ( t1.end_date > current_timestamp or t1.end_date is null )
-		  and t1.email_verified = 'y'
+		  and t1.email_validated = 'y'
 		  and ( t1.setup_complete_2fa = 'n' or t1.setup_complete_2fa is null )
 		  and t2.expires > current_timestamp
 		group by t1.user_id

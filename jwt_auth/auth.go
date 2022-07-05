@@ -46,6 +46,7 @@ import (
 	"github.com/pschlump/gintools/email"
 	"github.com/pschlump/gintools/log_enc"
 	"github.com/pschlump/gintools/qr_svr2"
+	"github.com/pschlump/gintools/run_template"
 	"github.com/pschlump/gintools/tools/jwt-cli/jwtlib"
 	"github.com/pschlump/htotp"
 	"github.com/pschlump/json"
@@ -69,9 +70,8 @@ var GinSetupTable = []GinLoginType{
 
 	// No Login UseLogin
 	{Method: "POST", Path: "/api/v1/auth/login", Fx: authHandleLogin, UseLogin: PublicApiCall},
-	{Method: "POST", Path: "/api/v1/auth/register", Fx: authHandleRegister, UseLogin: PublicApiCall},                   // un + pw + first_name + last_name
-	{Method: "POST", Path: "/api/v1/auth/validate-2fa-token", Fx: authHandleValidate2faToken, UseLogin: PublicApiCall}, // 2nd step 2fa - create auth-token / jwtToken Sent
-	// {Method: "POST", Path: "/api/v1/auth/email-confirm", Fx: authHandlerEmailConfirm, UseLogin: PublicApiCall},                                   // token
+	{Method: "POST", Path: "/api/v1/auth/register", Fx: authHandleRegister, UseLogin: PublicApiCall},                                             // un + pw + first_name + last_name
+	{Method: "POST", Path: "/api/v1/auth/validate-2fa-token", Fx: authHandleValidate2faToken, UseLogin: PublicApiCall},                           // 2nd step 2fa - create auth-token / jwtToken Sent
 	{Method: "GET", Path: "/api/v1/auth/email-confirm", Fx: authHandlerEmailConfirm, UseLogin: PublicApiCall},                                    // token
 	{Method: "POST", Path: "/api/v1/auth/recover-password-01-setup", Fx: authHandleRecoverPassword01Setup, UseLogin: PublicApiCall},              //
 	{Method: "GET", Path: "/api/v1/auth/recover-password-01-setup", Fx: authHandleRecoverPassword01Setup, UseLogin: PublicApiCall},               //
@@ -91,7 +91,6 @@ var GinSetupTable = []GinLoginType{
 	// Login UseLogin
 	{Method: "POST", Path: "/api/v1/auth/login-status", Fx: authHandleLoginStatus, UseLogin: LoginRequired},                  //	Test of Login UseLogin Stuff
 	{Method: "GET", Path: "/api/v1/auth/login-status", Fx: authHandleLoginStatus, UseLogin: LoginRequired},                   //	Test of Login UseLogin Stuff
-	{Method: "POST", Path: "/api/v1/auth/refresh-token", Fx: authHandleAcctHasBeenSetup, UseLogin: LoginRequired},            // (TODO - wrong function now)
 	{Method: "POST", Path: "/api/v1/auth/change-password", Fx: authHandleChangePassword, UseLogin: LoginRequired},            // change passwword
 	{Method: "POST", Path: "/api/v1/auth/delete-acct", Fx: authHandleDeleteAccount, UseLogin: LoginRequired},                 // self-terminate account
 	{Method: "POST", Path: "/api/v1/auth/regen-otp", Fx: authHandleRegenOTP, UseLogin: LoginRequired},                        // regenerate list of OTP list
@@ -102,6 +101,7 @@ var GinSetupTable = []GinLoginType{
 	{Method: "POST", Path: "/api/v1/auth/change-password-admin", Fx: authHandleChangePasswordAdmin, UseLogin: LoginRequired}, //
 	{Method: "POST", Path: "/api/v1/auth/add-2fa-secret", Fx: authHandleAdd2faSecret, UseLogin: LoginRequired},               //
 	{Method: "POST", Path: "/api/v1/auth/remove-2fa-secret", Fx: authHandleRemove2faSecret, UseLogin: LoginRequired},         //
+	// TODO  {Method: "POST", Path: "/api/v1/auth/refresh-token", Fx: authHandleAcctHasBeenSetup, UseLogin: LoginRequired},            // (TODO - wrong function now)
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
@@ -139,7 +139,7 @@ create table q_qr_users (
 	password_hash 			text not null,
 	first_name_enc			bytea not null,
 	last_name_enc			bytea not null,
-	email_verified			varchar(1) default 'n' not null,
+	email_validated			varchar(1) default 'n' not null,
 	email_verify_token		uuid,
 	email_verify_expire 	timestamp,
 	password_reset_token	uuid,
@@ -582,19 +582,24 @@ func authHandlerEmailConfirm(c *gin.Context) {
 		c.Writer.WriteHeader(http.StatusSeeOther) // 303
 		to := gCfg.BaseServerURL + gCfg.AuthConfirmEmailURI + "/" + url.QueryEscape(rvEmailConfirm.Email) + "/" + url.QueryEscape(rvEmailConfirm.TmpToken)
 		c.Writer.Header().Set("Location", to)
-		fmt.Fprintf(c.Writer, `
+		// should use /Users/philip/go/src/github.com/truckcoinswap/bol-app/server/gin-upload/tmpl/location.html.tmpl
+		html := run_template.RunTemplate("location.html", "location", map[string]interface{}{"destination": to})
+		fmt.Fprintf(c.Writer, html)
+		if false {
+			fmt.Fprintf(c.Writer, `
 <html>
+<script>
+window.location = "%s";
+</script>
 <body>
 	If the browser fails to redirect you then click on the link below:<br>
 	<br>
 	<a href="%s">%s</a><br>
 	<br>
-<script>
-window.location = "%s";
-</script>
 </body>
 </html>
 `, to, to, to)
+		}
 		return
 	}
 
@@ -1064,7 +1069,7 @@ func authHandleEmailHasBeenSetup(c *gin.Context) {
 		select 'found' as "x" 
 			from q_qr_users  as t1
 			where t1.email_hmac = encode(hmac($1, $2, 'sha256'), 'base64')
-			  and t1.email_verified = 'y'
+			  and t1.email_validated = 'y'
 	`
 	err = pgxscan.Select(ctx, conn, &v2, stmt, pp.Email, gCfg.EncryptionPassword)
 	if err != nil {
@@ -1088,14 +1093,14 @@ func authHandleEmailHasBeenSetup(c *gin.Context) {
 
 type SQLAcctStatusType struct {
 	SetupComplete2fa string `json:"setup_complete_2fa" db:"setup_complete_2fa"`
-	EmailVerified    string `json:"email_verified"     db:"email_verified"`
+	EmailValidated   string `json:"email_validated"     db:"email_validated"`
 }
 
 type AcctSetupSuccess struct {
-	Status           string `json:"status"`
-	SetupComplete2fa string `json:"setup_complete_2fa,omitempty"`
-	EmailVerified    string `json:"email_verified,omitempty"`
-	Msg              string `json:"msg,omitempty"`
+	Status         string `json:"status"`
+	X2faValidated  string `json:"x2fa_validated,omitempty"`
+	EmailValidated string `json:"email_validated,omitempty"`
+	Msg            string `json:"msg,omitempty"`
 }
 
 // authHandleAcctHasBeenSetup godoc
@@ -1125,7 +1130,7 @@ func authHandleAcctHasBeenSetup(c *gin.Context) {
 	var v2 []*SQLAcctStatusType
 	stmt := `
 		select t1.setup_complete_2fa 
-			  , t1.email_verified 
+			  , t1.email_validated 
 			from q_qr_users  as t1
 			where t1.email_hmac = encode(hmac($1, $2, 'sha256'), 'base64')
 	`
@@ -1136,8 +1141,8 @@ func authHandleAcctHasBeenSetup(c *gin.Context) {
 	}
 	if len(v2) > 0 {
 		out := AcctSetupSuccess{Status: "success",
-			SetupComplete2fa: v2[0].SetupComplete2fa,
-			EmailVerified:    v2[0].EmailVerified,
+			X2faValidated:  v2[0].SetupComplete2fa,
+			EmailValidated: v2[0].EmailValidated,
 		}
 		c.JSON(http.StatusOK, logJsonReturned(out))
 		return
@@ -1209,6 +1214,7 @@ type RvValidate2faTokenType struct {
 	Privileges     string `json:"privileges,omitempty"`
 	Secret2fa      string `json:"secret_2fa,omitempty"`
 	EmailValidated string `json:"email_validated,omitempty"`
+	X2faValidated  string `json:"x2fa_validated,omitempty"`
 }
 
 type RvGetSecretType struct {
@@ -1237,6 +1243,7 @@ type Validate2faTokenSuccess struct {
 	Status         string `json:"status"`
 	Token          string `json:"token,omitempty"`
 	EmailValidated string `json:"email_validated,omitempty"`
+	X2faValidated  string `json:"x2fa_validated,omitempty"`
 	Expires        string `json:"expires,omitempty"`
 }
 
@@ -2075,7 +2082,7 @@ func GetAuthToken(c *gin.Context) (UserId int, AuthToken string) {
 			where t2.token = $1
 		      and ( t1.start_date < current_timestamp or t1.start_date is null )
 		      and ( t1.end_date > current_timestamp or t1.end_date is null )
-			  and t1.email_verified = 'y'
+			  and t1.email_validated = 'y'
 		      and t1.setup_complete_2fa = 'y'
 			  and t2.expires > current_timestamp
 			group by t1.user_id
