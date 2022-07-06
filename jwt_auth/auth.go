@@ -84,6 +84,7 @@ var GinSetupTable = []GinLoginType{
 	{Method: "GET", Path: "/api/v1/auth/acct-status", Fx: authHandleAcctHasBeenSetup, UseLogin: PublicApiCall},                                   //
 	{Method: "GET", Path: "/api/v1/id.json", Fx: loginTrackingJsonHandler, UseLogin: PublicApiCall},                                              //
 	{Method: "GET", Path: "/api/v1/set-debug-flag", Fx: authHandlerSetDebugFlag, UseLogin: PublicApiCall},                                        //
+	{Method: "POST", Path: "/api/v1/auth/resend-registeration-email", Fx: authHandleResendRegistrationEmail, UseLogin: PublicApiCall},            // Must have password to send.
 
 	{Method: "GET", Path: "/api/v1/auth/logout", Fx: authHandleLogout, UseLogin: LoginOptional},  // just logout - destroy auth-token
 	{Method: "POST", Path: "/api/v1/auth/logout", Fx: authHandleLogout, UseLogin: LoginOptional}, // just logout - destroy auth-token

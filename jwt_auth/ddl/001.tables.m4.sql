@@ -1912,7 +1912,6 @@ BEGIN
 	-- Cleanup any users that have expired tokens.
 	delete from q_qr_users
 		where email_verify_expire < current_timestamp - interval '30 days'
-		  and email_verify_token is not null
 		  and email_validated = 'n'
 		;
 	-- Cleanup any users that have expired saved state
@@ -2063,6 +2062,138 @@ $$ LANGUAGE plpgsql;
 
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- stmt := "q_auth_v1_resend_email_register ( $1, $2, $3, $4, $5, $6, $7 )"
+-- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+create or replace function q_auth_v1_resend_email_register ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar )
+	returns text
+	as $$
+DECLARE
+	l_data					text;
+	l_junk					text;
+	l_fail					bool;
+	l_user_id				int;
+	l_email_verify_token	uuid;
+	l_secret_2fa 			varchar(20);
+	l_debug_on 				bool;
+	l_auth_token			uuid;
+	l_tmp_token				uuid;
+BEGIN
+	l_debug_on = q_get_config_bool ( 'debug' );
+
+	-- Copyright (C) Philip Schlump, 2008-2021.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	l_email_verify_token = uuid_generate_v4();
+
+	-- l_tmp = uuid_generate_v4()::text;
+	-- l_secret_2fa = substr(l_tmp,0,7) || substr(l_tmp,10,4);
+	l_secret_2fa = p_secret;
+
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->q_quth_v1_resend_email_register<- m4___file__ m4___line__' );
+		insert into t_output ( msg ) values ( '  p_email ->'||p_email||'<-');
+		insert into t_output ( msg ) values ( '  p_pw ->'||p_pw||'<-');
+		insert into t_output ( msg ) values ( '  p_hmac_password ->'||p_hmac_password||'<-');
+		insert into t_output ( msg ) values ( '  p_first_name ->'||p_first_name||'<-');
+		insert into t_output ( msg ) values ( '  p_last_name ->'||p_last_name||'<-');
+		insert into t_output ( msg ) values ( '  p_userdata_password ->'||p_userdata_password||'<-');
+		insert into t_output ( msg ) values ( '  p_secret ->'||p_secret||'<-');
+		insert into t_output ( msg ) values ( '  ' );
+	end if;
+
+	-- Cleanup any users that have expired tokens.
+	delete from q_qr_users
+		where email_verify_expire < current_timestamp - interval '30 days'
+		  and email_validated = 'n'
+		;
+	-- Cleanup any users that have expired saved state
+	delete from q_qr_saved_state
+		where expires < current_timestamp
+		;
+
+	-- Cleanup old tmp tokens.
+	delete from q_qr_tmp_token 
+		where expires < current_timestamp
+		;
+
+
+
+
+	-- Lookup User / Validate Password
+
+	select user_id
+		into l_user_id
+		from q_qr_users as t1
+		where t1.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
+		  and t1.password_hash = crypt(p_pw, password_hash)
+		;
+
+	if not found then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"No account with this email address exists.  Please register again.","code":"0111","location":"m4___file__ m4___line__"}';
+		-- insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Accont', 'File:m4___file__ Line No:m4___line__');
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'No account with this email address exists.  Please register again.","code":"0111","location":"m4___file__ m4___line__"}' );
+	end if;
+
+	if not l_fail then
+
+		select t1.email_verify_token
+			, t1.secret_2fa
+			into l_email_verify_token
+				, l_secret_2fa
+			from q_qr_users as t1
+			where t1.user_id = l_user_id
+			;
+
+		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Email Resend Registered', 'File:m4___file__ Line No:m4___line__');
+
+	end if;
+
+	if not l_fail then
+
+		select t10.token
+			into l_tmp_token
+			from (
+				select t11.token, t11.expires
+					from q_qr_tmp_token as t11
+					where t11.user_id = l_user_id
+					order by t11.expires
+			) as t10
+			limit 1
+			;
+		if not found then
+			l_tmp_token = uuid_generate_v4();
+			insert into q_qr_tmp_token ( user_id, token, expires ) values ( l_user_id, l_tmp_token, current_timestamp + interval '1 day' );
+		end if;
+
+		l_data = '{"status":"success"'
+			||', "user_id":' 			||coalesce(to_json(l_user_id)::text,'""')
+			||', "email_verify_token":' ||coalesce(to_json(l_email_verify_token)::text,'""')
+			||', "require_2fa":' 		||coalesce(to_json('y'::text)::text,'""')
+			||', "tmp_token":'   		||coalesce(to_json(l_tmp_token)::text,'""')
+			||', "secret_2fa":'			||coalesce(to_json(l_secret_2fa)::text,'""')
+			||'}';
+
+		if l_debug_on then
+			insert into t_output ( msg ) values ( ' l_data= '||l_data );
+		end if;
+
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
+
+-- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --	stmt := "q_auth_v1_sip_register ( $1, $2, $3, $4, $5, $6, $7 )"
 --	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)
 --	rv, err := CallDatabaseJSONFunction(c, stmt, "ee.ee..", pp.Email, pp.v, gCfg.EncryptionPassword, pp.FirstName, pp.LastName, gCfg.UserdataPassword, secret)
@@ -2116,7 +2247,6 @@ BEGIN
 	-- Cleanup any users that have expired tokens.
 	delete from q_qr_users
 		where email_verify_expire < current_timestamp - interval '30 days'
-		  and email_verify_token is not null
 		  and email_validated = 'n'
 		;
 	-- Cleanup any users that have expired saved state
@@ -2293,7 +2423,6 @@ BEGIN
 	-- Cleanup any users that have expired tokens.
 	delete from q_qr_users
 		where email_verify_expire < current_timestamp - interval '30 days'
-		  and email_verify_token is not null
 		  and email_validated = 'n'
 		;
 	-- Cleanup any users that have expired saved state
@@ -2905,6 +3034,7 @@ BEGIN
 				, login_failures = 0
 				, login_success = login_success + 1
 				, privileges = l_privileges
+		  		, email_verify_token = null
 			where user_id = l_user_id
 			;
 		l_tmp_token = uuid_generate_v4();
@@ -3098,7 +3228,6 @@ BEGIN
 	-- Cleanup any users that have expired tokens.
 	delete from q_qr_users
 		where email_verify_expire < current_timestamp - interval '30 days'
-		  and email_verify_token is not null
 		  and email_validated = 'n'
 		;
 
@@ -3292,7 +3421,6 @@ BEGIN
 	-- Cleanup any users that have expired tokens.
 	delete from q_qr_users
 		where email_verify_expire < current_timestamp - interval '30 days'
-		  and email_verify_token is not null
 		  and email_validated = 'n'
 		;
 
@@ -3491,7 +3619,6 @@ BEGIN
 	if not l_fail then
 		update q_qr_users 
 			set email_validated = 'y'
-			  , email_verify_token = null
 			  , email_verify_expire = null
 		where email_verify_expire > current_timestamp
 			and email_verify_token = p_email_verify_token::uuid
@@ -3505,7 +3632,6 @@ BEGIN
 			delete from q_qr_users
 				where email_verify_expire < current_timestamp - interval '30 days'
 				  and email_validated = 'n'
-				  and email_verify_token is not null
 				  and account_type	= 'login'
 				;
 		end if;
@@ -3551,7 +3677,6 @@ BEGIN
 	-- Cleanup any users that have expired tokens.
 	delete from q_qr_users
 		where email_verify_expire < current_timestamp - interval '30 days'
-		  and email_verify_token is not null
 		  and email_validated = 'n'
 		;
 	-- Cleanup any users that have expired saved state
