@@ -33,7 +33,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -71,6 +70,7 @@ var GinSetupTable = []GinLoginType{
 	// No Login UseLogin
 	{Method: "POST", Path: "/api/v1/auth/login", Fx: authHandleLogin, UseLogin: PublicApiCall},
 	{Method: "POST", Path: "/api/v1/auth/register", Fx: authHandleRegister, UseLogin: PublicApiCall},                                             // un + pw + first_name + last_name
+	{Method: "POST", Path: "/api/v1/auth/create-user-admin", Fx: authHandleRegister, UseLogin: PublicApiCall},                                    // TODO
 	{Method: "POST", Path: "/api/v1/auth/validate-2fa-token", Fx: authHandleValidate2faToken, UseLogin: PublicApiCall},                           // 2nd step 2fa - create auth-token / jwtToken Sent
 	{Method: "GET", Path: "/api/v1/auth/email-confirm", Fx: authHandlerEmailConfirm, UseLogin: PublicApiCall},                                    // token
 	{Method: "POST", Path: "/api/v1/auth/recover-password-01-setup", Fx: authHandleRecoverPassword01Setup, UseLogin: PublicApiCall},              //
@@ -180,7 +180,7 @@ type StdErrorReturn struct {
 
 type RvLoginType struct {
 	StdErrorReturn
-	UserId      *int   `json:"user_id,omitempty"`
+	UserId      string `json:"user_id,omitempty"`
 	AuthToken   string `json:"auth_token,omitempty"` // May be "" - meaning no auth.
 	TmpToken    string `json:"tmp_token,omitempty"`  // May be "" - used in 2fa part 1 / 2
 	Token       string `json:"token,omitempty"`      // the JWT Token???
@@ -311,7 +311,7 @@ func authHandleLogin(c *gin.Context) {
 //			||', "user_id":' ||coalesce(to_json(l_user_id)::text,'""')
 type RvRegisterType struct {
 	StdErrorReturn
-	UserId           *int     `json:"user_id,omitempty"`
+	UserId           string   `json:"user_id,omitempty"`
 	EmailVerifyToken string   `json:"email_verify_token,omitempty"`
 	Require2fa       string   `json:"require_2fa,omitempty"`
 	Secret2fa        string   `json:"secret_2,omitempty"`
@@ -395,7 +395,7 @@ func authHandleRegister(c *gin.Context) {
 	// set Cookie for SavedState -- Save into database
 	cookieValue := GenUUID()
 	SetCookie("X-Saved-State", cookieValue, c)
-	err = SaveState(cookieValue, *RegisterResp.UserId, c)
+	err = SaveState(cookieValue, RegisterResp.UserId, c)
 	if err != nil {
 		return
 	}
@@ -1220,7 +1220,7 @@ func authHandlerSetDebugFlag(c *gin.Context) {
 
 type RvValidate2faTokenType struct {
 	StdErrorReturn
-	UserId         *int   `json:"user_id,omitempty"`
+	UserId         string `json:"user_id,omitempty"`
 	AuthToken      string `json:"auth_token,omitempty"` // May be "" - meaning no auth.
 	Token          string `json:"token,omitempty"`
 	Expires        string `json:"expires,omitempty"`
@@ -1233,7 +1233,7 @@ type RvValidate2faTokenType struct {
 type RvGetSecretType struct {
 	StdErrorReturn
 	Secret2fa string `json:"secret_2fa"`
-	UserId    int    `json:"user_id"`
+	UserId    string `json:"user_id"`
 }
 
 var PrivilegedNames = []string{"__is_logged_in__", "__user_id__", "__auth_token__", "__privs__", "__jwt_token__", "__email_hmac_password__", "__user_password__"}
@@ -1431,7 +1431,7 @@ func authHandleValidate2faToken(c *gin.Context) {
 // -------------------------------------------------------------------------------------------------------------------------
 // GetUserId will return a UserID - if the user  is currently logged in then it is from __user_id__ in the context.  If
 // the user is not logged in then 0 will be returned.
-func GetUserId(c *gin.Context) (UserId int, err error) {
+func GetUserId(c *gin.Context) (UserId string, err error) {
 	li := c.GetString("__is_logged_in__")
 	if li == "y" {
 		s := c.GetString("__user_id__")
@@ -1439,11 +1439,7 @@ func GetUserId(c *gin.Context) (UserId int, err error) {
 			dbgo.Fprintf(logFilePtr, "%(red)%(LF): - Failed to get UserID\n")
 			return
 		}
-		UserId, err = strconv.Atoi(s)
-		if err != nil {
-			dbgo.Fprintf(logFilePtr, "%(red)%(LF): - Failed to get UserID\n")
-			return
-		}
+		UserId = s
 	}
 	return
 }
@@ -1978,11 +1974,11 @@ func authHandleRemove2faSecret(c *gin.Context) {
 //	AuthJWTPrivate           string `json:"auth_jwt_private_file" default:""`                                                    // Private Key File
 //	AuthJWTKeyType           string `json:"auth_jwt_key_type" default:"ES" validate:"v.In(['ES256','RS256', 'ES512', 'RS512'])"` // Key type ES = ESDSA or RS = RSA
 type SQLUserIdPrivsType struct {
-	UserId     int    `json:"user_id,omitempty" db:"user_id"`
+	UserId     string `json:"user_id,omitempty" db:"user_id"`
 	Privileges string `json:"privileges,omitempty"`
 }
 
-func GetAuthToken(c *gin.Context) (UserId int, AuthToken string) {
+func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
 	dbgo.Fprintf(logFilePtr, "    %(magenta)In GetAuthToken at:%(LF), gCfg.TokenHeaderVSCookie==%s\n", gCfg.TokenHeaderVSCookie)
 	dbgo.Fprintf(os.Stderr, "    %(magenta)In GetAuthToken at:%(LF), gCfg.TokenHeaderVSCookie==%s\n", gCfg.TokenHeaderVSCookie)
 	// Pull cookie - for X-Auth
@@ -2124,7 +2120,7 @@ func GetAuthToken(c *gin.Context) (UserId int, AuthToken string) {
 		} else {
 			dbgo.Fprintf(logFilePtr, "X-Authentication - %(LF) - did not find auth_token in database\n")
 			dbgo.Fprintf(os.Stderr, "X-Authentication - %(LF) - %(red)did not find auth_token in database\n")
-			UserId = 0
+			UserId = ""
 			AuthToken = ""
 		}
 		dbgo.Fprintf(logFilePtr, "X-Authentication - at:%(LF)\n")
@@ -2186,7 +2182,7 @@ func CreateJWTSignedCookie(c *gin.Context, DBAuthToken string) (rv string, err e
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
-func Confirm2faSetupAccount(c *gin.Context, UserId int) {
+func Confirm2faSetupAccount(c *gin.Context, UserId string) {
 	// create or replace function q_auth_v1_setup_2fa ( p_user_id varchar )
 	stmt := "q_auth_v1_setup_2fa_test ( $1, $2, $3 )"
 	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)
@@ -2218,7 +2214,7 @@ func ConfirmEmailAccount(c *gin.Context, EmailVerifyToken string) (rv, stmt stri
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
-func SaveState(cookieValue string, UserId int, c *gin.Context) (err error) {
+func SaveState(cookieValue string, UserId string, c *gin.Context) (err error) {
 	// set Cookie for SavedState -- Save into database!
 	//jwt, err := GetJWTAuthResponceWriterFromWWW(www, req)
 	//if err != nil {

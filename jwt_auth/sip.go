@@ -83,7 +83,7 @@ func authHandleSipRegister(c *gin.Context) {
 	// set Cookie for SavedState -- Save into database
 	cookieValue := GenUUID()
 	SetCookie("X-Saved-State", cookieValue, c)
-	err = SaveState(cookieValue, *RegisterResp.UserId, c)
+	err = SaveState(cookieValue, RegisterResp.UserId, c)
 	if err != nil {
 		return
 	}
