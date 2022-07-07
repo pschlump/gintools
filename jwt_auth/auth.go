@@ -76,6 +76,7 @@ var GinSetupTable = []GinLoginType{
 	{Method: "POST", Path: "/api/v1/auth/recover-password-01-setup", Fx: authHandleRecoverPassword01Setup, UseLogin: PublicApiCall},              //
 	{Method: "GET", Path: "/api/v1/auth/recover-password-01-setup", Fx: authHandleRecoverPassword01Setup, UseLogin: PublicApiCall},               //
 	{Method: "POST", Path: "/api/v1/auth/recover-password-02-fetch-info", Fx: authHandleRecoverPassword02FetchInfo, UseLogin: PublicApiCall},     //
+	{Method: "GET", Path: "/api/v1/auth/recover-password-02-fetch-info", Fx: authHandleRecoverPassword02FetchInfo, UseLogin: PublicApiCall},      //
 	{Method: "POST", Path: "/api/v1/auth/recover-password-03-set-password", Fx: authHandleRecoverPassword03SetPassword, UseLogin: PublicApiCall}, //
 	{Method: "GET", Path: "/api/v1/auth/no-login-status", Fx: authHandleNoLoginStatus, UseLogin: PublicApiCall},                                  //
 	{Method: "POST", Path: "/api/v1/auth/no-login-status", Fx: authHandleNoLoginStatus, UseLogin: PublicApiCall},                                 //
@@ -84,7 +85,7 @@ var GinSetupTable = []GinLoginType{
 	{Method: "GET", Path: "/api/v1/auth/acct-status", Fx: authHandleAcctHasBeenSetup, UseLogin: PublicApiCall},                                   //
 	{Method: "GET", Path: "/api/v1/id.json", Fx: loginTrackingJsonHandler, UseLogin: PublicApiCall},                                              //
 	{Method: "GET", Path: "/api/v1/set-debug-flag", Fx: authHandlerSetDebugFlag, UseLogin: PublicApiCall},                                        //
-	{Method: "POST", Path: "/api/v1/auth/resend-registeration-email", Fx: authHandleResendRegistrationEmail, UseLogin: PublicApiCall},            // Must have password to send.
+	{Method: "POST", Path: "/api/v1/auth/resend-registration-email", Fx: authHandleResendRegistrationEmail, UseLogin: PublicApiCall},             // Must have password to send.
 
 	{Method: "GET", Path: "/api/v1/auth/logout", Fx: authHandleLogout, UseLogin: LoginOptional},  // just logout - destroy auth-token
 	{Method: "POST", Path: "/api/v1/auth/logout", Fx: authHandleLogout, UseLogin: LoginOptional}, // just logout - destroy auth-token
@@ -985,8 +986,9 @@ done:
 // jwtConfig.authInternalHandlers["GET:/api/v1/auth/2fa-has-been-setup"] = authHandle2faHasBeenSetup
 
 type X2faSetupSuccess struct {
-	Status string `json:"status"`
-	Msg    string `json:"msg"`
+	Status        string `json:"status"`
+	Msg           string `json:"msg"`
+	X2faValidated string `json:"x2fa_validated,omitempty"`
 }
 
 // authHandle2faHasBeenSetup godoc
@@ -1017,7 +1019,7 @@ func authHandle2faHasBeenSetup(c *gin.Context) {
 	stmt := `
 		select 'found' as "x" 
 			from q_qr_users  as t1
-			where t1.email_hmac = encode(hmac($1, $2, 'sha256'), 'base64')
+			where t1.email_hmac = hmac($1, $2, 'sha256')
 			  and t1.setup_complete_2fa = 'y'
 	`
 	err = pgxscan.Select(ctx, conn, &v2, stmt, pp.Email, gCfg.EncryptionPassword)
@@ -1027,19 +1029,28 @@ func authHandle2faHasBeenSetup(c *gin.Context) {
 	}
 
 	out := X2faSetupSuccess{Status: "success"}
-	c.JSON(http.StatusOK, logJsonReturned(out)) // 200
+	// c.JSON(http.StatusOK, logJsonReturned(out)) // 200
 	if len(v2) > 0 {
 		out.Msg = "2FA has been Setup"
-	} else {
-		out.Status = "error"
-		out.Msg = "2FA *not* Setup"
+		out.X2faValidated = "y"
+		c.JSON(http.StatusOK, logJsonReturned(out))
+		return
 	}
+
+	out.Msg = "2FA *not* Setup"
+	out.X2faValidated = "n"
 	c.JSON(http.StatusOK, logJsonReturned(out))
 
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
 // router.GET("/api/v1/auth/email-has-been-validated", authHandleEmailHasBeenSetup)                     //
+
+type EmailSetupSuccess struct {
+	Status         string `json:"status"`
+	Msg            string `json:"msg"`
+	EmailValidated string `json:"email_validated,omitempty"`
+}
 
 // authHandleEmailHasBeenSetup godoc
 // @Summary Confirm the email from registration.
@@ -1069,7 +1080,7 @@ func authHandleEmailHasBeenSetup(c *gin.Context) {
 	stmt := `
 		select 'found' as "x" 
 			from q_qr_users  as t1
-			where t1.email_hmac = encode(hmac($1, $2, 'sha256'), 'base64')
+			where t1.email_hmac = hmac($1, $2, 'sha256')
 			  and t1.email_validated = 'y'
 	`
 	err = pgxscan.Select(ctx, conn, &v2, stmt, pp.Email, gCfg.EncryptionPassword)
@@ -1078,12 +1089,13 @@ func authHandleEmailHasBeenSetup(c *gin.Context) {
 		return
 	}
 
-	out := X2faSetupSuccess{Status: "success"}
+	out := EmailSetupSuccess{Status: "success"}
 	if len(v2) > 0 {
 		out.Msg = "Email has been Setup"
+		out.EmailValidated = "y"
 	} else {
-		out.Status = "error"
 		out.Msg = "Email *not* Setup"
+		out.EmailValidated = "n"
 	}
 	c.JSON(http.StatusOK, logJsonReturned(out))
 
@@ -1133,7 +1145,7 @@ func authHandleAcctHasBeenSetup(c *gin.Context) {
 		select t1.setup_complete_2fa 
 			  , t1.email_validated 
 			from q_qr_users  as t1
-			where t1.email_hmac = encode(hmac($1, $2, 'sha256'), 'base64')
+			where t1.email_hmac = hmac($1, $2, 'sha256')
 	`
 	err = pgxscan.Select(ctx, conn, &v2, stmt, pp.Email, gCfg.EncryptionPassword)
 	if err != nil {

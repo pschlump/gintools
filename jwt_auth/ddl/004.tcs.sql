@@ -48,7 +48,7 @@ create index tcs_bill_of_lading_p1 on tcs_bill_of_lading using hash ( group_id )
 CREATE OR REPLACE function tcs_bill_of_lading_upd()
 RETURNS trigger AS $$
 BEGIN
-	-- version: 1b4f681410e41a4bec64dce42f6162f0658fa053 tag: v1.0.6 build_date: Tue May 10 14:23:29 MDT 2022
+	-- version: 5e83aa840f7efdaf7572ff4b507bc811c966c882 tag: v1.0.2 build_date: Wed Jul  6 12:32:59 MDT 2022
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END

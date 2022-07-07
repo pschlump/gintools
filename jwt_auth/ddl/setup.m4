@@ -2,6 +2,8 @@ m4_divert(`-1')
 
 m4_changequote(`[[[', `]]]')
 
+m4_define([[[m4_coverage_point]]],[[[]]])
+
 m4_define([[[m4_namespace]]],[[[q_qr]]])
 
 m4_define([[[m4_foreach]]],[[[m4_ifelse(m4_eval($#>2),1,m4_dnl

@@ -47,6 +47,9 @@ func authHandleResendRegistrationEmail(c *gin.Context) {
 		return
 	}
 
+	var secret string
+	secret = ""
+
 	if IsXDBOn("authHandleRegister:error01") {
 		RegisterResp.LogUUID = GenUUID()
 		RegisterResp.Status = "error"
@@ -57,14 +60,12 @@ func authHandleResendRegistrationEmail(c *gin.Context) {
 		return
 	}
 
-	secret := GenerateSecret()
-
 	//                                                 1             2             3                        4                     5                    6                            7
 	// create or replace function q_auth_v1_resend_email_register ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar )
 	stmt := "q_auth_v1_resend_email_register ( $1, $2, $3, $4, $5, $6, $7 )"
 	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)
 	//                                                      1         2      3                        4             5            6                      7
-	rv, err := CallDatabaseJSONFunction(c, stmt, "ee.ee..", pp.Email, pp.Pw, gCfg.EncryptionPassword, pp.FirstName, pp.LastName, gCfg.UserdataPassword, secret)
+	rv, err := CallDatabaseJSONFunction(c, stmt, "ee.ee..", pp.Email, pp.Pw, gCfg.EncryptionPassword, pp.FirstName, pp.LastName, gCfg.UserdataPassword, "")
 	if err != nil {
 		return
 	}
