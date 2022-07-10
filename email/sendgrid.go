@@ -83,6 +83,12 @@ func SendEmail(template_name string, param ...interface{}) (err error) {
 	textBody := run_template.RunTemplate(tfn, "text_body", mdata)
 	htmlBody := run_template.RunTemplate(tfn, "html_body", mdata)
 
+	if gCfg.RedirectEmailSendTo != "" {
+		dbgo.Fprintf(os.Stderr, "Redirecting ->%s<- to ->%s<-\n", toAddress, gCfg.RedirectEmailSendTo)
+		dbgo.Fprintf(logFilePtr, "Redirecting ->%s<- to ->%s<-\n", toAddress, gCfg.RedirectEmailSendTo)
+		toAddress = gCfg.RedirectEmailSendTo
+	}
+
 	mdata["FromName"] = fromName
 	mdata["FromAddress"] = fromAddress
 	mdata["ToName"] = toName

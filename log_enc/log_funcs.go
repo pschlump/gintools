@@ -68,6 +68,21 @@ func LogSQLError(c *gin.Context, stmt string, err error, encPat string, data ...
 	})
 }
 
+func LogSQLErrorNoErr(c *gin.Context, stmt string, err error, encPat string, data ...interface{}) {
+	// LogEncryptionPassword string `json:"log_encryption_password" default:"$ENV$QR_LOG_ENCRYPTION_PASSWORD"`
+	requestId := c.GetString("__request_id__")
+	LogIt("SQLError",
+		"url", c.Request.RequestURI,
+		"method", c.Request.Method,
+		"stmt", stmt,
+		"error", errToString(err),
+		"request_id", requestId,
+		// "data", EncryptLogData(encPat, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
+		"data", dbgo.SVar(data),
+		"AT", godebug.LF(-2),
+	)
+}
+
 // LogStoredProcError(www, req, stmt, SVar(RegisterResp), pp.Un, pp.Pw /*gCfg.EncryptionPassword,*/, pp.RealName /*, gCfg.UserdataPassword*/)
 func LogStoredProcError(c *gin.Context, stmt string, encPat string, data ...interface{}) {
 	requestId := c.GetString("__request_id__")

@@ -17,6 +17,8 @@ m4_comment([[[
 -- "e35940af-720c-4438-be52-36e8f8367398", 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+-- xyzzyRegister - TODO - 
+
 -- xyzzy - TODO xyzzy889900 - add / remove priv from user.  In Dev.
 
 ]]])
@@ -1519,6 +1521,8 @@ DECLARE
 	v_cnt 					int;
 	l_user_id				uuid;
 	l_email_hmac			bytea;
+	l_first_name			text;
+	l_last_name				text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -1546,7 +1550,11 @@ BEGIN
 			where t1.email_hmac = l_email_hmac
 		)
 		select user_id
+				, first_name
+				, last_name
 			into l_user_id
+				, l_first_name
+				, l_last_name
 			from user_row
 			where 
 					(
@@ -1586,6 +1594,8 @@ BEGIN
 
 	if not l_fail then
 		l_data = '{"status":"success"'
+			||', "first_name":'  	||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   	||coalesce(to_json(l_last_name)::text,'""')
 			||'}';
 	end if;
 
@@ -1697,7 +1707,6 @@ BEGIN
 	if not l_fail then
 
 		l_data = '{"status":"success"'
-			-- ||', "user_id":' 			||coalesce(to_json(l_user_id)::text,'""')
 			||'}';
 
 		if l_debug_on then
@@ -2006,10 +2015,13 @@ BEGIN
 		insert into t_output ( msg ) values ( '  ' );
 	end if;
 
+-- xyzzyRegister - TODO - 
 	-- Cleanup any users that have expired tokens.
+	-- won't work !!! tranactional error !!!
+	-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	delete from q_qr_users
 		where email_verify_expire < current_timestamp - interval '30 days'
-		  and email_validated = 'n'
+		  and ( email_validated = 'n' or setup_complete_2fa = 'n' )
 		;
 	-- Cleanup any users that have expired saved state
 	delete from q_qr_saved_state
@@ -2021,41 +2033,7 @@ BEGIN
 		where expires < current_timestamp
 		;
 
-	-- If user has hever logged in and is attempting to register the user again - then delete old user - must have same email.
-	-- PERFORM * FROM foo WHERE x = 'abc' AND y = 'xyz';
-	-- IF FOUND THEN
-	-- 	....
-	-- END IF;
-	-- , login_success = login_success + 1
-
-	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
-	select q_auth_v1_delete_user ( user_id )
-		into l_junk
-		from q_qr_users as t1
-		where t1.email_hmac = l_email_hmac
-		  and t1.login_success = 0
-		;
-	select user_id
-		into l_bad_user_id
-		from q_qr_users as t1
-		where t1.email_hmac = l_email_hmac
-		;
-	if found then
-		l_fail = true;
-		l_data = '{"status":"error","msg":"Account already exists.  Please login or recover password.","code":"0011","location":"m4___file__ m4___line__"}';
-		-- insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Accont', 'File:m4___file__ Line No:m4___line__');
-		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Account.', '0011', 'File:m4___file__ Line No:m4___line__');
-	end if;
-
 	if not l_fail then
-		-- SELECT json_agg(row_to_json(t2))::text
-		-- 	into l_privs
-		-- 	FROM (
-		-- 		select t1.priv_name
-		-- 		from q_qr_role_to_priv as t1
-		-- 		where t1.role_name =  'role:user' 
-		-- 	) t2
-		-- ;
 
 		select json_agg(t1.priv_name)::text
 			into l_privs
@@ -2074,6 +2052,43 @@ BEGIN
 			insert into t_output ( msg ) values ( 'calculate l_privs ->'||coalesce(to_json(l_privs)::text,'---null---')||'<-');
 		end if;
 	end if;
+
+	-- If user has hever logged in and is attempting to register the user again - then delete old user - must have same email.
+	-- PERFORM * FROM foo WHERE x = 'abc' AND y = 'xyz';
+	-- IF FOUND THEN
+	-- 	....
+	-- END IF;
+	-- , login_success = login_success + 1
+
+
+-- xyzzyRegister - TODO - 
+	-- Cleanup any users that have expired tokens.
+	-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	-- !!!! race condition !!!!
+	-- !!!! tranactional error !!!!
+	-- !!!! Possibilities... 
+	--	1. if password is same and 0 login, then should just update account (set n,n)
+	--	2. if y,n or n,y, then should just update account
+	--	3. else - error
+	-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
+	select q_auth_v1_delete_user ( user_id )
+		into l_junk
+		from q_qr_users as t1
+		where t1.email_hmac = l_email_hmac
+		  and t1.login_success = 0
+		;
+	select user_id
+		into l_bad_user_id
+		from q_qr_users as t1
+		where t1.email_hmac = l_email_hmac
+		;
+	if found then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"Account already exists.  Please login or recover password.","code":"0011","location":"m4___file__ m4___line__"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Account.', '0011', 'File:m4___file__ Line No:m4___line__');
+	end if;
+
 
 	if not l_fail then
 
@@ -2381,8 +2396,7 @@ $$ LANGUAGE plpgsql;
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- stmt := "q_auth_v1_resend_email_register ( $1, $2, $3, $4, $5, $6, $7 )"
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-create or replace function q_auth_v1_resend_email_register ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar )
+create or replace function q_auth_v1_resend_email_register ( p_email varchar, p_tmp_token varchar, p_hmac_password varchar, p_userdata_password varchar )
 	returns text
 	as $$
 DECLARE
@@ -2391,11 +2405,12 @@ DECLARE
 	l_fail					bool;
 	l_user_id				uuid;
 	l_email_verify_token	uuid;
-	l_secret_2fa 			varchar(20);
 	l_debug_on 				bool;
 	l_auth_token			uuid;
 	l_tmp_token				uuid;
 	l_email_hmac			bytea;
+	l_first_name			text;
+	l_last_name				text;
 BEGIN
 	l_debug_on = q_get_config_bool ( 'debug' );
 
@@ -2407,19 +2422,12 @@ BEGIN
 
 	l_email_verify_token = uuid_generate_v4();
 
-	-- l_tmp = uuid_generate_v4()::text;
-	-- l_secret_2fa = substr(l_tmp,0,7) || substr(l_tmp,10,4);
-	l_secret_2fa = p_secret;
-
 	if l_debug_on then
 		insert into t_output ( msg ) values ( 'function ->q_quth_v1_resend_email_register<- m4___file__ m4___line__' );
 		insert into t_output ( msg ) values ( '  p_email ->'||coalesce(to_json(p_email)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  p_pw ->'||coalesce(to_json(p_pw)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_tmp_token ->'||coalesce(to_json(p_tmp_token)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_hmac_password ->'||coalesce(to_json(p_hmac_password)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  p_first_name ->'||coalesce(to_json(p_first_name)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  p_last_name ->'||coalesce(to_json(p_last_name)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_userdata_password ->'||coalesce(to_json(p_userdata_password)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  p_secret ->'||coalesce(to_json(p_secret)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  ' );
 	end if;
 
@@ -2440,12 +2448,16 @@ BEGIN
 
 
 
+	l_tmp_token := p_tmp_token::uuid;
 
 	-- Lookup User / Validate Password
-
 	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
 	select user_id
+			, pgp_sym_decrypt(first_name_enc,p_userdata_password)::text as first_name
+			, pgp_sym_decrypt(last_name_enc,p_userdata_password)::text as last_name
 		into l_user_id
+			, l_first_name
+			, l_last_name
 		from q_qr_users as t1
 		where t1.email_hmac = l_email_hmac
 		;
@@ -2459,15 +2471,23 @@ BEGIN
 
 	if not l_fail then
 
+		-- if email_verify_token is null then a login has occured on the account.
+		-- this means that you should no long be able to get a new email.
 		select t1.email_verify_token
-			, t1.secret_2fa
 			into l_email_verify_token
-				, l_secret_2fa
 			from q_qr_users as t1
 			where t1.user_id = l_user_id
 			  and t1.email_verify_token is not null
-		  	  and t1.password_hash = crypt(p_pw, password_hash)
+			  and exists (
+				select 'found'
+					from q_qr_tmp_token as t2
+					where t2.user_id = t1.user_id
+					  and t2.token = l_tmp_token
+				)
 			;
+
+		-- xyzzy - if y,n or n,y state - and email-verify-token is null, then ...
+		-- xyzzy - should we create a new tmp_token, and set a new email-verify-token...
 
 		if not found then
 			l_fail = true;
@@ -2481,27 +2501,27 @@ BEGIN
 
 	if not l_fail then
 
-		select t10.token
-			into l_tmp_token
-			from (
-				select t11.token, t11.expires
-					from q_qr_tmp_token as t11
-					where t11.user_id = l_user_id
-					order by t11.expires
-			) as t10
-			limit 1
-			;
-		if not found then
-			l_tmp_token = uuid_generate_v4();
-			insert into q_qr_tmp_token ( user_id, token, expires ) values ( l_user_id, l_tmp_token, current_timestamp + interval '1 day' );
-		end if;
+	--	select t10.token
+	--		into l_tmp_token
+	--		from (
+	--			select t11.token, t11.expires
+	--				from q_qr_tmp_token as t11
+	--				where t11.user_id = l_user_id
+	--				order by t11.expires
+	--		) as t10
+	--		limit 1
+	--		;
+	--	if not found then
+	--		l_tmp_token = uuid_generate_v4();
+	--		insert into q_qr_tmp_token ( user_id, token, expires ) values ( l_user_id, l_tmp_token, current_timestamp + interval '1 day' );
+	--	end if;
 
 		l_data = '{"status":"success"'
 			||', "user_id":' 			||coalesce(to_json(l_user_id)::text,'""')
 			||', "email_verify_token":' ||coalesce(to_json(l_email_verify_token)::text,'""')
-			||', "require_2fa":' 		||coalesce(to_json('y'::text)::text,'""')
 			||', "tmp_token":'   		||coalesce(to_json(l_tmp_token)::text,'""')
-			||', "secret_2fa":'			||coalesce(to_json(l_secret_2fa)::text,'""')
+			||', "first_name":'   		||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   		||coalesce(to_json(l_last_name)::text,'""')
 			||'}';
 
 		if l_debug_on then
@@ -2869,6 +2889,8 @@ DECLARE
 	v_cnt					int;
 	l_user_id				uuid;
 	l_email_hmac			bytea;
+	l_first_name			text;
+	l_last_name				text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -2903,7 +2925,11 @@ BEGIN
 			where t1.email_hmac = l_email_hmac
 		)
 		select user_id
+			, first_name
+			, last_name
 			into l_user_id
+				, l_first_name
+				, l_last_name
 			from user_row as t8
 			where ( t8.start_date < current_timestamp or t8.start_date is null )
 		      and ( t8.end_date > current_timestamp or t8.end_date is null )
@@ -2980,6 +3006,8 @@ BEGIN
 
 	if not l_fail then
 		l_data = '{"status":"success"'
+			||', "first_name":'  	||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   	||coalesce(to_json(l_last_name)::text,'""')
 			||'}';
 	end if;
 
@@ -3007,6 +3035,9 @@ DECLARE
 	l_fail					bool;
 	l_tmp					text;
 	v_cnt					int;
+	l_first_name			text;
+	l_last_name				text;
+	l_user_id				uuid;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -3022,10 +3053,33 @@ BEGIN
 
 	if not l_fail then
 		-- Xyzzy - better to do select count - and verify where before update.
+		with user_row as (
+			select
+				  user_id
+				, pgp_sym_decrypt(first_name_enc,p_userdata_password)::text as first_name
+				, pgp_sym_decrypt(last_name_enc,p_userdata_password)::text as last_name
+				, start_date 
+				, end_date 
+				, account_type 
+				, password_hash 
+				, parent_user_id
+				, email_validated 
+				, setup_complete_2fa 
+			from q_qr_users as t1
+			where t1.email_hmac = l_email_hmac
+		)
+		select user_id
+			, first_name
+			, last_name
+			into l_user_id
+				, l_first_name
+				, l_last_name
+			from user_row as t8
+			;
 		update q_qr_users as t1
 			set 
 				  password_hash = crypt(p_new_pw, gen_salt('bf') )
-			where t1.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
+			where t1.user_id = l_user_id;
 			;
 		-- check # of rows.
 		GET DIAGNOSTICS v_cnt = ROW_COUNT;
@@ -3036,19 +3090,19 @@ BEGIN
 		end if;
 	end if;
 
-	-- Delete all the id.json rows for this user - every marked device will nedd to 2fa after this request.
-	-- Select to get l_user_id for email.  If it is not found above then this may not be a fully setup user.
-	-- The l_user_id is used below in a delete to prevet marking of devices as having been seen.
-	delete from q_qr_manifest_version 
-		where user_id = (
-			select user_id
-			from q_qr_users as t1
-			where t1.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
-		)
-	;
+	if not l_fail then
+		-- Delete all the id.json rows for this user - every marked device will nedd to 2fa after this request.
+		-- Select to get l_user_id for email.  If it is not found above then this may not be a fully setup user.
+		-- The l_user_id is used below in a delete to prevet marking of devices as having been seen.
+		delete from q_qr_manifest_version 
+			where user_id = l_user_id
+		;
+	end if;
 
 	if not l_fail then
 		l_data = '{"status":"success"'
+			||', "first_name":'  	||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   	||coalesce(to_json(l_last_name)::text,'""')
 			||'}';
 	end if;
 
@@ -3101,6 +3155,7 @@ DECLARE
 	l_manifet_id			uuid;
 	l_email_hmac            bytea;
 	l_otp_hmac              text;
+	l_is_new_device_login	varchar(1);
 BEGIN
 	l_debug_on = q_get_config_bool ( 'debug' );
 
@@ -3109,6 +3164,7 @@ BEGIN
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
+	l_is_new_device_login= 'n';
 
 	if l_debug_on then
 		insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<- m4___file__ m4___line__' );
@@ -3359,6 +3415,7 @@ BEGIN
 					if l_debug_on then
 						insert into t_output ( msg ) values ( ' etag not found ' );
 					end if;
+					l_is_new_device_login = 'y';
 				else
 					update q_qr_manifest_version as t1
 						set updated = current_timestamp 
@@ -3439,15 +3496,16 @@ BEGIN
 			insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'Successful Login', 'File:m4___file__ Line No:m4___line__');
 		end if;
 		l_data = '{"status":"success"'
-			||', "user_id":'     ||coalesce(to_json(l_user_id)::text,'""')
-			||', "auth_token":'  ||coalesce(to_json(l_auth_token)::text,'""')
-			||', "tmp_token":'   ||coalesce(to_json(l_tmp_token)::text,'""')
-			||', "require_2fa":' ||coalesce(to_json(l_require_2fa)::text,'""')
-			||', "secret_2fa":'  ||coalesce(to_json(l_secret_2fa)::text,'""')
-			||', "account_type":'||coalesce(to_json(l_account_type)::text,'""')
-			||', "privileges":'  ||coalesce(to_json(l_privileges)::text,'""')
-			||', "first_name":'  ||coalesce(to_json(l_first_name)::text,'""')
-			||', "last_name":'   ||coalesce(to_json(l_last_name)::text,'""')
+			||', "user_id":'     			||coalesce(to_json(l_user_id)::text,'""')
+			||', "auth_token":'  			||coalesce(to_json(l_auth_token)::text,'""')
+			||', "tmp_token":'   			||coalesce(to_json(l_tmp_token)::text,'""')
+			||', "require_2fa":' 			||coalesce(to_json(l_require_2fa)::text,'""')
+			||', "secret_2fa":'  			||coalesce(to_json(l_secret_2fa)::text,'""')
+			||', "account_type":'			||coalesce(to_json(l_account_type)::text,'""')
+			||', "privileges":'  			||coalesce(to_json(l_privileges)::text,'""')
+			||', "first_name":'  			||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   			||coalesce(to_json(l_last_name)::text,'""')
+			||', "is_new_device_login":' 	||coalesce(to_json(l_is_new_device_login)::text,'"n"')
 			||'}';
 	else 
 		if l_user_id is not null then
@@ -3490,7 +3548,9 @@ $$ LANGUAGE plpgsql;
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- 3. q_auth_v1_regen_otp
-create or replace function q_auth_v1_regen_otp ( p_email varchar, p_pw varchar, p_hmac_password varchar )
+drop function q_auth_v1_regen_otp ( p_email varchar, p_pw varchar, p_hmac_password varchar );
+
+create or replace function q_auth_v1_regen_otp ( p_email varchar, p_pw varchar, p_hmac_password varchar , p_userdata_password varchar )
 	returns text
 	as $$
 DECLARE
@@ -3503,6 +3563,8 @@ DECLARE
 	l_otp_str				text;
 	l_otp_com				text;
 	v_cnt 					int;
+	l_first_name			text;
+	l_last_name				text;
 BEGIN
 	l_debug_on = q_get_config_bool ( 'debug' );
 
@@ -3515,8 +3577,12 @@ BEGIN
 	if not l_fail then
 		select
 			  user_id
+			, pgp_sym_decrypt(first_name_enc,p_userdata_password)::text as x_first_name
+			, pgp_sym_decrypt(last_name_enc,p_userdata_password)::text as x_last_name
 		into
 			  l_user_id
+			, l_first_name
+			, l_last_name
 		from q_qr_users as t1
 		where t1.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
 			and	account_type = 'login'
@@ -3554,8 +3620,10 @@ BEGIN
 
 	if not l_fail then
 		l_data = '{"status":"success"'
-			||', "user_id":' ||coalesce(to_json(l_user_id)::text,'""')
-			||', "otp":' ||l_otp_str
+			||', "user_id":' 			||coalesce(to_json(l_user_id)::text,'""')
+			||', "otp":' 				||l_otp_str
+			||', "first_name":'  		||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   		||coalesce(to_json(l_last_name)::text,'""')
 			||'}';
 	end if;
 
@@ -3598,6 +3666,7 @@ DECLARE
 	l_first_name			text;
 	l_last_name				text;
 	l_auth_token			uuid;
+	l_email					uuid;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -3635,10 +3704,11 @@ BEGIN
 			, email_validated
 			, start_date
 			, end_date
-		    , pgp_sym_decrypt(first_name_enc,p_userdata_password)::text
-		    , pgp_sym_decrypt(last_name_enc,p_userdata_password)::text
+		    , pgp_sym_decrypt(first_name_enc,p_userdata_password)::text as first_name
+		    , pgp_sym_decrypt(last_name_enc,p_userdata_password)::text as last_name
 			, failed_login_timeout 	
 			, login_failures 		
+		    , pgp_sym_decrypt(t1.email_enc,p_userdata_password)::text as email
 		into
 			  l_user_id
 			, l_email_validated
@@ -3648,6 +3718,7 @@ BEGIN
 			, l_last_name
 			, l_failed_login_timeout 	
 			, l_login_failures 	
+			, l_email					
 		from q_qr_users
 		where user_id = p_parent_user_id
 			and account_type = 'login'
@@ -3751,9 +3822,12 @@ BEGIN
 		l_tmp_token = uuid_generate_v4();
 		insert into q_qr_tmp_token ( user_id, token ) values ( l_user_id, l_tmp_token );
 		l_data = '{"status":"success"'
-			||', "user_id":' 	||coalesce(to_json(l_user_id)::text,'""')
-			||', "tmp_token":'  ||coalesce(to_json(l_tmp_token)::text,'""')
-			||', "pw":' 		||coalesce(to_json(l_pw)::text,'""')
+			||', "user_id":' 		||coalesce(to_json(l_user_id)::text,'""')
+			||', "tmp_token":'  	||coalesce(to_json(l_tmp_token)::text,'""')
+			||', "pw":' 			||coalesce(to_json(l_pw)::text,'""')
+			||', "first_name":'  	||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   	||coalesce(to_json(l_last_name)::text,'""')
+			||', "email":' 			||coalesce(to_json(l_email)::text,'""')
 			||'}';
 	end if;
 
@@ -3791,6 +3865,7 @@ DECLARE
 	l_first_name			text;
 	l_last_name				text;
 	l_auth_token			uuid;
+	l_email					text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -3828,10 +3903,11 @@ BEGIN
 			, email_validated
 			, start_date
 			, end_date
-		    , pgp_sym_decrypt(first_name_enc,p_userdata_password)::text
-		    , pgp_sym_decrypt(last_name_enc,p_userdata_password)::text
+		    , pgp_sym_decrypt(first_name_enc,p_userdata_password)::text as first_name
+		    , pgp_sym_decrypt(last_name_enc,p_userdata_password)::text as last_name
 			, failed_login_timeout 	
 			, login_failures 		
+		    , pgp_sym_decrypt(t1.email_enc,p_userdata_password)::text as email
 		into
 			  l_user_id
 			, l_email_validated
@@ -3841,6 +3917,7 @@ BEGIN
 			, l_last_name
 			, l_failed_login_timeout 	
 			, l_login_failures 	
+			, l_email					
 		from q_qr_users
 		where user_id = p_parent_user_id
 			and account_type = 'login'
@@ -3944,9 +4021,12 @@ BEGIN
 		l_tmp_token = uuid_generate_v4();
 		insert into q_qr_tmp_token ( user_id, token ) values ( l_user_id, l_tmp_token );
 		l_data = '{"status":"success"'
-			||', "user_id":' ||coalesce(to_json(l_user_id)::text,'""')
-			||', "tmp_token":'   ||coalesce(to_json(l_tmp_token)::text,'""')
-			||', "login_token":' ||coalesce(to_json(l_un)::text,'""')
+			||', "user_id":' 			||coalesce(to_json(l_user_id)::text,'""')
+			||', "tmp_token":'   		||coalesce(to_json(l_tmp_token)::text,'""')
+			||', "login_token":' 		||coalesce(to_json(l_un)::text,'""')
+			||', "first_name":'  		||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   		||coalesce(to_json(l_last_name)::text,'""')
+			||', "email":'   			||coalesce(to_json(l_email)::text,'""')
 			||'}';
 	end if;
 
@@ -3954,6 +4034,73 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+
+-- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--		stmt := "q_auth_v1_refresh_token ( $1, $2, $3, $4 )"
+--		rv, e0 := CallDatabaseJSONFunction(c, stmt, "e!..", UserID, AuthToken, gCfg.EncryptionPassword, gCfg.UserdataPassword)
+-- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+create or replace function q_auth_v1_refresh_token ( p_user_id varchar, p_auth_token varchar, p_hmac_password varchar,  p_userdata_password varchar )
+	returns text
+	as $$
+DECLARE
+	l_data					text;
+	l_fail					bool;
+	l_debug_on 				bool;
+	l_auth_token			uuid;	
+	l_user_id				uuid;
+BEGIN
+	-- Copyright (C) Philip Schlump, 2008-2021.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+	l_debug_on = q_get_config_bool ( 'debug' );
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->q_auth_v1_refresh_token<- m4___file__ m4___line__' );
+		insert into t_output ( msg ) values ( '  p_user_id ->'||coalesce(to_json(p_user_id)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_auth_token ->'||coalesce(to_json(p_auth_token)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  ' );
+	end if;
+
+	-- Check current token is still valid
+	-- 		Check that UserID matches with auth_token
+	select user_id
+		into l_user_id
+		from q_qr_users as t1
+			join q_qr_auth_tokens as t2 on ( t2.user_id = t1.user_id )
+		where t1.user_id = p_user_id::uuid
+		  and t2.token = p_auth_token::uuid
+		;
+
+	if not found then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"Unable to create user/auth-token.  Current token is invalid.","code":"0263","location":"m4___file__ m4___line__"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to create user/auth-token.  Current token is invalid.', '0263', 'File:m4___file__ Line No:m4___line__');
+	end if;
+
+	if not l_fail then
+		-- insert / create auth_token
+		l_auth_token = uuid_generate_v4();
+		BEGIN
+			insert into q_qr_auth_tokens ( token, user_id ) values ( l_auth_token, l_user_id );
+		EXCEPTION WHEN unique_violation THEN
+			l_fail = true;
+			l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"0163","location":"m4___file__ m4___line__"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to create user/auth-token.', '0163', 'File:m4___file__ Line No:m4___line__');
+		END;
+	end if;
+
+	if not l_fail then
+		l_data = '{"status":"success"'
+			||', "auth_token":'  ||coalesce(to_json(l_auth_token)::text,'""')
+			||'}';
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
 
 
 
@@ -4452,6 +4599,8 @@ DECLARE
 	l_secret_2fa 			varchar(20);
 	v_cnt 					int;
 	l_email_hmac			bytea;
+	l_first_name			text;
+	l_last_name				text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -4481,7 +4630,11 @@ BEGIN
 			where t1.user_id = l_user_id
 		) 
 		select user_id
+				, first_name
+				, last_name
 			into l_user_id
+				, l_first_name
+				, l_last_name
 			from user_row as t8
 			where t8.email_hmac = l_email_hmac
 			  and ( t8.start_date < current_timestamp or t8.start_date is null )
@@ -4553,6 +4706,8 @@ BEGIN
 
 	if not l_fail then
 		l_data = '{"status":"success"'
+			||', "first_name":'  			||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   			||coalesce(to_json(l_last_name)::text,'""')
 			||'}';
 	end if;
 

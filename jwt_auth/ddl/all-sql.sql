@@ -127,7 +127,7 @@ create index q_qr_user_seen_before_p2 on q_qr_manifest_version ( created );
 CREATE OR REPLACE function q_qr_manifest_version_upd()
 RETURNS trigger AS $$
 BEGIN
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -168,7 +168,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -259,7 +259,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -363,7 +363,7 @@ CREATE TABLE if not exists t_valid_cors_origin (
 CREATE OR REPLACE function t_valid_cors_origin_upd()
 RETURNS trigger AS $$
 BEGIN
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -441,7 +441,7 @@ create index q_qr_saved_state_p1 on q_qr_saved_state ( expires );
 CREATE OR REPLACE function q_qr_saved_state_upd()
 RETURNS trigger AS $$
 BEGIN
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -556,7 +556,7 @@ CREATE INDEX q_qr_users_enc_p5 on q_qr_users using HASH ( last_name_hmac );
 CREATE OR REPLACE function q_qr_users_upd()
 RETURNS trigger AS $$
 BEGIN
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -606,7 +606,7 @@ CREATE TABLE if not exists q_qr_user_pii (
 CREATE OR REPLACE function q_qr_user_pii_upd()
 RETURNS trigger AS $$
 BEGIN
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -908,7 +908,7 @@ create unique index q_qr_config_u1 on q_qr_config ( name ) ;
 CREATE OR REPLACE function q_qr_config_upd()
 RETURNS trigger AS $$
 BEGIN
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -1281,7 +1281,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	select value into l_data from q_qr_config where name = p_name;
 	if not found then
 		l_data = '';
@@ -1299,7 +1299,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	select b_value into l_data from q_qr_config where name = p_name;
 	if not found then
 		l_data = false;
@@ -1341,7 +1341,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -1455,7 +1455,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 	
@@ -1542,7 +1542,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -1640,10 +1640,12 @@ DECLARE
 	v_cnt 					int;
 	l_user_id				uuid;
 	l_email_hmac			bytea;
+	l_first_name			text;
+	l_last_name				text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -1667,7 +1669,11 @@ BEGIN
 			where t1.email_hmac = l_email_hmac
 		)
 		select user_id
+				, first_name
+				, last_name
 			into l_user_id
+				, l_first_name
+				, l_last_name
 			from user_row
 			where 
 					(
@@ -1700,13 +1706,15 @@ BEGIN
 		GET DIAGNOSTICS v_cnt = ROW_COUNT;
 		if v_cnt != 1 then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Invalid Username or Account not valid or not email validated","code":"0008","location":"001.tables.m4.sql 1582"}'; 
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Account not valid or not email validated', '0009', 'File:001.tables.m4.sql Line No:1583');
+			l_data = '{"status":"error","msg":"Invalid Username or Account not valid or not email validated","code":"0008","location":"001.tables.m4.sql 1588"}'; 
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Account not valid or not email validated', '0009', 'File:001.tables.m4.sql Line No:1589');
 		end if;
 	end if;
 
 	if not l_fail then
 		l_data = '{"status":"success"'
+			||', "first_name":'  	||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   	||coalesce(to_json(l_last_name)::text,'""')
 			||'}';
 	end if;
 
@@ -1745,7 +1753,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
@@ -1757,7 +1765,7 @@ BEGIN
 		;
 	if not found then
 		l_fail = true;
-		l_data = '{"status":"error","msg":"Missing Account.","code":"0011","location":"001.tables.m4.sql 1639"}';
+		l_data = '{"status":"error","msg":"Missing Account.","code":"0011","location":"001.tables.m4.sql 1647"}';
 	end if;
 
 	if not l_fail then
@@ -1860,7 +1868,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
@@ -1872,7 +1880,7 @@ BEGIN
 		;
 	if not found then
 		l_fail = true;
-		l_data = '{"status":"error","msg":"Missing Account.","code":"0011","location":"001.tables.m4.sql 1754"}';
+		l_data = '{"status":"error","msg":"Missing Account.","code":"0011","location":"001.tables.m4.sql 1762"}';
 	end if;
 
 	if not l_fail then
@@ -2053,7 +2061,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -2105,7 +2113,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -2116,7 +2124,7 @@ BEGIN
 	l_secret_2fa = p_secret;
 
 	if l_debug_on then
-		insert into t_output ( msg ) values ( 'function ->q_quth_v1_register<- 001.tables.m4.sql 1998' );
+		insert into t_output ( msg ) values ( 'function ->q_quth_v1_register<- 001.tables.m4.sql 2006' );
 		insert into t_output ( msg ) values ( '  p_email ->'||coalesce(to_json(p_email)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_pw ->'||coalesce(to_json(p_pw)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_hmac_password ->'||coalesce(to_json(p_hmac_password)::text,'---null---')||'<-');
@@ -2163,9 +2171,9 @@ BEGIN
 		;
 	if found then
 		l_fail = true;
-		l_data = '{"status":"error","msg":"Account already exists.  Please login or recover password.","code":"0011","location":"001.tables.m4.sql 2045"}';
-		-- insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Accont', 'File:001.tables.m4.sql Line No:2046');
-		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Account.', '0011', 'File:001.tables.m4.sql Line No:2047');
+		l_data = '{"status":"error","msg":"Account already exists.  Please login or recover password.","code":"0011","location":"001.tables.m4.sql 2053"}';
+		-- insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Accont', 'File:001.tables.m4.sql Line No:2054');
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Account.', '0011', 'File:001.tables.m4.sql Line No:2055');
 	end if;
 
 	if not l_fail then
@@ -2188,7 +2196,7 @@ BEGIN
 				insert into t_output ( msg ) values ( 'Failed to get the privilages for the user' );
 			end if;
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Unable to get privilages for the user.","code":"0012","location":"001.tables.m4.sql 2070"}';
+			l_data = '{"status":"error","msg":"Unable to get privilages for the user.","code":"0012","location":"001.tables.m4.sql 2078"}';
 			l_privs = '';
 		end if;
 		if l_debug_on then
@@ -2232,7 +2240,7 @@ BEGIN
 			where t1.role_name =  'role:user' 
 			;
 
-		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:001.tables.m4.sql Line No:2114');
+		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:001.tables.m4.sql Line No:2122');
 
 		-- Generate OTP passwords - 20 of them.
 		l_otp_str = '[';
@@ -2310,7 +2318,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -2319,7 +2327,7 @@ BEGIN
 	l_secret_2fa = p_secret;
 
 	if l_debug_on then
-		insert into t_output ( msg ) values ( 'function ->q_quth_v1_register_admin<- 001.tables.m4.sql 2201' );
+		insert into t_output ( msg ) values ( 'function ->q_quth_v1_register_admin<- 001.tables.m4.sql 2209' );
 		insert into t_output ( msg ) values ( '  p_email ->'||coalesce(to_json(p_email)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_pw ->'||coalesce(to_json(p_pw)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_hmac_password ->'||coalesce(to_json(p_hmac_password)::text,'---null---')||'<-');
@@ -2361,9 +2369,9 @@ BEGIN
 		;
 	if found then
 		l_fail = true;
-		l_data = '{"status":"error","msg":"Account already exists.  Please login or recover password.","code":"0011","location":"001.tables.m4.sql 2243"}';
-		-- insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Accont', 'File:001.tables.m4.sql Line No:2244');
-		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Account.', '0011', 'File:001.tables.m4.sql Line No:2245');
+		l_data = '{"status":"error","msg":"Account already exists.  Please login or recover password.","code":"0011","location":"001.tables.m4.sql 2251"}';
+		-- insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Accont', 'File:001.tables.m4.sql Line No:2252');
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Account.', '0011', 'File:001.tables.m4.sql Line No:2253');
 	end if;
 
 	if not l_fail then
@@ -2372,8 +2380,8 @@ BEGIN
 				insert into t_output ( msg ) values ( 'failed to find priv ''Admin: May Create Admin User'' ->'||p_user_id||'<-');
 			end if;
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Account lacks ''Admin: May Create Admin User'' privilege","code":"0319","location":"001.tables.m4.sql 2254"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account lacks ''Admin: May Create Admin User'' privilege', '0319', 'File:001.tables.m4.sql Line No:2255');
+			l_data = '{"status":"error","msg":"Account lacks ''Admin: May Create Admin User'' privilege","code":"0319","location":"001.tables.m4.sql 2262"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account lacks ''Admin: May Create Admin User'' privilege', '0319', 'File:001.tables.m4.sql Line No:2263');
 		end if;
 	end if;
 
@@ -2389,8 +2397,8 @@ BEGIN
 				insert into t_output ( msg ) values ( 'failed to find role ->'||p_specified_role_priv||'<-');
 			end if;
 			l_fail = true;
-			l_data = '{"status":"error","msg":"No Such Role:'''||p_speified_role_name||''' ","code":"0320","location":"001.tables.m4.sql 2271"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'No Such Role: '''||p_specified_role_name||''' ', '0320', 'File:001.tables.m4.sql Line No:2272');
+			l_data = '{"status":"error","msg":"No Such Role:'''||p_speified_role_name||''' ","code":"0320","location":"001.tables.m4.sql 2279"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'No Such Role: '''||p_specified_role_name||''' ', '0320', 'File:001.tables.m4.sql Line No:2280');
 		end if;
 	end if;
 
@@ -2405,7 +2413,7 @@ BEGIN
 				insert into t_output ( msg ) values ( 'Failed to get the privilages for the user' );
 			end if;
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Unable to get privilages for the user.","code":"0012","location":"001.tables.m4.sql 2287"}';
+			l_data = '{"status":"error","msg":"Unable to get privilages for the user.","code":"0012","location":"001.tables.m4.sql 2295"}';
 			l_privs = '';
 		end if;
 		if l_debug_on then
@@ -2451,7 +2459,7 @@ BEGIN
 			where t1.role_name =  'role:user' 
 			;
 
-		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:001.tables.m4.sql Line No:2333');
+		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:001.tables.m4.sql Line No:2341');
 
 		-- Generate OTP passwords - 20 of them.
 		l_otp_str = '[';
@@ -2522,7 +2530,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -2533,7 +2541,7 @@ BEGIN
 	l_secret_2fa = p_secret;
 
 	if l_debug_on then
-		insert into t_output ( msg ) values ( 'function ->q_quth_v1_resend_email_register<- 001.tables.m4.sql 2415' );
+		insert into t_output ( msg ) values ( 'function ->q_quth_v1_resend_email_register<- 001.tables.m4.sql 2423' );
 		insert into t_output ( msg ) values ( '  p_email ->'||coalesce(to_json(p_email)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_pw ->'||coalesce(to_json(p_pw)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_hmac_password ->'||coalesce(to_json(p_hmac_password)::text,'---null---')||'<-');
@@ -2573,9 +2581,9 @@ BEGIN
 
 	if not found then
 		l_fail = true;
-		l_data = '{"status":"error","msg":"No account with this email address exists.  Please register again.","code":"0111","location":"001.tables.m4.sql 2455"}';
-		-- insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Accont', 'File:001.tables.m4.sql Line No:2456');
-		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'No account with this email address exists.  Please register again.","code":"0111","location":"001.tables.m4.sql 2457"}' );
+		l_data = '{"status":"error","msg":"No account with this email address exists.  Please register again.","code":"0111","location":"001.tables.m4.sql 2463"}';
+		-- insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Accont', 'File:001.tables.m4.sql Line No:2464');
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'No account with this email address exists.  Please register again.","code":"0111","location":"001.tables.m4.sql 2465"}' );
 	end if;
 
 	if not l_fail then
@@ -2592,11 +2600,11 @@ BEGIN
 
 		if not found then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Unable to resend email registration.  Please register again.","code":"0113","location":"001.tables.m4.sql 2474"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'Unable to resend email registration.  Please register again.","code":"0113","location":"001.tables.m4.sql 2475"}' );
+			l_data = '{"status":"error","msg":"Unable to resend email registration.  Please register again.","code":"0113","location":"001.tables.m4.sql 2482"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'Unable to resend email registration.  Please register again.","code":"0113","location":"001.tables.m4.sql 2483"}' );
 		end if;
 
-		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Email Resend Registered', 'File:001.tables.m4.sql Line No:2478');
+		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Email Resend Registered', 'File:001.tables.m4.sql Line No:2486');
 
 	end if;
 
@@ -2670,7 +2678,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -2681,7 +2689,7 @@ BEGIN
 	l_secret_2fa = p_secret;
 
 	if l_debug_on then
-		insert into t_output ( msg ) values ( 'function ->q_quth_v1_register<- 001.tables.m4.sql 2563' );
+		insert into t_output ( msg ) values ( 'function ->q_quth_v1_register<- 001.tables.m4.sql 2571' );
 		insert into t_output ( msg ) values ( '  p_email ->'||coalesce(to_json(p_email)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_validator ->'||coalesce(to_json(p_validator)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_hmac_password ->'||coalesce(to_json(p_hmac_password)::text,'---null---')||'<-');
@@ -2727,9 +2735,9 @@ BEGIN
 		;
 	if found then
 		l_fail = true;
-		l_data = '{"status":"error","msg":"Account already exists.  Please login or recover password.","code":"1011","location":"001.tables.m4.sql 2609"}';
-		-- insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Accont', 'File:001.tables.m4.sql Line No:2610');
-		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Account.', '1011', 'File:001.tables.m4.sql Line No:2611');
+		l_data = '{"status":"error","msg":"Account already exists.  Please login or recover password.","code":"1011","location":"001.tables.m4.sql 2617"}';
+		-- insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Accont', 'File:001.tables.m4.sql Line No:2618');
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Account.', '1011', 'File:001.tables.m4.sql Line No:2619');
 	end if;
 
 	if not l_fail then
@@ -2752,7 +2760,7 @@ BEGIN
 				insert into t_output ( msg ) values ( 'Failed to get the privilages for the user' );
 			end if;
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Unable to get privilages for the user.","code":"1012","location":"001.tables.m4.sql 2634"}';
+			l_data = '{"status":"error","msg":"Unable to get privilages for the user.","code":"1012","location":"001.tables.m4.sql 2642"}';
 			l_privs = '';
 		end if;
 		if l_debug_on then
@@ -2794,7 +2802,7 @@ BEGIN
 			where t1.role_name =  'role:user' 
 			;
 
-		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:001.tables.m4.sql Line No:2676');
+		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:001.tables.m4.sql Line No:2684');
 
 		-- Generate OTP passwords - 20 of them.
 		l_otp_str = '[';
@@ -2863,7 +2871,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -2897,7 +2905,7 @@ BEGIN
 			insert into t_output ( msg ) values ( 'Failed to find the user' );
 		end if;
 		l_fail = true;
-		l_data = '{"status":"error","msg":"Unable to find the user.","code":"0013","location":"001.tables.m4.sql 2779"}';
+		l_data = '{"status":"error","msg":"Unable to find the user.","code":"0013","location":"001.tables.m4.sql 2787"}';
 	end if;
 
 	update q_qr_users as t1
@@ -2911,8 +2919,8 @@ BEGIN
 	GET DIAGNOSTICS v_cnt = ROW_COUNT;
 	if v_cnt != 1 then
 		l_fail = true;
-		l_data = '{"status":"error","msg":"Invalid User/Email or Account not valid","code":"0014","location":"001.tables.m4.sql 2793"}'; 
-		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid User or Account not valid', '0014', 'File:001.tables.m4.sql Line No:2794');
+		l_data = '{"status":"error","msg":"Invalid User/Email or Account not valid","code":"0014","location":"001.tables.m4.sql 2801"}'; 
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid User or Account not valid', '0014', 'File:001.tables.m4.sql Line No:2802');
 	end if;
 
 	if not l_fail then
@@ -2951,7 +2959,7 @@ create or replace function q_auth_v1_delete_user ( p_user_id uuid )
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 
 	delete from q_qr_auth_security_log where user_id = p_user_id;
 	delete from q_qr_auth_tokens where user_id = p_user_id;
@@ -2990,18 +2998,20 @@ DECLARE
 	v_cnt					int;
 	l_user_id				uuid;
 	l_email_hmac			bytea;
+	l_first_name			text;
+	l_last_name				text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
 	if not l_fail then
 		if p_pw = p_new_pw then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Old and New Password should be different","code":"0025","location":"001.tables.m4.sql 2882"}'; 
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Old and New Password should be different', '0025', 'File:001.tables.m4.sql Line No:2883');
+			l_data = '{"status":"error","msg":"Old and New Password should be different","code":"0025","location":"001.tables.m4.sql 2892"}'; 
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Old and New Password should be different', '0025', 'File:001.tables.m4.sql Line No:2893');
 		end if;
 	end if;
 
@@ -3024,7 +3034,11 @@ BEGIN
 			where t1.email_hmac = l_email_hmac
 		)
 		select user_id
+			, first_name
+			, last_name
 			into l_user_id
+				, l_first_name
+				, l_last_name
 			from user_row as t8
 			where ( t8.start_date < current_timestamp or t8.start_date is null )
 		      and ( t8.end_date > current_timestamp or t8.end_date is null )
@@ -3067,8 +3081,8 @@ BEGIN
 
 		if not found then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Invalid Username or Account not valid or not email validated","code":"0315","location":"001.tables.m4.sql 2949"}'; 
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Account not valid or not email validated', '0315', 'File:001.tables.m4.sql Line No:2950');
+			l_data = '{"status":"error","msg":"Invalid Username or Account not valid or not email validated","code":"0315","location":"001.tables.m4.sql 2963"}'; 
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Account not valid or not email validated', '0315', 'File:001.tables.m4.sql Line No:2964');
 
 		end if;
 	end if;
@@ -3083,8 +3097,8 @@ BEGIN
 		GET DIAGNOSTICS v_cnt = ROW_COUNT;
 		if v_cnt != 1 then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Invalid Username or Account not valid or not email validated","code":"0015","location":"001.tables.m4.sql 2965"}'; 
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Account not valid or not email validated', '0015', 'File:001.tables.m4.sql Line No:2966');
+			l_data = '{"status":"error","msg":"Invalid Username or Account not valid or not email validated","code":"0015","location":"001.tables.m4.sql 2979"}'; 
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Account not valid or not email validated', '0015', 'File:001.tables.m4.sql Line No:2980');
 		end if;
 	end if;
 
@@ -3101,6 +3115,8 @@ BEGIN
 
 	if not l_fail then
 		l_data = '{"status":"success"'
+			||', "first_name":'  	||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   	||coalesce(to_json(l_last_name)::text,'""')
 			||'}';
 	end if;
 
@@ -3128,48 +3144,74 @@ DECLARE
 	l_fail					bool;
 	l_tmp					text;
 	v_cnt					int;
+	l_first_name			text;
+	l_last_name				text;
+	l_user_id				uuid;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
 	if not q_amdin_HasPriv ( p_admin_user_id, 'May Change Other Password' ) then
 		l_fail = true;
-		l_data = '{"status":"error","msg":"Not authoriazed to change others passwrod","code":"0016","location":"001.tables.m4.sql 3019"}'; 
-		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Not authorized to change others password', '0016', 'File:001.tables.m4.sql Line No:3020');
+		l_data = '{"status":"error","msg":"Not authoriazed to change others passwrod","code":"0016","location":"001.tables.m4.sql 3038"}'; 
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Not authorized to change others password', '0016', 'File:001.tables.m4.sql Line No:3039');
 	end if;
 
 	if not l_fail then
 		-- Xyzzy - better to do select count - and verify where before update.
+		with user_row as (
+			select
+				  user_id
+				, pgp_sym_decrypt(first_name_enc,p_userdata_password)::text as first_name
+				, pgp_sym_decrypt(last_name_enc,p_userdata_password)::text as last_name
+				, start_date 
+				, end_date 
+				, account_type 
+				, password_hash 
+				, parent_user_id
+				, email_validated 
+				, setup_complete_2fa 
+			from q_qr_users as t1
+			where t1.email_hmac = l_email_hmac
+		)
+		select user_id
+			, first_name
+			, last_name
+			into l_user_id
+				, l_first_name
+				, l_last_name
+			from user_row as t8
+			;
 		update q_qr_users as t1
 			set 
 				  password_hash = crypt(p_new_pw, gen_salt('bf') )
-			where t1.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
+			where t1.user_id = l_user_id;
 			;
 		-- check # of rows.
 		GET DIAGNOSTICS v_cnt = ROW_COUNT;
 		if v_cnt != 1 then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Invalid Username or Account not valid or not email validated","code":"0017","location":"001.tables.m4.sql 3034"}'; 
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Account not valid or not email validated', '0017', 'File:001.tables.m4.sql Line No:3035');
+			l_data = '{"status":"error","msg":"Invalid Username or Account not valid or not email validated","code":"0017","location":"001.tables.m4.sql 3076"}'; 
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Account not valid or not email validated', '0017', 'File:001.tables.m4.sql Line No:3077');
 		end if;
 	end if;
 
-	-- Delete all the id.json rows for this user - every marked device will nedd to 2fa after this request.
-	-- Select to get l_user_id for email.  If it is not found above then this may not be a fully setup user.
-	-- The l_user_id is used below in a delete to prevet marking of devices as having been seen.
-	delete from q_qr_manifest_version 
-		where user_id = (
-			select user_id
-			from q_qr_users as t1
-			where t1.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
-		)
-	;
+	if not l_fail then
+		-- Delete all the id.json rows for this user - every marked device will nedd to 2fa after this request.
+		-- Select to get l_user_id for email.  If it is not found above then this may not be a fully setup user.
+		-- The l_user_id is used below in a delete to prevet marking of devices as having been seen.
+		delete from q_qr_manifest_version 
+			where user_id = l_user_id
+		;
+	end if;
 
 	if not l_fail then
 		l_data = '{"status":"success"'
+			||', "first_name":'  	||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   	||coalesce(to_json(l_last_name)::text,'""')
 			||'}';
 	end if;
 
@@ -3222,17 +3264,19 @@ DECLARE
 	l_manifet_id			uuid;
 	l_email_hmac            bytea;
 	l_otp_hmac              text;
+	l_is_new_device_login	varchar(1);
 BEGIN
 	l_debug_on = q_get_config_bool ( 'debug' );
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
+	l_is_new_device_login= 'n';
 
 	if l_debug_on then
-		insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<- 001.tables.m4.sql 3114' );
+		insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<- 001.tables.m4.sql 3158' );
 		insert into t_output ( msg ) values ( '  p_email ->'||coalesce(to_json(p_email)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_pw ->'||coalesce(to_json(p_pw)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_am_i_known ->'||coalesce(to_json(p_am_i_known)::text,'---null---')||'<-');
@@ -3357,8 +3401,8 @@ BEGIN
 			;
 			if not found then
 				l_fail = true;
-				l_data = '{"status":"error","msg":"Invalid Username or Password","code":"0055","location":"001.tables.m4.sql 3239"}'; -- return no such account or password
-				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Password', '0055', 'File:001.tables.m4.sql Line No:3240');
+				l_data = '{"status":"error","msg":"Invalid Username or Password","code":"0055","location":"001.tables.m4.sql 3283"}'; -- return no such account or password
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Password', '0055', 'File:001.tables.m4.sql Line No:3284');
 			end if;
 
 			if not l_fail then -- AAA
@@ -3382,11 +3426,11 @@ BEGIN
 
 				if found then
 					delete from q_qr_one_time_password where one_time_password_id = l_one_time_password_id;
-					insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Used Ont Time Password', '0011', 'File:001.tables.m4.sql Line No:3264');
+					insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Used Ont Time Password', '0011', 'File:001.tables.m4.sql Line No:3308');
 				else 
 					l_fail = true;
-					l_data = '{"status":"error","msg":"Invalid Username or Password","code":"0018","location":"001.tables.m4.sql 3267"}'; -- return no such account or password
-					insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Password', '0018', 'File:001.tables.m4.sql Line No:3268');
+					l_data = '{"status":"error","msg":"Invalid Username or Password","code":"0018","location":"001.tables.m4.sql 3311"}'; -- return no such account or password
+					insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Password', '0018', 'File:001.tables.m4.sql Line No:3312');
 				end if;
 
 			end if; -- AAA
@@ -3412,16 +3456,16 @@ BEGIN
 				insert into t_output ( msg ) values ( 'failed to find priv ''May Login'' ->'||l_user_id||'<-');
 			end if;
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Account lacks ''May Login'' privilege","code":"0019","location":"001.tables.m4.sql 3294"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account lacks ''May Login'' privilege', '0019', 'File:001.tables.m4.sql Line No:3295');
+			l_data = '{"status":"error","msg":"Account lacks ''May Login'' privilege","code":"0019","location":"001.tables.m4.sql 3338"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account lacks ''May Login'' privilege', '0019', 'File:001.tables.m4.sql Line No:3339');
 		end if;
 	end if;
 
 	if not l_fail then
 		if l_validation_method != 'un/pw' then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Account is not a un/pw authetication method","code":"0027","location":"001.tables.m4.sql 3302"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account is not a un/pw autetication method', '0027', 'File:001.tables.m4.sql Line No:3303');
+			l_data = '{"status":"error","msg":"Account is not a un/pw authetication method","code":"0027","location":"001.tables.m4.sql 3346"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account is not a un/pw autetication method', '0027', 'File:001.tables.m4.sql Line No:3347');
 		end if;
 	end if;
 
@@ -3429,8 +3473,8 @@ BEGIN
 		if l_email_validated = 'n' then
 			-- Inicates partial registraiotn, email_validated == "n", - code==="0020"
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Account has not not been validated","code":"0020","location":"001.tables.m4.sql 3311"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has not been validated', '0020', 'File:001.tables.m4.sql Line No:3312');
+			l_data = '{"status":"error","msg":"Account has not not been validated","code":"0020","location":"001.tables.m4.sql 3355"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has not been validated', '0020', 'File:001.tables.m4.sql Line No:3356');
 		end if;
 	end if;
 
@@ -3438,8 +3482,8 @@ BEGIN
 		if l_setup_complete_2fa = 'n' then
 			-- Inicates partial registraiotn, setup_complete_2fa == "n", - code==="0220"
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Account has not not had 2Fa setup","code":"0220","location":"001.tables.m4.sql 3320"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has not had 2Fa setup', '0220', 'File:001.tables.m4.sql Line No:3321');
+			l_data = '{"status":"error","msg":"Account has not not had 2Fa setup","code":"0220","location":"001.tables.m4.sql 3364"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has not had 2Fa setup', '0220', 'File:001.tables.m4.sql Line No:3365');
 		end if;
 	end if;
 
@@ -3447,8 +3491,8 @@ BEGIN
 		if l_start_date is not null then
 			if l_start_date > current_timestamp then
 				l_fail = true;
-				l_data = '{"status":"error","msg":"Account has a start date that has not been reached","code":"0028","location":"001.tables.m4.sql 3329"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has start date that has not bee reached', '0028', 'File:001.tables.m4.sql Line No:3330');
+				l_data = '{"status":"error","msg":"Account has a start date that has not been reached","code":"0028","location":"001.tables.m4.sql 3373"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has start date that has not bee reached', '0028', 'File:001.tables.m4.sql Line No:3374');
 			end if;
 		end if;
 	end if;
@@ -3457,8 +3501,8 @@ BEGIN
 		if l_end_date is not null then
 			if l_end_date <= current_timestamp then
 				l_fail = true;
-				l_data = '{"status":"error","msg":"Account has a end date that has been reached","code":"0029","location":"001.tables.m4.sql 3339"}';
-				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has ned date that has bee reached', '0029', 'File:001.tables.m4.sql Line No:3340');
+				l_data = '{"status":"error","msg":"Account has a end date that has been reached","code":"0029","location":"001.tables.m4.sql 3383"}';
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has ned date that has bee reached', '0029', 'File:001.tables.m4.sql Line No:3384');
 			end if;
 		end if;
 	end if;
@@ -3480,6 +3524,7 @@ BEGIN
 					if l_debug_on then
 						insert into t_output ( msg ) values ( ' etag not found ' );
 					end if;
+					l_is_new_device_login = 'y';
 				else
 					update q_qr_manifest_version as t1
 						set updated = current_timestamp 
@@ -3499,8 +3544,8 @@ BEGIN
 				insert into q_qr_auth_tokens ( token, user_id ) values ( l_auth_token, l_user_id );
 			EXCEPTION WHEN unique_violation THEN
 				l_fail = true;
-				l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"0030","location":"001.tables.m4.sql 3381"}';
-				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to crate user/auth-token.', '0030', 'File:001.tables.m4.sql Line No:3382');
+				l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"0030","location":"001.tables.m4.sql 3426"}';
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to crate user/auth-token.', '0030', 'File:001.tables.m4.sql Line No:3427');
 			END;
 		end if;
 	end if;
@@ -3508,8 +3553,8 @@ BEGIN
 	if not l_fail then
 		if l_login_failures >= 6 and l_failed_login_timeout >= current_timestamp then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Too many failed login attempts - please wait 1 minute.","code":"0031","location":"001.tables.m4.sql 3390"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Too many failed login attempts - please wait 1 minute.', '0031', 'File:001.tables.m4.sql Line No:3391');
+			l_data = '{"status":"error","msg":"Too many failed login attempts - please wait 1 minute.","code":"0031","location":"001.tables.m4.sql 3435"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Too many failed login attempts - please wait 1 minute.', '0031', 'File:001.tables.m4.sql Line No:3436');
 			update q_qr_users
 				set failed_login_timeout = current_timestamp + interval '1 minute'
 				where user_id = l_user_id
@@ -3530,7 +3575,7 @@ BEGIN
 				insert into t_output ( msg ) values ( 'Failed to get the privilages for the user' );
 			end if;
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Unable to get privilages for the user.","code":"0032","location":"001.tables.m4.sql 3412"}';
+			l_data = '{"status":"error","msg":"Unable to get privilages for the user.","code":"0032","location":"001.tables.m4.sql 3457"}';
 			l_privileges = '';
 		end if;
 	end if;
@@ -3538,7 +3583,7 @@ BEGIN
 	if not l_fail then
 
 		if l_debug_on then
-			insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ...  001.tables.m4.sql 3420' );
+			insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ...  001.tables.m4.sql 3465' );
 			insert into t_output ( msg ) values ( 'calculate l_user_id ->'||coalesce(to_json(l_user_id)::text,'---null---')||'<-');
 			insert into t_output ( msg ) values ( 'calculate l_privs ->'||coalesce(to_json(l_privileges)::text,'---null---')||'<-');
 		end if;
@@ -3555,24 +3600,25 @@ BEGIN
 		insert into q_qr_tmp_token ( user_id, token ) values ( l_user_id, l_tmp_token );
 		if l_require_2fa = 'y' then
 			l_auth_token = NULL;
-			insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'Login - Part 1 Success: '||l_tmp_token::text, 'File:001.tables.m4.sql Line No:3437');
+			insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'Login - Part 1 Success: '||l_tmp_token::text, 'File:001.tables.m4.sql Line No:3482');
 		else
-			insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'Successful Login', 'File:001.tables.m4.sql Line No:3439');
+			insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'Successful Login', 'File:001.tables.m4.sql Line No:3484');
 		end if;
 		l_data = '{"status":"success"'
-			||', "user_id":'     ||coalesce(to_json(l_user_id)::text,'""')
-			||', "auth_token":'  ||coalesce(to_json(l_auth_token)::text,'""')
-			||', "tmp_token":'   ||coalesce(to_json(l_tmp_token)::text,'""')
-			||', "require_2fa":' ||coalesce(to_json(l_require_2fa)::text,'""')
-			||', "secret_2fa":'  ||coalesce(to_json(l_secret_2fa)::text,'""')
-			||', "account_type":'||coalesce(to_json(l_account_type)::text,'""')
-			||', "privileges":'  ||coalesce(to_json(l_privileges)::text,'""')
-			||', "first_name":'  ||coalesce(to_json(l_first_name)::text,'""')
-			||', "last_name":'   ||coalesce(to_json(l_last_name)::text,'""')
+			||', "user_id":'     			||coalesce(to_json(l_user_id)::text,'""')
+			||', "auth_token":'  			||coalesce(to_json(l_auth_token)::text,'""')
+			||', "tmp_token":'   			||coalesce(to_json(l_tmp_token)::text,'""')
+			||', "require_2fa":' 			||coalesce(to_json(l_require_2fa)::text,'""')
+			||', "secret_2fa":'  			||coalesce(to_json(l_secret_2fa)::text,'""')
+			||', "account_type":'			||coalesce(to_json(l_account_type)::text,'""')
+			||', "privileges":'  			||coalesce(to_json(l_privileges)::text,'""')
+			||', "first_name":'  			||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   			||coalesce(to_json(l_last_name)::text,'""')
+			||', "is_new_device_login":' 	||coalesce(to_json(l_is_new_device_login)::text,'"n"')
 			||'}';
 	else 
 		if l_user_id is not null then
-			insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'Login Failure', 'File:001.tables.m4.sql Line No:3454');
+			insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'Login Failure', 'File:001.tables.m4.sql Line No:3500');
 			if l_failed_login_timeout is not null then
 				update q_qr_users
 					set login_failures = login_failures + 1 
@@ -3611,7 +3657,9 @@ $$ LANGUAGE plpgsql;
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- 3. q_auth_v1_regen_otp
-create or replace function q_auth_v1_regen_otp ( p_email varchar, p_pw varchar, p_hmac_password varchar )
+drop function q_auth_v1_regen_otp ( p_email varchar, p_pw varchar, p_hmac_password varchar );
+
+create or replace function q_auth_v1_regen_otp ( p_email varchar, p_pw varchar, p_hmac_password varchar , p_userdata_password varchar )
 	returns text
 	as $$
 DECLARE
@@ -3624,20 +3672,26 @@ DECLARE
 	l_otp_str				text;
 	l_otp_com				text;
 	v_cnt 					int;
+	l_first_name			text;
+	l_last_name				text;
 BEGIN
 	l_debug_on = q_get_config_bool ( 'debug' );
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
 	if not l_fail then
 		select
 			  user_id
+			, pgp_sym_decrypt(first_name_enc,p_userdata_password)::text as x_first_name
+			, pgp_sym_decrypt(last_name_enc,p_userdata_password)::text as x_last_name
 		into
 			  l_user_id
+			, l_first_name
+			, l_last_name
 		from q_qr_users as t1
 		where t1.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
 			and	account_type = 'login'
@@ -3647,8 +3701,8 @@ BEGIN
 		
 		if not found then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Invalid Username or Password/attempt to create new OTP","code":"0034","location":"001.tables.m4.sql 3529"}'; 
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Password/attempt to create new OTP', '0034', 'File:001.tables.m4.sql Line No:3530');
+			l_data = '{"status":"error","msg":"Invalid Username or Password/attempt to create new OTP","code":"0034","location":"001.tables.m4.sql 3583"}'; 
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Password/attempt to create new OTP', '0034', 'File:001.tables.m4.sql Line No:3584');
 		end if;
 
 	end if;
@@ -3675,8 +3729,10 @@ BEGIN
 
 	if not l_fail then
 		l_data = '{"status":"success"'
-			||', "user_id":' ||coalesce(to_json(l_user_id)::text,'""')
-			||', "otp":' ||l_otp_str
+			||', "user_id":' 			||coalesce(to_json(l_user_id)::text,'""')
+			||', "otp":' 				||l_otp_str
+			||', "first_name":'  		||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   		||coalesce(to_json(l_last_name)::text,'""')
 			||'}';
 	end if;
 
@@ -3719,17 +3775,18 @@ DECLARE
 	l_first_name			text;
 	l_last_name				text;
 	l_auth_token			uuid;
+	l_email					uuid;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
 	if l_debug_on then
-		insert into t_output ( msg ) values ( 'function ->q_quth_v1_register_un_pw<- 001.tables.m4.sql 3611' );
+		insert into t_output ( msg ) values ( 'function ->q_quth_v1_register_un_pw<- 001.tables.m4.sql 3668' );
 		insert into t_output ( msg ) values ( '  p_parent_user_id ->'||coalesce(to_json(p_parent_user_id)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_email ->'||coalesce(to_json(p_email)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_hmac_password ->'||coalesce(to_json(p_hmac_password)::text,'---null---')||'<-');
@@ -3756,10 +3813,11 @@ BEGIN
 			, email_validated
 			, start_date
 			, end_date
-		    , pgp_sym_decrypt(first_name_enc,p_userdata_password)::text
-		    , pgp_sym_decrypt(last_name_enc,p_userdata_password)::text
+		    , pgp_sym_decrypt(first_name_enc,p_userdata_password)::text as first_name
+		    , pgp_sym_decrypt(last_name_enc,p_userdata_password)::text as last_name
 			, failed_login_timeout 	
 			, login_failures 		
+		    , pgp_sym_decrypt(t1.email_enc,p_userdata_password)::text as email
 		into
 			  l_user_id
 			, l_email_validated
@@ -3769,14 +3827,15 @@ BEGIN
 			, l_last_name
 			, l_failed_login_timeout 	
 			, l_login_failures 	
+			, l_email					
 		from q_qr_users
 		where user_id = p_parent_user_id
 			and account_type = 'login'
 		;
 		if not found then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Invalid Username or Password","code":"0035","location":"001.tables.m4.sql 3657"}'; -- return no such account or password
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Password', '0035', 'File:001.tables.m4.sql Line No:3658');
+			l_data = '{"status":"error","msg":"Invalid Username or Password","code":"0035","location":"001.tables.m4.sql 3716"}'; -- return no such account or password
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Password', '0035', 'File:001.tables.m4.sql Line No:3717');
 		end if;
 	end if;
 
@@ -3791,16 +3850,16 @@ BEGIN
 	if not l_fail then
 		if l_email_validated = 'n' then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Account has not not been validated","code":"0036","location":"001.tables.m4.sql 3673"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has not been validated', '0036', 'File:001.tables.m4.sql Line No:3674');
+			l_data = '{"status":"error","msg":"Account has not not been validated","code":"0036","location":"001.tables.m4.sql 3732"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has not been validated', '0036', 'File:001.tables.m4.sql Line No:3733');
 		end if;
 	end if;
 	if not l_fail then
 		if l_start_date is not null then
 			if l_start_date > current_timestamp then
 				l_fail = true;
-				l_data = '{"status":"error","msg":"Account has a start date that has not been reached","code":"0036","location":"001.tables.m4.sql 3681"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has start date that has not bee reached', '0036', 'File:001.tables.m4.sql Line No:3682');
+				l_data = '{"status":"error","msg":"Account has a start date that has not been reached","code":"0036","location":"001.tables.m4.sql 3740"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has start date that has not bee reached', '0036', 'File:001.tables.m4.sql Line No:3741');
 			end if;
 		end if;
 	end if;
@@ -3808,8 +3867,8 @@ BEGIN
 		if l_end_date is not null then
 			if l_end_date <= current_timestamp then
 				l_fail = true;
-				l_data = '{"status":"error","msg":"Account has a end date that has been reached","code":"0037","location":"001.tables.m4.sql 3690"}';
-				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has ned date that has bee reached', '0037', 'File:001.tables.m4.sql Line No:3691');
+				l_data = '{"status":"error","msg":"Account has a end date that has been reached","code":"0037","location":"001.tables.m4.sql 3749"}';
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has ned date that has bee reached', '0037', 'File:001.tables.m4.sql Line No:3750');
 			end if;
 		end if;
 	end if;
@@ -3822,16 +3881,16 @@ BEGIN
 				insert into q_qr_auth_tokens ( token, user_id ) values ( l_auth_token, l_user_id );
 			EXCEPTION WHEN unique_violation THEN
 				l_fail = true;
-				l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"0038","location":"001.tables.m4.sql 3704"}';
-				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to crate user/auth-token.', '0038', 'File:001.tables.m4.sql Line No:3705');
+				l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"0038","location":"001.tables.m4.sql 3763"}';
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to crate user/auth-token.', '0038', 'File:001.tables.m4.sql Line No:3764');
 			END;
 		end if;
 	end if;
 	if not l_fail then
 		if l_login_failures > 6 or l_failed_login_timeout >= current_timestamp then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Too many failed login attempts - please wait 1 minute.","code":"0039","location":"001.tables.m4.sql 3712"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Too many failed login attempts - please wait 1 minute.', '0039', 'File:001.tables.m4.sql Line No:3713');
+			l_data = '{"status":"error","msg":"Too many failed login attempts - please wait 1 minute.","code":"0039","location":"001.tables.m4.sql 3771"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Too many failed login attempts - please wait 1 minute.', '0039', 'File:001.tables.m4.sql Line No:3772');
 			update q_qr_users
 				set failed_login_timeout = current_timestamp + interval '1 minute'
 				where user_id = l_user_id
@@ -3865,16 +3924,19 @@ BEGIN
 			where t1.role_name =  'role:user' 
 			;
 
-		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:001.tables.m4.sql Line No:3747');
+		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:001.tables.m4.sql Line No:3806');
 	end if;
 
 	if not l_fail then
 		l_tmp_token = uuid_generate_v4();
 		insert into q_qr_tmp_token ( user_id, token ) values ( l_user_id, l_tmp_token );
 		l_data = '{"status":"success"'
-			||', "user_id":' 	||coalesce(to_json(l_user_id)::text,'""')
-			||', "tmp_token":'  ||coalesce(to_json(l_tmp_token)::text,'""')
-			||', "pw":' 		||coalesce(to_json(l_pw)::text,'""')
+			||', "user_id":' 		||coalesce(to_json(l_user_id)::text,'""')
+			||', "tmp_token":'  	||coalesce(to_json(l_tmp_token)::text,'""')
+			||', "pw":' 			||coalesce(to_json(l_pw)::text,'""')
+			||', "first_name":'  	||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   	||coalesce(to_json(l_last_name)::text,'""')
+			||', "email":' 			||coalesce(to_json(l_email)::text,'""')
 			||'}';
 	end if;
 
@@ -3912,17 +3974,18 @@ DECLARE
 	l_first_name			text;
 	l_last_name				text;
 	l_auth_token			uuid;
+	l_email					text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
 	if l_debug_on then
-		insert into t_output ( msg ) values ( 'function ->q_quth_v1_register_token<- 001.tables.m4.sql 3804' );
+		insert into t_output ( msg ) values ( 'function ->q_quth_v1_register_token<- 001.tables.m4.sql 3867' );
 		insert into t_output ( msg ) values ( '  p_parent_user_id ->'||coalesce(to_json(p_parent_user_id)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_hmac_password ->'||coalesce(to_json(p_hmac_password)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_userdata_password ->'||coalesce(to_json(p_userdata_password)::text,'---null---')||'<-');
@@ -3949,10 +4012,11 @@ BEGIN
 			, email_validated
 			, start_date
 			, end_date
-		    , pgp_sym_decrypt(first_name_enc,p_userdata_password)::text
-		    , pgp_sym_decrypt(last_name_enc,p_userdata_password)::text
+		    , pgp_sym_decrypt(first_name_enc,p_userdata_password)::text as first_name
+		    , pgp_sym_decrypt(last_name_enc,p_userdata_password)::text as last_name
 			, failed_login_timeout 	
 			, login_failures 		
+		    , pgp_sym_decrypt(t1.email_enc,p_userdata_password)::text as email
 		into
 			  l_user_id
 			, l_email_validated
@@ -3962,14 +4026,15 @@ BEGIN
 			, l_last_name
 			, l_failed_login_timeout 	
 			, l_login_failures 	
+			, l_email					
 		from q_qr_users
 		where user_id = p_parent_user_id
 			and account_type = 'login'
 		;
 		if not found then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Invalid Username or Password","code":"0040","location":"001.tables.m4.sql 3850"}'; -- return no such account or password
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Password', '0040', 'File:001.tables.m4.sql Line No:3851');
+			l_data = '{"status":"error","msg":"Invalid Username or Password","code":"0040","location":"001.tables.m4.sql 3915"}'; -- return no such account or password
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Password', '0040', 'File:001.tables.m4.sql Line No:3916');
 		end if;
 	end if;
 
@@ -3984,16 +4049,16 @@ BEGIN
 	if not l_fail then
 		if l_email_validated = 'n' then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Account has not not been validated","code":"0041","location":"001.tables.m4.sql 3866"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has not been validated', '0041', 'File:001.tables.m4.sql Line No:3867');
+			l_data = '{"status":"error","msg":"Account has not not been validated","code":"0041","location":"001.tables.m4.sql 3931"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has not been validated', '0041', 'File:001.tables.m4.sql Line No:3932');
 		end if;
 	end if;
 	if not l_fail then
 		if l_start_date is not null then
 			if l_start_date > current_timestamp then
 				l_fail = true;
-				l_data = '{"status":"error","msg":"Account has a start date that has not been reached","code":"0043","location":"001.tables.m4.sql 3874"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has start date that has not bee reached', '0043', 'File:001.tables.m4.sql Line No:3875');
+				l_data = '{"status":"error","msg":"Account has a start date that has not been reached","code":"0043","location":"001.tables.m4.sql 3939"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has start date that has not bee reached', '0043', 'File:001.tables.m4.sql Line No:3940');
 			end if;
 		end if;
 	end if;
@@ -4001,8 +4066,8 @@ BEGIN
 		if l_end_date is not null then
 			if l_end_date <= current_timestamp then
 				l_fail = true;
-				l_data = '{"status":"error","msg":"Account has a end date that has been reached","code":"0044","location":"001.tables.m4.sql 3883"}';
-				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has ned date that has bee reached', '0044', 'File:001.tables.m4.sql Line No:3884');
+				l_data = '{"status":"error","msg":"Account has a end date that has been reached","code":"0044","location":"001.tables.m4.sql 3948"}';
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has ned date that has bee reached', '0044', 'File:001.tables.m4.sql Line No:3949');
 			end if;
 		end if;
 	end if;
@@ -4015,16 +4080,16 @@ BEGIN
 				insert into q_qr_auth_tokens ( token, user_id ) values ( l_auth_token, l_user_id );
 			EXCEPTION WHEN unique_violation THEN
 				l_fail = true;
-				l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"0045","location":"001.tables.m4.sql 3897"}';
-				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to crate user/auth-token.', '0045', 'File:001.tables.m4.sql Line No:3898');
+				l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"0045","location":"001.tables.m4.sql 3962"}';
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to crate user/auth-token.', '0045', 'File:001.tables.m4.sql Line No:3963');
 			END;
 		end if;
 	end if;
 	if not l_fail then
 		if l_login_failures > 6 or l_failed_login_timeout >= current_timestamp then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Too many failed login attempts - please wait 1 minute.","code":"0046","location":"001.tables.m4.sql 3905"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Too many failed login attempts - please wait 1 minute.', '0046', 'File:001.tables.m4.sql Line No:3906');
+			l_data = '{"status":"error","msg":"Too many failed login attempts - please wait 1 minute.","code":"0046","location":"001.tables.m4.sql 3970"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Too many failed login attempts - please wait 1 minute.', '0046', 'File:001.tables.m4.sql Line No:3971');
 			update q_qr_users
 				set failed_login_timeout = current_timestamp + interval '1 minute'
 				where user_id = l_user_id
@@ -4058,16 +4123,19 @@ BEGIN
 			where t1.role_name =  'role:user' 
 			;
 
-		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:001.tables.m4.sql Line No:3940');
+		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:001.tables.m4.sql Line No:4005');
 	end if;
 
 	if not l_fail then
 		l_tmp_token = uuid_generate_v4();
 		insert into q_qr_tmp_token ( user_id, token ) values ( l_user_id, l_tmp_token );
 		l_data = '{"status":"success"'
-			||', "user_id":' ||coalesce(to_json(l_user_id)::text,'""')
-			||', "tmp_token":'   ||coalesce(to_json(l_tmp_token)::text,'""')
-			||', "login_token":' ||coalesce(to_json(l_un)::text,'""')
+			||', "user_id":' 			||coalesce(to_json(l_user_id)::text,'""')
+			||', "tmp_token":'   		||coalesce(to_json(l_tmp_token)::text,'""')
+			||', "login_token":' 		||coalesce(to_json(l_un)::text,'""')
+			||', "first_name":'  		||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   		||coalesce(to_json(l_last_name)::text,'""')
+			||', "email":'   			||coalesce(to_json(l_email)::text,'""')
 			||'}';
 	end if;
 
@@ -4075,6 +4143,73 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+
+-- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--		stmt := "q_auth_v1_refresh_token ( $1, $2, $3, $4 )"
+--		rv, e0 := CallDatabaseJSONFunction(c, stmt, "e!..", UserID, AuthToken, gCfg.EncryptionPassword, gCfg.UserdataPassword)
+-- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+create or replace function q_auth_v1_refresh_token ( p_user_id varchar, p_auth_token varchar, p_hmac_password varchar,  p_userdata_password varchar )
+	returns text
+	as $$
+DECLARE
+	l_data					text;
+	l_fail					bool;
+	l_debug_on 				bool;
+	l_auth_token			uuid;	
+	l_user_id				uuid;
+BEGIN
+	-- Copyright (C) Philip Schlump, 2008-2021.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
+	l_debug_on = q_get_config_bool ( 'debug' );
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->q_auth_v1_refresh_token<- 001.tables.m4.sql 4049' );
+		insert into t_output ( msg ) values ( '  p_user_id ->'||coalesce(to_json(p_user_id)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_auth_token ->'||coalesce(to_json(p_auth_token)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  ' );
+	end if;
+
+	-- Check current token is still valid
+	-- 		Check that UserID matches with auth_token
+	select user_id
+		into l_user_id
+		from q_qr_users as t1
+			join q_qr_auth_tokens as t2 on ( t2.user_id = t1.user_id )
+		where t1.user_id = p_user_id::uuid
+		  and t2.token = p_auth_token::uuid
+		;
+
+	if not found then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"Unable to create user/auth-token.  Current token is invalid.","code":"0263","location":"001.tables.m4.sql 4067"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to create user/auth-token.  Current token is invalid.', '0263', 'File:001.tables.m4.sql Line No:4068');
+	end if;
+
+	if not l_fail then
+		-- insert / create auth_token
+		l_auth_token = uuid_generate_v4();
+		BEGIN
+			insert into q_qr_auth_tokens ( token, user_id ) values ( l_auth_token, l_user_id );
+		EXCEPTION WHEN unique_violation THEN
+			l_fail = true;
+			l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"0163","location":"001.tables.m4.sql 4078"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to create user/auth-token.', '0163', 'File:001.tables.m4.sql Line No:4079');
+		END;
+	end if;
+
+	if not l_fail then
+		l_data = '{"status":"success"'
+			||', "auth_token":'  ||coalesce(to_json(l_auth_token)::text,'""')
+			||'}';
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
 
 
 
@@ -4103,13 +4238,13 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
 	if l_debug_on then
-		insert into t_output ( msg ) values ( 'function -> q_auth_v1_email_verify (v2) <- 001.tables.m4.sql 3991' );
+		insert into t_output ( msg ) values ( 'function -> q_auth_v1_email_verify (v2) <- 001.tables.m4.sql 4126' );
 		insert into t_output ( msg ) values ( '  p_email_verify_token ->'||coalesce(to_json(p_email_verify_token)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  ' );
 	end if;
@@ -4124,7 +4259,7 @@ BEGIN
 		;
 	if not found then
 		l_fail = true;
-		l_data = '{"status":"error","msg":"Unable to validate account via email.  Please register again.","code":"0058","location":"001.tables.m4.sql 4006"}'; 
+		l_data = '{"status":"error","msg":"Unable to validate account via email.  Please register again.","code":"0058","location":"001.tables.m4.sql 4141"}'; 
 	end if;
 	if l_debug_on then
 		insert into t_output ( msg ) values ( '  l_user_id ->'||coalesce(to_json(l_user_id)::text,'---null---')||'<-');
@@ -4140,8 +4275,8 @@ BEGIN
 		GET DIAGNOSTICS v_cnt = ROW_COUNT;
 		if v_cnt != 1 then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Unable to validate account via email.  Please register again.","code":"0059","location":"001.tables.m4.sql 4022"}'; 
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to validate account via email..', '0059', 'File:001.tables.m4.sql Line No:4023');
+			l_data = '{"status":"error","msg":"Unable to validate account via email.  Please register again.","code":"0059","location":"001.tables.m4.sql 4157"}'; 
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to validate account via email..', '0059', 'File:001.tables.m4.sql Line No:4158');
 			-- Cleanup any users that have expired tokens more than 30 days ago.
 			delete from q_qr_users
 				where email_verify_expire < current_timestamp - interval '30 days'
@@ -4184,7 +4319,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -4235,7 +4370,7 @@ create or replace function q_auth_v1_setup_2fa_test ( p_user_id uuid, p_hmac_pas
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 
 	update q_qr_users as t1
 		set setup_complete_2fa = 'y'
@@ -4273,7 +4408,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -4338,11 +4473,11 @@ BEGIN
 			;
 		if not found then
 			-- this is not really accurate - the l_tmp_token has expired.
-			l_data = '{"status":"error","msg":"Your 2fa number has epired - please try again.","code":"0060","location":"001.tables.m4.sql 4220"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Expired 2fa number.', '0060', 'File:001.tables.m4.sql Line No:4221');
+			l_data = '{"status":"error","msg":"Your 2fa number has epired - please try again.","code":"0060","location":"001.tables.m4.sql 4355"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Expired 2fa number.', '0060', 'File:001.tables.m4.sql Line No:4356');
 		else
-			l_data = '{"status":"error","msg":"Your temporary login token has expired.  Please start your login process again.","code":"0061","location":"001.tables.m4.sql 4223"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Your temporary login token has expired.  Please start your login process again.', '0061', 'File:001.tables.m4.sql Line No:4224');
+			l_data = '{"status":"error","msg":"Your temporary login token has expired.  Please start your login process again.","code":"0061","location":"001.tables.m4.sql 4358"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Your temporary login token has expired.  Please start your login process again.', '0061', 'File:001.tables.m4.sql Line No:4359');
 		end if;
 		l_fail = true;
 	end if;
@@ -4362,8 +4497,8 @@ BEGIN
 			insert into q_qr_auth_tokens ( token, user_id ) values ( l_auth_token, l_user_id );
 		EXCEPTION WHEN unique_violation THEN
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"0063","location":"001.tables.m4.sql 4244"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to create user/auth-token.', '0063', 'File:001.tables.m4.sql Line No:4245');
+			l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"0063","location":"001.tables.m4.sql 4379"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to create user/auth-token.', '0063', 'File:001.tables.m4.sql Line No:4380');
 		END;
 	end if;
 
@@ -4378,7 +4513,7 @@ BEGIN
 				insert into t_output ( msg ) values ( 'Failed to get the privilages for the user' );
 			end if;
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Unable to get privilages for the user.","code":"0064","location":"001.tables.m4.sql 4260"}';
+			l_data = '{"status":"error","msg":"Unable to get privilages for the user.","code":"0064","location":"001.tables.m4.sql 4395"}';
 			l_privileges = '';
 		end if;
 	end if;
@@ -4424,7 +4559,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -4464,8 +4599,8 @@ BEGIN
 		;
 	if not found then
 		l_fail = true;
-		l_data = '{"status":"error","msg":"Unable to refresh auth-token.","code":"0065","location":"001.tables.m4.sql 4346"}';
-		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to refresh auth-token.', '0065', 'File:001.tables.m4.sql Line No:4347');
+		l_data = '{"status":"error","msg":"Unable to refresh auth-token.","code":"0065","location":"001.tables.m4.sql 4481"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to refresh auth-token.', '0065', 'File:001.tables.m4.sql Line No:4482');
 	end if;
 
 	if not l_fail then
@@ -4478,8 +4613,8 @@ BEGIN
 			insert into q_qr_auth_tokens ( token, user_id ) values ( l_auth_token, l_user_id );
 		EXCEPTION WHEN unique_violation THEN
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"0066","location":"001.tables.m4.sql 4360"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to create user/auth-token.', '0066', 'File:001.tables.m4.sql Line No:4361');
+			l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"0066","location":"001.tables.m4.sql 4495"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to create user/auth-token.', '0066', 'File:001.tables.m4.sql Line No:4496');
 		END;
 	end if;
 
@@ -4518,7 +4653,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -4533,8 +4668,8 @@ BEGIN
 		;
 	if not found then
 		l_fail = true;
-		l_data = '{"status":"error","msg":"Invalid email.","code":"0067","location":"001.tables.m4.sql 4415"}';
-		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid email number.', '0067', 'File:001.tables.m4.sql Line No:4416');
+		l_data = '{"status":"error","msg":"Invalid email.","code":"0067","location":"001.tables.m4.sql 4550"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid email number.', '0067', 'File:001.tables.m4.sql Line No:4551');
 	end if;
 
 	if not l_fail then
@@ -4573,10 +4708,12 @@ DECLARE
 	l_secret_2fa 			varchar(20);
 	v_cnt 					int;
 	l_email_hmac			bytea;
+	l_first_name			text;
+	l_last_name				text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 79892cf56a01a9dca6650edf83a7f22c47c0c3a2 tag: v1.0.2 build_date: Thu Jul  7 10:43:29 MDT 2022
+	-- version: 45c46f35a7258d3d4d205692275ddd75288f0064 tag: v1.0.2 build_date: Thu Jul  7 18:29:51 MDT 2022
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -4602,7 +4739,11 @@ BEGIN
 			where t1.user_id = l_user_id
 		) 
 		select user_id
+				, first_name
+				, last_name
 			into l_user_id
+				, l_first_name
+				, l_last_name
 			from user_row as t8
 			where t8.email_hmac = l_email_hmac
 			  and ( t8.start_date < current_timestamp or t8.start_date is null )
@@ -4645,8 +4786,8 @@ BEGIN
 			;
 		if not found then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Invalid Username or Account not valid or not email validated","code":"0170","location":"001.tables.m4.sql 4527"}'; 
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Account not valid or not email validated', '0170', 'File:001.tables.m4.sql Line No:4528');
+			l_data = '{"status":"error","msg":"Invalid Username or Account not valid or not email validated","code":"0170","location":"001.tables.m4.sql 4668"}'; 
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Account not valid or not email validated', '0170', 'File:001.tables.m4.sql Line No:4669');
 		end if;
 	end if;
 
@@ -4661,19 +4802,21 @@ BEGIN
 		GET DIAGNOSTICS v_cnt = ROW_COUNT;
 		if v_cnt != 1 then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Invalid Username or Account not valid or not email validated","code":"0070","location":"001.tables.m4.sql 4543"}'; 
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Account not valid or not email validated', '0070', 'File:001.tables.m4.sql Line No:4544');
+			l_data = '{"status":"error","msg":"Invalid Username or Account not valid or not email validated","code":"0070","location":"001.tables.m4.sql 4684"}'; 
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Account not valid or not email validated', '0070', 'File:001.tables.m4.sql Line No:4685');
 		end if;
 
 	end if;
 
 	if not l_fail then
 		-- Insert into log that email changed.
-		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Email Addres Changed.', '0099', 'File:001.tables.m4.sql Line No:4551');
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Email Addres Changed.', '0099', 'File:001.tables.m4.sql Line No:4692');
 	end if;
 
 	if not l_fail then
 		l_data = '{"status":"success"'
+			||', "first_name":'  			||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   			||coalesce(to_json(l_last_name)::text,'""')
 			||'}';
 	end if;
 
@@ -4741,8 +4884,8 @@ BEGIN
 
 	select count(1) into l_cnt from q_qr_users;
 	if l_cnt = 0 then
-		insert into t_output ( msg ) values ( 'FAILED - registraiton test 1 - failed to create a user File:001.tables.m4.sql Line No:4623' );
-		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 1 - failed to create a user File:001.tables.m4.sql Line No:4624' );
+		insert into t_output ( msg ) values ( 'FAILED - registraiton test 1 - failed to create a user File:001.tables.m4.sql Line No:4766' );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 1 - failed to create a user File:001.tables.m4.sql Line No:4767' );
 	else 
 		insert into t_output ( msg ) values ( 'PASS - registraiton test 1' );
 		insert into x_tmp_pass_fail ( name ) values ( 'PASS - registraiton test 1' );
@@ -4764,8 +4907,8 @@ BEGIN
 		insert into t_output ( msg ) values ( 'PASS - registraiton test 2' );
 		insert into x_tmp_pass_fail ( name ) values ( 'PASS - registraiton test 2' );
 	else
-		insert into t_output ( msg ) values ( 'FAILED - registraiton test 2 - login when should not File:001.tables.m4.sql Line No:4646' );
-		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 2 - login when should not File:001.tables.m4.sql Line No:4647' );
+		insert into t_output ( msg ) values ( 'FAILED - registraiton test 2 - login when should not File:001.tables.m4.sql Line No:4789' );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 2 - login when should not File:001.tables.m4.sql Line No:4790' );
 	end if;
 
 
@@ -4780,8 +4923,8 @@ BEGIN
 	insert into t_output ( msg ) values ( l_text );
 	select l_text::jsonb -> 'status' into l_status;
 	if l_status != '"success"' then
-		insert into t_output ( msg ) values ( 'FAILED - registraiton test 3 - validation of email File:001.tables.m4.sql Line No:4662' );
-		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 3 - validation of email File:001.tables.m4.sql Line No:4663' );
+		insert into t_output ( msg ) values ( 'FAILED - registraiton test 3 - validation of email File:001.tables.m4.sql Line No:4805' );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 3 - validation of email File:001.tables.m4.sql Line No:4806' );
 	else
 		insert into t_output ( msg ) values ( 'PASS - registraiton test 3 - validation of email' );
 		insert into x_tmp_pass_fail ( name ) values ( 'PASS - registraiton test 3 - validation of email' );
@@ -4794,8 +4937,8 @@ BEGIN
 	insert into t_output ( msg ) values ( l_text );
 	select l_text::jsonb -> 'status' into l_status;
 	if l_status != '"success"' then
-		insert into t_output ( msg ) values ( 'FAILED - registraiton test 3 - validation of email File:001.tables.m4.sql Line No:4676' );
-		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 3 - validation of email File:001.tables.m4.sql Line No:4677' );
+		insert into t_output ( msg ) values ( 'FAILED - registraiton test 3 - validation of email File:001.tables.m4.sql Line No:4819' );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 3 - validation of email File:001.tables.m4.sql Line No:4820' );
 	else
 		insert into t_output ( msg ) values ( 'PASS - registraiton test 4 - validated 2fa secret' );
 		insert into x_tmp_pass_fail ( name ) values ( 'PASS - registraiton test 4 - validated 2fa secret' );
@@ -4815,8 +4958,8 @@ BEGIN
 		insert into t_output ( msg ) values ( 'PASS - registraiton/login test 5 - bad password'  );
 		insert into x_tmp_pass_fail ( name ) values ( 'PASS - registraiton/login test 5 - bad password' );
 	else
-		insert into t_output ( msg ) values ( 'FAILED - registraiton test 5 - faile to login - bad password File:001.tables.m4.sql Line No:4697' );
-		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 5 - faile to login - bad password File:001.tables.m4.sql Line No:4698' );
+		insert into t_output ( msg ) values ( 'FAILED - registraiton test 5 - faile to login - bad password File:001.tables.m4.sql Line No:4840' );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 5 - faile to login - bad password File:001.tables.m4.sql Line No:4841' );
 	end if;
 
 	select q_auth_v1_login ( 'bob82@example.com', 'bob the builder', '181d4e23-9595-47ec-9a26-1c8313d321f9', 'my long secret password', 'user info password' )
@@ -4827,8 +4970,8 @@ BEGIN
 		insert into t_output ( msg ) values ( 'PASS - registraiton/login test 5 - bad username'  );
 		insert into x_tmp_pass_fail ( name ) values ( 'PASS - registraiton/login test 5 - bad username' );
 	else
-		insert into t_output ( msg ) values ( 'FAILED - registraiton test 5 - faile to login - bad username File:001.tables.m4.sql Line No:4709' );
-		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 5 - faile to login - bad username File:001.tables.m4.sql Line No:4710' );
+		insert into t_output ( msg ) values ( 'FAILED - registraiton test 5 - faile to login - bad username File:001.tables.m4.sql Line No:4852' );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 5 - faile to login - bad username File:001.tables.m4.sql Line No:4853' );
 	end if;
 
 
@@ -4841,8 +4984,8 @@ BEGIN
 	insert into t_output ( msg ) values ( l_text );
 	select l_text::jsonb -> 'status' into l_status;
 	if l_status != '"success"' then
-		insert into t_output ( msg ) values ( 'FAILED - registraiton test 5 - faile to login File:001.tables.m4.sql Line No:4723' );
-		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 5 - faile to login File:001.tables.m4.sql Line No:4724' );
+		insert into t_output ( msg ) values ( 'FAILED - registraiton test 5 - faile to login File:001.tables.m4.sql Line No:4866' );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 5 - faile to login File:001.tables.m4.sql Line No:4867' );
 	else
 		insert into t_output ( msg ) values ( 'PASS - registraiton/login test 5' );
 		insert into x_tmp_pass_fail ( name ) values ( 'PASS - registraiton/login test 5' );
@@ -4889,8 +5032,8 @@ BEGIN
 		into l_bool;
 
 	if l_bool then
-		insert into t_output ( msg ) values ( 'FAILED - q_admin_HasPriv test 1 File:001.tables.m4.sql Line No:4771' );
-		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - q_admin_HasPriv test 1 File:001.tables.m4.sql Line No:4772' );
+		insert into t_output ( msg ) values ( 'FAILED - q_admin_HasPriv test 1 File:001.tables.m4.sql Line No:4914' );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - q_admin_HasPriv test 1 File:001.tables.m4.sql Line No:4915' );
 	else
 		insert into t_output ( msg ) values ( 'PASS - q_admin_HasPriv test 1' );
 		insert into x_tmp_pass_fail ( name ) values ( 'PASS - q_admin_HasPriv test 1' );
@@ -4903,8 +5046,8 @@ BEGIN
 		insert into t_output ( msg ) values ( 'PASS - q_admin_HasPriv test 2' );
 		insert into x_tmp_pass_fail ( name ) values ( 'PASS - q_admin_HasPriv test 2' );
 	else
-		insert into t_output ( msg ) values ( 'FAILED - q_admin_HasPriv test 2 File:001.tables.m4.sql Line No:4785' );
-		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - q_admin_HasPriv test 2 File:001.tables.m4.sql Line No:4786' );
+		insert into t_output ( msg ) values ( 'FAILED - q_admin_HasPriv test 2 File:001.tables.m4.sql Line No:4928' );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - q_admin_HasPriv test 2 File:001.tables.m4.sql Line No:4929' );
 	end if;
 
 
@@ -4970,28 +5113,28 @@ BEGIN
 	-- Check Data (Privileges) ------------------------------------------------------------------------------------------
 	select count(1) into l_cnt1 from q_qr_role;
 	if l_cnt1 = 0 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4852 -- missing data in q_qr_role' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4995 -- missing data in q_qr_role' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 
 	select count(1) into l_cnt1 from q_qr_priv;
 	if l_cnt1 = 0 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4859 -- missing data in q_qr_priv' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5002 -- missing data in q_qr_priv' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 
 	select count(1) into l_cnt1 from q_qr_role_priv;
 	if l_cnt1 = 0 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4866 -- missing data in q_qr_role_priv' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5009 -- missing data in q_qr_role_priv' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 
 	select count(1) into l_cnt1 from q_qr_user_role;
 	if l_cnt1 = 0 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4873 -- missing data in q_qr_user_role' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5016 -- missing data in q_qr_user_role' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -5051,7 +5194,7 @@ BEGIN
 
 	l_bool = q_get_config_bool ( 'confg.test' );
 	if l_bool = true then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4933 -- config not working' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5076 -- config not working' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -5059,21 +5202,21 @@ BEGIN
 	update q_qr_config set b_value = true, value = 'yes' where name = 'config.test';
 	GET DIAGNOSTICS v_cnt = ROW_COUNT;
 	if v_cnt != 1 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4941 -- config not working' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5084 -- config not working' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 
 	l_bool = q_get_config_bool ( 'config.test' );
 	if l_bool = false then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4948 -- config not working' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5091 -- config not working' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 
 	l_bool = q_get_config_bool ( 'missing.test' );
 	if l_bool != false then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4955 -- config not working' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5098 -- config not working' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -5102,13 +5245,13 @@ BEGIN
 	--  	Register Output:   {"status":"success", "user_id":4, "email_verify_token":"5ed065f3-7b59-477c-942a-5479bd22c2d7", "secret_2fa":"cf1756e5ef"}
 	insert into t_output ( msg ) values ( 'Register Output:   '||coalesce(to_json(l_r1)::text,'---null---'));
 	if l_status != '"success"' then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4984 -- failed to register, expected ->"success"<- got ->'||l_status||'<-' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5127 -- failed to register, expected ->"success"<- got ->'||l_status||'<-' );
 		insert into t_output ( msg ) values ( '   '||l_r1 );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 	if l_cnt1 >= l_cnt2 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:4990 -- failed to register new user.  Row count did not increase.' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5133 -- failed to register new user.  Row count did not increase.' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -5122,7 +5265,7 @@ BEGIN
 
 	select count(1) into l_cnt1 from q_qr_user_role;
 	if l_cnt1 = 0 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5004 -- missing data in q_qr_user_role' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5147 -- missing data in q_qr_user_role' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -5144,7 +5287,7 @@ BEGIN
 	insert into x_tmp_values ( name, value ) values ( 'l_auth_token', l_auth_token::text );
 	select count(1) into l_cnt_auth_tokens;
 	if not found or l_cnt_auth_tokens = 0 then 
-		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:001.tables.m4.sql Line No:5026 -- missing data in q_qr_user_role' );
+		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:001.tables.m4.sql Line No:5169 -- missing data in q_qr_user_role' );
 	end if;
 
 	-- end -----------------------------------------------------------------------------------------------------------------------------------------
@@ -5159,7 +5302,7 @@ BEGIN
 
 	select count(1) into l_cnt_auth_tokens;
 	if not found or l_cnt_auth_tokens = 0 then 
-		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:001.tables.m4.sql Line No:5041 -- missing data in q_qr_user_role' );
+		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:001.tables.m4.sql Line No:5184 -- missing data in q_qr_user_role' );
 	end if;
 
 	-- set this user to be an "admin"
@@ -5176,13 +5319,13 @@ BEGIN
 			select get_user_list( 'my long secret password', 'user info password' )
 		) as t1;
 	if l_cnt1 = 0 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5058 -- failed to create user' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5201 -- failed to create user' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 	select count(1) into l_cnt_auth_tokens;
 	if not found or l_cnt_auth_tokens = 0 then 
-		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:001.tables.m4.sql Line No:5064 -- missing data in q_qr_user_role' );
+		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:001.tables.m4.sql Line No:5207 -- missing data in q_qr_user_role' );
 	end if;
 
 
@@ -5207,8 +5350,8 @@ BEGIN
 	insert into t_output ( msg ) values ( 'l_r2 = '||coalesce(l_r2, '---null---') );
 	select l_r2::jsonb -> 'status' into l_status;
 	if l_status != '"success"' then
-		insert into t_output ( msg ) values ( 'FAILED - registraiton validate email - validation of email File:001.tables.m4.sql Line No:5089' );
-		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton validate email - validation of email File:001.tables.m4.sql Line No:5090' );
+		insert into t_output ( msg ) values ( 'FAILED - registraiton validate email - validation of email File:001.tables.m4.sql Line No:5232' );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton validate email - validation of email File:001.tables.m4.sql Line No:5233' );
 	else
 		insert into t_output ( msg ) values ( 'PASS - registraiton validate email - validated email secret' );
 		insert into x_tmp_pass_fail ( name ) values ( 'PASS - registraiton validate email - validated email secret' );
@@ -5223,8 +5366,8 @@ BEGIN
 	insert into t_output ( msg ) values ( l_text );
 	select l_text::jsonb -> 'status' into l_status;
 	if l_status != '"success"' then
-		insert into t_output ( msg ) values ( 'FAILED - registraiton validate 2fa - validation of email File:001.tables.m4.sql Line No:5105' );
-		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton validate 2fa - validation of email File:001.tables.m4.sql Line No:5106' );
+		insert into t_output ( msg ) values ( 'FAILED - registraiton validate 2fa - validation of email File:001.tables.m4.sql Line No:5248' );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton validate 2fa - validation of email File:001.tables.m4.sql Line No:5249' );
 	else
 		insert into t_output ( msg ) values ( 'PASS - registraiton validate 2fa - validated 2fa secret' );
 		insert into x_tmp_pass_fail ( name ) values ( 'PASS - registraiton validate 2fa - validated 2fa secret' );
@@ -5242,8 +5385,8 @@ BEGIN
 	insert into t_output ( msg ) values ( l_text );
 	select l_text::jsonb -> 'status' into l_status;
 	if l_status != '"success"' then
-		insert into t_output ( msg ) values ( 'FAILED - registraiton test 5 - faile to login File:001.tables.m4.sql Line No:5124' );
-		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 5 - faile to login File:001.tables.m4.sql Line No:5125' );
+		insert into t_output ( msg ) values ( 'FAILED - registraiton test 5 - faile to login File:001.tables.m4.sql Line No:5267' );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 5 - faile to login File:001.tables.m4.sql Line No:5268' );
 	else
 		insert into t_output ( msg ) values ( 'PASS - registraiton/login test 5' );
 		insert into x_tmp_pass_fail ( name ) values ( 'PASS - registraiton/login test 5' );
@@ -5257,7 +5400,7 @@ BEGIN
 
 	select count(1) into l_cnt_auth_tokens;
 	if not found or l_cnt_auth_tokens = 0 then 
-		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:001.tables.m4.sql Line No:5139 -- missing data in q_qr_user_role' );
+		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:001.tables.m4.sql Line No:5282 -- missing data in q_qr_user_role' );
 	end if;
 
 	-- test 1a ----------------------------------------------------------------------------------------------------------
@@ -5268,7 +5411,7 @@ BEGIN
 	select q_amdin_HasPriv ( l_user_id, 'May X' )
 		into l_bool;
 	if l_bool != false then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5150 -- return true on non-existent privilege.  user_id='||l_user_id::text );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5293 -- return true on non-existent privilege.  user_id='||l_user_id::text );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -5277,14 +5420,14 @@ BEGIN
 	select q_amdin_HasPriv ( l_user_id, 'May Change Password' )
 		into l_bool;
 	if l_bool != true then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5159 -- return false on privilege that should exist.  user_id='||l_user_id::text );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5302 -- return false on privilege that should exist.  user_id='||l_user_id::text );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 
 	select count(1) into l_cnt_auth_tokens;
 	if not found or l_cnt_auth_tokens = 0 then 
-		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:001.tables.m4.sql Line No:5166 -- missing data in q_qr_user_role' );
+		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:001.tables.m4.sql Line No:5309 -- missing data in q_qr_user_role' );
 	end if;
 
 
@@ -5465,7 +5608,7 @@ BEGIN
 		) lll
 		;
 	if l_cnt2 != 2 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5347 -- should have 2 roles - got:'||l_cnt2::text );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5490 -- should have 2 roles - got:'||l_cnt2::text );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -5481,7 +5624,7 @@ BEGIN
 		limit 1
 		;
 	if not found then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5363 -- missing data in x_tmp_values, key=''l_auth_token'' -no rows found-' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5506 -- missing data in x_tmp_values, key=''l_auth_token'' -no rows found-' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -5501,12 +5644,12 @@ BEGIN
 		group by t1.user_id
 		;
 	if not found then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5383 -- missing data in role/priv/token -no rows found-' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5526 -- missing data in role/priv/token -no rows found-' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 	if l_privilage::text = '[null]' then
-		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5388 -- missing data in role/priv/token - bad user id' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:001.tables.m4.sql Line No:5531 -- missing data in role/priv/token - bad user id' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;

@@ -70,7 +70,7 @@ type UploadConfig struct {
 // change JwtKey to  AuthJWTKey
 
 type BaseConfigType struct {
-	Mode string `json:"mode" default:"prod"`
+	LogMode string `json:"log_mode" default:"dev"` // dev or prod
 
 	// do not change - do not edit next line.
 	Status string `json:"status" default:"success"`
@@ -102,7 +102,6 @@ type BaseConfigType struct {
 
 	// Auth Related Stuff ------------------------------------------------------------------------------------------------------------------------------------------------------------
 	AuthRealm               string `json:"auth_realm" default:"*" pgsave:"AuthRealm"`                                //
-	AuthKey                 string `json:"auth_key" default:""`                                                      //
 	AuthJWTPublic           string `json:"auth_jwt_public_file" default:""`                                          // Public Key File
 	AuthJWTPrivate          string `json:"auth_jwt_private_file" default:""`                                         // Private Key File
 	AuthJWTKeyType          string `json:"auth_jwt_key_type" default:"HS256"`                                        // Key type ES = ESDSA or RS = RSA
@@ -114,13 +113,15 @@ type BaseConfigType struct {
 	// UseRegistrationToken string `json:"use_registration_token" default:"yes" pgsave:"UseRegistrationToken"` //
 	// End Auth realted -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-	// CORS Related Stuff ------------------------------------------------------------------------------------------------------------------------------------------------------------
+	// CORS Related Stuff -----------------------------------------------------------------------------------------------------------------------------------------------------------
 	CORSTag               string `json:"CORS_tag" default:"<body>"`                    // Tag to replace in index.html
 	CORSNDays             int    `json:"CORS_n_days" default:"365"`                    // How long to keep a CORS tag before invalidating it.
 	CORSRedisStorageKey   string `json:"CORS_redis_storage_key" default:"csrf-token:"` // Prefix used in Redis for keys
 	CSRFIndexHtmlFileName string `json:"CORS_index_file_name" default:"/index.html"`   // file to read/reaturn
 
-	// End CORS Related Stuff ------------------------------------------------------------------------------------------------------------------------------------------------------------
+	// End CORS Related Stuff -------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	RedirectEmailSendTo string `json:"redirect_email_send_to"` // If set this sends all outgoing email to a test account.
 
 	// debug flags:	 Comma seperated values in the config file.
 	DebugFlag string `json:"db_flag"`
@@ -181,7 +182,6 @@ type BaseConfigType struct {
 	CORS_Allowed    bool `json:"CORS_Allowed" default:"true"`     // see set_header.go
 	CORS_CheckTable bool `json:"CORS_CheckTable" default:"false"` // if false then all CORS are allowed. -- See set_header.go
 
-	LogMode string `json:"log_mode" default:"dev"` // dev or prod
 }
 
 type GlobalDataScopeType struct {

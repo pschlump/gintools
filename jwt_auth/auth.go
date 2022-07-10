@@ -4,28 +4,40 @@ package jwt_auth
 // MIT Licensed.  See LICENSE.mit file.
 // BSD Licensed.  See LICENSE.bsd file.
 
-// xyzzy-jwt -- 2000:
-// xyzzy-jwt -- 2134:
-// log-xyzzy-log
-//	AuthJWTSource            string `json:"auth_jwt_source" default:"Authorization"`                                             // Valid forms for getting authorization		--- DEPRICATED
-// if len(gCfg.JwtKey) == 0 && jwtlib.IsHs(gCfg.AuthJWTKeyType) {
-// change JwtKey to  AuthJWTKey
+// Email Templates
+// =======================================================================================
+//
+// 1. login_new_device
+// 2. welcome_registration
+// 3. password_changed
+// 4. recover_password
+// 5. password_updated
+// 6. account_deleted
+// 7. admin_password_changed
+// 8. regenerate_one_time_passwords
+// 9. un_pw_account_created -- todo
+// 10. token_account_created -- todo
 
-// xyzzy443 - send email about this
+// Notes
+// =======================================================================================
+
+// xyzzy555!!! important
+//		stmt := "q_auth_v1_delete_account ( $1, $2, $3 )"
+// 		func authHandleRegisterToken(c *gin.Context) {
+
+// xyzzy551 - Change Email NOt Tested
+
+// xyzzy443 - send email about this -- all done except end points that are not yet used.
 //		- get sendgrid account updated
 //		- validate actual email
 //		- put in each email
-
-// xyzzy441 - do we have test for every call
-
 // xyzzy448 - test for un/pw and token registration of acocunt, test of login, test of parent account deleted.
 
-// xyzzy000 - on /regPt2/email/token -
+// xyzzy770000 TODO --------------------------- change account info
 
-// xyzzy000 - on data.go:AuthConfirmEmailURI     string `json:"auth_confirm_email_uri" default:"/confirm-email"`                           // Redirect to this URI for info on confirming email.
-// 			AuthConfirmEmailURI string `json:"auth_confirm_email_uri" default:"/confirm-email"` // Redirect to this URI for info on confirming email.
-// from tmpl/welcome_registration.tmpl
-// <a href="{{.server}}api/v1/auth/email-confirm?email_verify_token={{.token}}&redirect_to=yes"> {{.server}}confirm-email.html </a><br>
+// xyzzy-Expire
+//		Return token experation date/time to user so can do intellegent refresh.
+// 		SetInsecureCookie("X-Is-Logged-In", "yes", c) // To let the JS code know that it is logged in.
 
 import (
 	"fmt"
@@ -103,7 +115,7 @@ var GinSetupTable = []GinLoginType{
 	{Method: "POST", Path: "/api/v1/auth/change-password-admin", Fx: authHandleChangePasswordAdmin, UseLogin: LoginRequired}, //
 	{Method: "POST", Path: "/api/v1/auth/add-2fa-secret", Fx: authHandleAdd2faSecret, UseLogin: LoginRequired},               //
 	{Method: "POST", Path: "/api/v1/auth/remove-2fa-secret", Fx: authHandleRemove2faSecret, UseLogin: LoginRequired},         //
-	// TODO  {Method: "POST", Path: "/api/v1/auth/refresh-token", Fx: authHandleAcctHasBeenSetup, UseLogin: LoginRequired},            // (TODO - wrong function now)
+	{Method: "POST", Path: "/api/v1/auth/refresh-token", Fx: authHandleRefreshToken, UseLogin: LoginRequired},                // (TODO - wrong function now)
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
@@ -134,13 +146,22 @@ func GinInitAuthPaths(router *gin.Engine) {
 
 // -------------------------------------------------------------------------------------------------------------------------
 /*
-create table q_qr_users (
-	user_id 				serial not null primary key,
-	email_hmac 				text not null,
-	email_enc 				text,		-- todo - add this in with encrypted/decryptable email address
+CREATE TABLE if not exists q_qr_users (
+	user_id 				uuid default uuid_generate_v4() not null primary key,
+	email_hmac 				bytea not null,
+	email_enc 				bytea not null,										-- encrypted/decryptable email address
 	password_hash 			text not null,
+	validation_method		varchar(10) default 'un/pw' not null check ( validation_method in ( 'un/pw', 'sip', 'srp6a', 'hw-key', 'webauthn' ) ),
+	validator				text, -- p, q, a, v? -- Store as JSON and decode as necessary? { "typ":"sip", "ver":"v0.0.1", "v":..., "p":... }
+	e_value					text,
+	x_value					text,
+	y_value					text,
+	pdf_enc_password		text,	-- Password used for encryption of .pdf files - per user.
 	first_name_enc			bytea not null,
+	first_name_hmac 		text not null,
 	last_name_enc			bytea not null,
+	last_name_hmac 			text not null,
+	acct_state				varchar(40) default 'registered' not null check ( acct_state in ( 'registered', 'change-pw', 'change-2fa', 'change-email', 'other' ) ),
 	email_validated			varchar(1) default 'n' not null,
 	email_verify_token		uuid,
 	email_verify_expire 	timestamp,
@@ -148,15 +169,17 @@ create table q_qr_users (
 	password_reset_time		timestamp,
 	failed_login_timeout 	timestamp,
 	login_failures 			int default 0 not null,
-	parent_user_id 			int,
+	login_success 			int default 0 not null,
+	parent_user_id 			uuid,
 	account_type			varchar(20) default 'login' not null check ( account_type in ( 'login', 'un/pw', 'token', 'other' ) ),
 	require_2fa 			varchar(1) default 'y' not null,
 	secret_2fa 				varchar(20),
-	setup_complete_2fa 		varchar(1) default 'n' not null,
+	setup_complete_2fa 		varchar(1) default 'n' not null,					-- Must be 'y' to login / set by q_auth_v1_validate_2fa_token
 	start_date				timestamp default current_timestamp not null,
 	end_date				timestamp,
-	updated 				timestamp, 									 						-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
-	created 				timestamp default current_timestamp not null 						-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
+	privileges				text,
+	updated 				timestamp, 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
+	created 				timestamp default current_timestamp not null 		-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
 */
 
@@ -178,18 +201,20 @@ type StdErrorReturn struct {
 
 // -------------------------------------------------------------------------------------------------------------------------
 
+// DB Reutrn Data
 type RvLoginType struct {
 	StdErrorReturn
-	UserId      string `json:"user_id,omitempty"`
-	AuthToken   string `json:"auth_token,omitempty"` // May be "" - meaning no auth.
-	TmpToken    string `json:"tmp_token,omitempty"`  // May be "" - used in 2fa part 1 / 2
-	Token       string `json:"token,omitempty"`      // the JWT Token???
-	Require2fa  string `json:"require_2fa,omitempty"`
-	Secret2fa   string `json:"secret_2fa,omitempty"`
-	AccountType string `json:"account_type,omitempty"`
-	Privileges  string `json:"privileges,omitempty"`
-	FirstName   string `json:"first_name,omitempty"`
-	LastName    string `json:"last_name,omitempty"`
+	UserId           string `json:"user_id,omitempty"`
+	AuthToken        string `json:"auth_token,omitempty"` // May be "" - meaning no auth.
+	TmpToken         string `json:"tmp_token,omitempty"`  // May be "" - used in 2fa part 1 / 2
+	Token            string `json:"token,omitempty"`      // the JWT Token???
+	Require2fa       string `json:"require_2fa,omitempty"`
+	Secret2fa        string `json:"secret_2fa,omitempty"`
+	AccountType      string `json:"account_type,omitempty"`
+	Privileges       string `json:"privileges,omitempty"`
+	FirstName        string `json:"first_name,omitempty"`
+	LastName         string `json:"last_name,omitempty"`
+	IsNewDeviceLogin string `json:"is_new_device_login,omitempty"`
 }
 
 // Input for login
@@ -199,8 +224,7 @@ type ApiAuthLogin struct {
 	AmIKnown string `json:"am_i_known" form:"am_i_known"`
 }
 
-// Output - returned on success
-// copier.Copy(&employee, &user)
+// Output returned
 type LoginSuccess struct {
 	Status     string `json:"status"`
 	TmpToken   string `json:"tmp_token,omitempty"` // May be "" - used in 2fa part 1 / 2
@@ -209,11 +233,6 @@ type LoginSuccess struct {
 	Privileges string `json:"privileges,omitempty"`
 	FirstName  string `json:"first_name,omitempty"`
 	LastName   string `json:"last_name,omitempty"`
-	// Not returned
-	//	UserId      *int   `json:"user_id,omitempty"`
-	//	AuthToken   string `json:"auth_token,omitempty"` // May be "" - meaning no auth.
-	//	Secret2fa   string `json:"secret_2fa,omitempty"`
-	//	AccountType string `json:"account_type,omitempty"`
 }
 
 // /api/register-user, send-data={"user":"alice","v":13136}
@@ -247,8 +266,6 @@ func authHandleLogin(c *gin.Context) {
 		return
 	}
 
-	// xyzzy4000 - check for the etag/hash pair - if found - then no 2fa required.
-
 	// create or replace function q_auth_v1_login ( p_un varchar, p_pw varchar, p_am_i_knwon varchar, p_hmac_password varchar, p_userdata_password varchar )
 	stmt := "q_auth_v1_login ( $1, $2, $3, $4, $5 )"
 	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)
@@ -267,7 +284,7 @@ func authHandleLogin(c *gin.Context) {
 		return
 	}
 
-	// xyzzy1212-  TokenHeaderVSCookie string `json:"token_header_vs_cookie" default:"cookie"`
+	//  TokenHeaderVSCookie string `json:"token_header_vs_cookie" default:"cookie"`
 	if rvStatus.AuthToken != "" {
 		theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken)
 		if err != nil {
@@ -276,7 +293,7 @@ func authHandleLogin(c *gin.Context) {
 		dbgo.Fprintf(logFilePtr, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s\n", rvStatus.AuthToken, theJwtToken)
 
 		c.Set("__is_logged_in__", "y")
-		c.Set("__user_id__", fmt.Sprintf("%d", rvStatus.UserId))
+		c.Set("__user_id__", rvStatus.UserId)
 		c.Set("__auth_token__", rvStatus.AuthToken)
 		rv, mr := ConvPrivs2(rvStatus.Privileges)
 		c.Set("__privs__", rv)
@@ -297,7 +314,21 @@ func authHandleLogin(c *gin.Context) {
 		}
 	}
 
-	// xyzzy443 - TODO - send email if a login is from a new device. ??
+	// send email if a login is from a new device. ??
+	if rvStatus.IsNewDeviceLogin == "y" {
+		email.SendEmail("login_new_device",
+			"username", pp.Email,
+			"email", pp.Email,
+			"email_url_encoded", url.QueryEscape(pp.Email),
+			"first_name", rvStatus.FirstName,
+			"last_name", rvStatus.LastName,
+			"real_name", rvStatus.FirstName+" "+rvStatus.LastName,
+			"application_name", gCfg.AuthApplicationName,
+			"realm", gCfg.AuthRealm,
+			"server", gCfg.BaseServerURL,
+			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
+		)
+	}
 
 	var out LoginSuccess
 	copier.Copy(&out, &rvStatus)
@@ -309,6 +340,7 @@ func authHandleLogin(c *gin.Context) {
 // Returned form stored procedure
 //		l_data = '{"status":"error","msg":"Account already exists.  Please login or recover password.","code":"0007","location":"m4___file__ m4___line__"}';
 //			||', "user_id":' ||coalesce(to_json(l_user_id)::text,'""')
+// DB Reutrn Data
 type RvRegisterType struct {
 	StdErrorReturn
 	UserId           string   `json:"user_id,omitempty"`
@@ -329,6 +361,7 @@ type ApiAuthRegister struct {
 	Pw        string `json:"password"   form:"password"          binding:"required"`
 }
 
+// Output returned
 type RegisterSuccess struct {
 	Status      string   `json:"status"`
 	URLFor2faQR string   `json:"url_for_2fa_qr"`
@@ -516,18 +549,21 @@ func MintQRPng(c *gin.Context, InputString string) (qrurl string) {
 
 // -------------------------------------------------------------------------------------------------------------------------
 
+// DB Reutrn Data
 type RvEmailConfirm struct {
 	StdErrorReturn
 	Email    string `json:"email,omitempty"`
 	TmpToken string `json:"tmp_token,omitempty"` // May be "" - used in 2fa part 1 / 2
 }
 
+// Input for api endpoint
 type ApiAuthEmailValidate struct {
 	Email            string `json:"email"              form:"email"             `
 	EmailVerifyToken string `json:"email_verify_token" form:"email_verify_token"   binding:"required"`
 	RedirectTo       string `json:"redirect_to"        form:"redirect_to"`
 }
 
+// Output returned
 type EmailConfirmSuccess struct {
 	Status   string `json:"status"`
 	TmpToken string `json:"tmp_token"`
@@ -554,10 +590,6 @@ type EmailConfirmSuccess struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /v1/auth/email-confirm [get]
 func authHandlerEmailConfirm(c *gin.Context) {
-	// xyzzy000 - on data.go:AuthConfirmEmailURI     string `json:"auth_confirm_email_uri" default:"/confirm-email"`                           // Redirect to this URI for info on confirming email.
-	// 			AuthConfirmEmailURI string `json:"auth_confirm_email_uri" default:"/confirm-email"` // Redirect to this URI for info on confirming email.
-	// from tmpl/welcome_registration.tmpl
-	// <a href="{{.server}}api/v1/auth/email-confirm?email_verify_token={{.token}}&redirect_to=yes"> {{.server}}confirm-email.html </a><br>
 	var err error
 	var pp ApiAuthEmailValidate
 	if err := BindFormOrJSON(c, &pp); err != nil {
@@ -613,14 +645,23 @@ window.location = "%s";
 
 // -------------------------------------------------------------------------------------------------------------------------
 // jwtConfig.authInternalHandlers["POST:/api/v1/auth/change-password"] = authHandleChangePassword                       // change passwword
+// Input for api endpoint
 type ApiAuthChangePassword struct {
 	Email string `json:"email"  form:"email"   binding:"required,email"`
 	NewPw string `json:"new_pw" form:"new_pw"  binding:"required"`
 	OldPw string `json:"old_pw" form:"old_pw"  binding:"required"`
 }
 
+// Output returned
 type ReturnSuccess struct {
 	Status string `json:"status"`
+}
+
+// DB Reutrn Data
+type RvChangePasswordType struct {
+	StdErrorReturn
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
 }
 
 // authHandleChangePassword godoc
@@ -647,7 +688,7 @@ func authHandleChangePassword(c *gin.Context) {
 	}
 
 	if pp.NewPw == pp.OldPw {
-		// xyzzy - should be a log call - with a log_enc.LogInputValidationError... call...
+		// should be a log call - with a log_enc.LogInputValidationError... call...
 		c.JSON(http.StatusNotAcceptable, logJsonReturned(gin.H{ // 406
 			"status": "error",
 			"msg":    "Old and new password should be different",
@@ -669,7 +710,7 @@ func authHandleChangePassword(c *gin.Context) {
 
 		dbgo.Fprintf(logFilePtr, "%(cyan)%(LF): rv=%s\n", rv)
 		// var rvStatus RvStatusType
-		var rvStatus StdErrorReturn
+		var rvStatus RvChangePasswordType
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
@@ -678,10 +719,24 @@ func authHandleChangePassword(c *gin.Context) {
 			return
 		}
 
-		// xyzzy443 - send email about change
+		// send email about change
+		email.SendEmail("password_changed",
+			"username", pp.Email,
+			"email", pp.Email,
+			"email_url_encoded", url.QueryEscape(pp.Email),
+			"first_name", rvStatus.FirstName,
+			"last_name", rvStatus.LastName,
+			"real_name", rvStatus.FirstName+" "+rvStatus.LastName,
+			"application_name", gCfg.AuthApplicationName,
+			"realm", gCfg.AuthRealm,
+			"server", gCfg.BaseServerURL,
+			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
+		)
 
 		// email.SendEmail("password_updated", "username", un, "email", emailaddr, "real_name", real_name, "token", recovery_token, "realm", gCfg.AuthRealm, "server", gCfg.AuthSelfURL)
 		// "email_url_encoded", url.QueryEscape(pp.Email),
+	} else {
+		time.Sleep(1500 * time.Millisecond)
 	}
 
 	out := ReturnSuccess{Status: "success"}
@@ -693,6 +748,7 @@ func authHandleChangePassword(c *gin.Context) {
 //	router.POST("/api/v1/auth/recover-password-01-setup", authHandleRecoverPassword01Setup)              //
 //	router.GET("/api/v1/auth/recover-password-01-setup", authHandleRecoverPassword01Setup)               //
 
+// DB Reutrn Data
 type RvRecoverPassword01Setup struct {
 	StdErrorReturn
 	RecoveryToken string `json:"recovery_token,omitempty"`
@@ -700,10 +756,12 @@ type RvRecoverPassword01Setup struct {
 	LastName      string `json:"last_name,omitempty"`
 }
 
+// Input for api endpoint
 type ApiEmail struct {
 	Email string `json:"email"  form:"email"  binding:"required,email"`
 }
 
+// Input for api endpoint
 type ApiEmailOptional struct {
 	Email string `json:"email"  form:"email"`
 }
@@ -741,7 +799,7 @@ func authHandleRecoverPassword01Setup(c *gin.Context) {
 	err := json.Unmarshal([]byte(rv), &rvStatus)
 	if err != nil || rvStatus.Status != "success" {
 		rvStatus.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))                // xyzzy - encrypt xyzzy - Encrypted Log File Data
+		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
 		c.JSON(http.StatusBadRequest, logJsonReturned(rvStatus.StdErrorReturn)) // 400
 		return
 	}
@@ -768,6 +826,7 @@ func authHandleRecoverPassword01Setup(c *gin.Context) {
 // router.POST("/api/v1/auth/recover-password-02-fetch-info", authHandleRecoverPassword02FetchInfo)     //
 // router.GET("/api/v1/auth/recover-password-02-fetch-info", authHandleRecoverPassword02FetchInfo)      //
 
+// DB Reutrn Data
 type RvRecoverPassword02FetchInfo struct {
 	StdErrorReturn
 	Email     string `json:"email,omitempty"`
@@ -775,11 +834,13 @@ type RvRecoverPassword02FetchInfo struct {
 	LastName  string `json:"last_name,omitempty"`
 }
 
+// Input for api endpoint
 type ApiAuthRecoveryPassword02FetchInfo struct {
 	Email         string `json:"email"          form:"email"            binding:"required,email"`
 	RecoveryToken string `json:"recovery_token" form:"recovery_token"   binding:"required"`
 }
 
+// Output returned
 type RecoverPassword02Success struct {
 	Status    string `json:"status"`
 	Email     string `json:"email,omitempty"`
@@ -790,7 +851,7 @@ type RecoverPassword02Success struct {
 // authHandleEmailConfirm godoc
 // @Summary Return information to recovery form.
 // @Schemes
-// @Description Information is returned based on an Email and a Token to a recovery form.  The inforaiton if the token is valid is the name of the user.   xyzzy-TODO = return informaiton if the token has expired or if it is not valid.  The call has a built in sleep so that it is bandwidth limited.
+// @Description Information is returned based on an Email and a Token to a recovery form.  The inforaiton if the token is valid is the name of the user.
 // @Tags auth
 // @Accept json,x-www-form-urlencoded
 // @Param   email     formData    string     true        "Email Address"
@@ -821,7 +882,7 @@ func authHandleRecoverPassword02FetchInfo(c *gin.Context) {
 	err := json.Unmarshal([]byte(rv), &rvStatus)
 	if err != nil || rvStatus.Status != "success" {
 		rvStatus.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))                // xyzzy - Encrypted Log File Data
+		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
 		c.JSON(http.StatusBadRequest, logJsonReturned(rvStatus.StdErrorReturn)) // 400
 		return
 	}
@@ -836,6 +897,7 @@ func authHandleRecoverPassword02FetchInfo(c *gin.Context) {
 // router.POST("/api/v1/auth/recover-password-03-set-password", authHandleRecoverPassword03SetPassword) //
 // router.GET("/api/v1/auth/recover-password-03-set-password", authHandleRecoverPassword03SetPassword)  //
 
+// DB Reutrn Data
 type RvRecoverPassword03SetPassword struct {
 	StdErrorReturn
 	RecoveryToken string `json:"recovery_token,omitempty"`
@@ -843,12 +905,14 @@ type RvRecoverPassword03SetPassword struct {
 	LastName      string `json:"last_name,omitempty"`
 }
 
+// Input for api endpoint
 type ApiAuthRecoverPassword03SetPassword struct {
 	Email         string `json:"email"          form:"email"           binding:"required,email"`
 	NewPw         string `json:"new_pw"         form:"new_pw"          binding:"required"`
 	RecoveryToken string `json:"recovery_token" form:"recovery_token"  binding:"required"`
 }
 
+// Output returned
 type RecoverPassword03SetPasswordSuccess struct {
 	Status    string `json:"status"`
 	FirstName string `json:"first_name,omitempty"`
@@ -890,7 +954,7 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 	err := json.Unmarshal([]byte(rv), &rvStatus)
 	if err != nil || rvStatus.Status != "success" {
 		rvStatus.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))                // xyzzy - Encrypted Log File Data
+		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
 		c.JSON(http.StatusBadRequest, logJsonReturned(rvStatus.StdErrorReturn)) // 400
 		return
 	}
@@ -939,6 +1003,7 @@ func authHandleLogout(c *gin.Context) {
 	}
 	_, AuthToken = GetAuthToken(c)
 	if AuthToken == "" {
+		time.Sleep(1500 * time.Millisecond)
 		goto done
 	}
 
@@ -961,7 +1026,7 @@ func authHandleLogout(c *gin.Context) {
 		if err != nil || rvStatus.Status != "success" {
 			dbgo.Fprintf(os.Stderr, "%(cyan)In Handler at %(LF)\n")
 			rvStatus.LogUUID = GenUUID()
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus)) // xyzzy - Encrypted Log File Data
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, logJsonReturned(rvStatus)) // 400
 			return
 		}
@@ -985,6 +1050,7 @@ done:
 // -------------------------------------------------------------------------------------------------------------------------
 // jwtConfig.authInternalHandlers["GET:/api/v1/auth/2fa-has-been-setup"] = authHandle2faHasBeenSetup
 
+// Output returned
 type X2faSetupSuccess struct {
 	Status        string `json:"status"`
 	Msg           string `json:"msg"`
@@ -1046,6 +1112,7 @@ func authHandle2faHasBeenSetup(c *gin.Context) {
 // -------------------------------------------------------------------------------------------------------------------------
 // router.GET("/api/v1/auth/email-has-been-validated", authHandleEmailHasBeenSetup)                     //
 
+// Output returned
 type EmailSetupSuccess struct {
 	Status         string `json:"status"`
 	Msg            string `json:"msg"`
@@ -1109,6 +1176,7 @@ type SQLAcctStatusType struct {
 	EmailValidated   string `json:"email_validated"     db:"email_validated"`
 }
 
+// Output returned
 type AcctSetupSuccess struct {
 	Status         string `json:"status"`
 	X2faValidated  string `json:"x2fa_validated,omitempty"`
@@ -1168,12 +1236,14 @@ func authHandleAcctHasBeenSetup(c *gin.Context) {
 // -------------------------------------------------------------------------------------------------------------------------
 // router.GET("/api/v1/setDebugFlag", authHandlerSetDebugFlag)
 
+// Input for api endpoint
 type ApiAuthSetDebugFlag struct {
 	Name    string `json:"name"          form:"name"           binding:"required"`
 	Value   string `json:"value"         form:"value"          binding:"required"`
 	AuthKey string `json:"auth_key"		 form:"auth_key"`
 }
 
+// Output returned
 type SetDebugFlagSuccess struct {
 	Status string `json:"status"`
 }
@@ -1218,6 +1288,7 @@ func authHandlerSetDebugFlag(c *gin.Context) {
 // -------------------------------------------------------------------------------------------------------------------------
 // router.POST("/api/v1/auth/validate-2fa-token", authHandleValidate2faToken)                           // 2nd step 2fa - create auth-token / jwtToken Sent
 
+// DB Reutrn Data
 type RvValidate2faTokenType struct {
 	StdErrorReturn
 	UserId         string `json:"user_id,omitempty"`
@@ -1244,14 +1315,17 @@ var PrivilegedNames = []string{"__is_logged_in__", "__user_id__", "__auth_token_
 // This sets q_qr_users.setup_complete_2fa  = 'y' to mark the account as fully registered.
 // Login requires that this is a 'y' before login occures.
 //
+// Input for api endpoint
 type ApiAuthValidate2faToken struct {
-	Email    string `json:"email"      form:"email"      binding:"required"`
-	TmpToken string `json:"tmp_token"  form:"tmp_token"  binding:"required"`
-	X2FaPin  string `json:"x2fa_pin"   form:"x2fa_pin"   binding:"required"`
-	AmIKnown string `json:"am_i_known" form:"am_i_known"`
+	Email            string `json:"email"      form:"email"      binding:"required"`
+	TmpToken         string `json:"tmp_token"  form:"tmp_token"  binding:"required"`
+	X2FaPin          string `json:"x2fa_pin"   form:"x2fa_pin"   binding:"required"`
+	AmIKnown         string `json:"am_i_known" form:"am_i_known"`
+	EmailVerifyToken string `json:"email_verify_token" form:"email_verify_token"`
 	// MarkerId string `json:"marker_id"  form:"marker_id"`
 }
 
+// Output returned
 type Validate2faTokenSuccess struct {
 	Status         string `json:"status"`
 	Token          string `json:"token,omitempty"`
@@ -1284,6 +1358,23 @@ func authHandleValidate2faToken(c *gin.Context) {
 		return
 	}
 
+	if pp.EmailVerifyToken != "" {
+		rv, stmt, err := ConfirmEmailAccount(c, pp.EmailVerifyToken)
+		if err != nil {
+			return
+		}
+
+		dbgo.Fprintf(logFilePtr, "%(cyan)%(LF): rv=%s\n", rv)
+		var rvEmailConfirm RvEmailConfirm
+		err = json.Unmarshal([]byte(rv), &rvEmailConfirm)
+		if rvEmailConfirm.Status != "success" {
+			rvEmailConfirm.LogUUID = GenUUID()
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvEmailConfirm))
+			c.JSON(http.StatusBadRequest, logJsonReturned(rvEmailConfirm.StdErrorReturn)) // 400
+			return
+		}
+	}
+
 	stmt := "q_auth_v1_2fa_get_secret ( $1, $2 )"
 	rv, e0 := CallDatabaseJSONFunction(c, stmt, "e.", pp.Email, gCfg.EncryptionPassword)
 	if e0 != nil {
@@ -1296,8 +1387,8 @@ func authHandleValidate2faToken(c *gin.Context) {
 	if err != nil || rvSecret.Status != "success" {
 		rvSecret.LogUUID = GenUUID()
 		dbgo.Printf("%(red)%(LF) -- err:%s rvSecret=%s\n", err, dbgo.SVarI(rvSecret))
-		log_enc.LogStoredProcError(c, stmt, "e.", SVar(rvSecret), fmt.Sprintf("%s", err)) // xyzzy - Encrypted Log File Data
-		c.JSON(http.StatusBadRequest, logJsonReturned(rvSecret.StdErrorReturn))           // 400
+		log_enc.LogStoredProcError(c, stmt, "e.", SVar(rvSecret), fmt.Sprintf("%s", err))
+		c.JSON(http.StatusBadRequest, logJsonReturned(rvSecret.StdErrorReturn)) // 400
 		return
 	}
 
@@ -1356,7 +1447,7 @@ func authHandleValidate2faToken(c *gin.Context) {
 	// create or replace function q_auth_v1_etag_device_mark ( p_seen_id varchar, p_user_id varchar, p_hmac_password varchar, p_userdata_password varchar )
 	if pp.AmIKnown != "" {
 		stmt := "q_auth_v1_etag_device_mark ( $1, $2, $3, $4 )"
-		rv, e0 := CallDatabaseJSONFunction(c, stmt, ".!!", pp.AmIKnown, rvSecret.UserId, gCfg.EncryptionPassword, gCfg.UserdataPassword)
+		rv, e0 := CallDatabaseJSONFunctionNoErr(c, stmt, ".!!", pp.AmIKnown, rvSecret.UserId, gCfg.EncryptionPassword, gCfg.UserdataPassword)
 		_ = rv
 		if e0 != nil {
 			fmt.Printf("Error on call to ->%s<- err: %s\n", stmt, err)
@@ -1372,7 +1463,7 @@ func authHandleValidate2faToken(c *gin.Context) {
 	// rv, stmt, err := ConfirmEmailAccount(c, pp.EmailVerifyToken)
 	// create or replace function q_auth_v1_validate_2fa_token ( p_un varchar, p_2fa_secret varchar, p_hmac_password varchar )
 	stmt = "q_auth_v1_validate_2fa_token ( $1, $2, $3, $4, $5 )"
-	rv, e0 = CallDatabaseJSONFunction(c, stmt, "e!e.", pp.Email, pp.TmpToken /*p_tmp_token*/, rvSecret.Secret2fa, gCfg.EncryptionPassword, gCfg.UserdataPassword)
+	rv, e0 = CallDatabaseJSONFunction(c, stmt, "e!e..", pp.Email, pp.TmpToken /*p_tmp_token*/, rvSecret.Secret2fa, gCfg.EncryptionPassword, gCfg.UserdataPassword)
 
 	if e0 != nil {
 		err = e0
@@ -1385,7 +1476,7 @@ func authHandleValidate2faToken(c *gin.Context) {
 	if rvStatus.Status != "success" { // if the d.b. call is not success then done - report error
 		dbgo.Fprintf(logFilePtr, "%(red)%(LF): rv=%s\n", rv)
 		rvStatus.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))                // xyzzy - Encrypted Log File Data
+		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
 		c.JSON(http.StatusBadRequest, logJsonReturned(rvStatus.StdErrorReturn)) // 400
 		return
 	}
@@ -1399,7 +1490,7 @@ func authHandleValidate2faToken(c *gin.Context) {
 		}
 		dbgo.Fprintf(logFilePtr, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s\n", rvStatus.AuthToken, theJwtToken)
 		c.Set("__is_logged_in__", "y")
-		c.Set("__user_id__", fmt.Sprintf("%d", rvStatus.UserId))
+		c.Set("__user_id__", rvStatus.UserId)
 		c.Set("__auth_token__", rvStatus.AuthToken)
 		// c.Set("__privs__", ConvPrivs2(rvStatus.Privileges))
 		rv, mr := ConvPrivs2(rvStatus.Privileges)
@@ -1409,7 +1500,6 @@ func authHandleValidate2faToken(c *gin.Context) {
 		c.Set("__user_password__", gCfg.UserdataPassword)
 
 		if theJwtToken != "" {
-			// xyzzy1212-  TokenHeaderVSCookie string `json:"token_header_vs_cookie" default:"cookie"`
 			// "Progressive improvement beats delayed perfection" -- Mark Twain
 			if gCfg.TokenHeaderVSCookie == "cookie" {
 				rvStatus.Token = ""
@@ -1447,6 +1537,12 @@ func GetUserId(c *gin.Context) (UserId string, err error) {
 // -------------------------------------------------------------------------------------------------------------------------
 // jwtConfig.authInternalHandlers["POST:/api/v1/auth/delete-acct"] = authHandleDeleteAccount
 
+type RvDeleteAccountType struct {
+	StdErrorReturn
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
+}
+
 // authHandleDeleteAccount godoc
 // @Summary Remove an account
 // @Schemes
@@ -1480,21 +1576,34 @@ func authHandleDeleteAccount(c *gin.Context) {
 		}
 
 		dbgo.Fprintf(logFilePtr, "%(cyan)%(LF): rv=%s\n", rv)
-		// var rvStatus RvStatusType
-		var rvStatus StdErrorReturn
+		var rvStatus RvDeleteAccountType
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus)) // xyzzy - Encrypted Log File Data
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, logJsonReturned(rvStatus)) // 400
 			return
 		}
 
-		// xyzzy443 - send email about delete account
+		// send email about delete account
+		email.SendEmail("account_deleted",
+			"username", pp.Email,
+			"email", pp.Email,
+			"email_url_encoded", url.QueryEscape(pp.Email),
+			"first_name", rvStatus.FirstName,
+			"last_name", rvStatus.LastName,
+			"real_name", rvStatus.FirstName+" "+rvStatus.LastName,
+			"application_name", gCfg.AuthApplicationName,
+			"realm", gCfg.AuthRealm,
+			"server", gCfg.BaseServerURL,
+			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
+		)
 
 		out := ReturnSuccess{Status: "success"}
 		c.JSON(http.StatusOK, logJsonReturned(out)) // 200
 		return
+	} else {
+		time.Sleep(1500 * time.Millisecond)
 	}
 	out := StdErrorReturn{
 		Status:   "error",
@@ -1508,8 +1617,16 @@ func authHandleDeleteAccount(c *gin.Context) {
 // -------------------------------------------------------------------------------------------------------------------------
 // router.POST("/api/v1/auth/register-un-pw", LoginRequiredClosure(authHandleRegisterUnPw))               //
 
+// Input for api endpoint
 type ApiAuthUn struct {
 	Email string `json:"email" form:"email"`
+}
+
+type RvRegisterUnPwAccountType struct {
+	StdErrorReturn
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
+	Email     string `json:"email,omitempty"`
 }
 
 // authHandleRegisterUnPw godoc
@@ -1536,7 +1653,7 @@ func authHandleRegisterUnPw(c *gin.Context) {
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
 
-		// create or replace function q_auth_v1_register_un_pw ( p_parent_user_id int, p_un varchar, p_hmac_password varchar,  p_userdata_password varchar )
+		// function q_auth_v1_register_un_pw ( p_parent_user_id uuid, p_email varchar, p_hmac_password varchar,  p_userdata_password varchar )
 		stmt := "q_auth_v1_register_un_pw ( $1, $2, $3, $4 )"
 		rv, e0 := CallDatabaseJSONFunction(c, stmt, "!e..", UserId, pp.Email, gCfg.EncryptionPassword, gCfg.UserdataPassword)
 		if e0 != nil {
@@ -1544,17 +1661,28 @@ func authHandleRegisterUnPw(c *gin.Context) {
 		}
 
 		dbgo.Fprintf(logFilePtr, "%(cyan)%(LF): rv=%s\n", rv)
-		// var rvStatus RvStatusType
-		var rvStatus StdErrorReturn
+		var rvStatus RvRegisterUnPwAccountType
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus)) // xyzzy - Encrypted Log File Data
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, logJsonReturned(rvStatus)) // 400
 			return
 		}
 
-		// xyzzy443 - send email about this
+		// send email about registraiton of un/pw sub-account
+		email.SendEmail("un_pw_account_created",
+			"username", rvStatus.Email,
+			"email", rvStatus.Email,
+			"email_url_encoded", url.QueryEscape(rvStatus.Email),
+			"first_name", rvStatus.FirstName,
+			"last_name", rvStatus.LastName,
+			"real_name", rvStatus.FirstName+" "+rvStatus.LastName,
+			"application_name", gCfg.AuthApplicationName,
+			"realm", gCfg.AuthRealm,
+			"server", gCfg.BaseServerURL,
+			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
+		)
 
 		out := ReturnSuccess{Status: "success"}
 		c.JSON(http.StatusOK, logJsonReturned(out)) // 200
@@ -1570,6 +1698,13 @@ func authHandleRegisterUnPw(c *gin.Context) {
 
 // -------------------------------------------------------------------------------------------------------------------------
 // router.POST("/api/v1/auth/register-token", LoginRequiredClosure(authHandleRegisterToken))              //
+
+type RvRegisterTokenAccountType struct {
+	StdErrorReturn
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
+	Email     string `json:"email,omitempty"`
+}
 
 // authHandleRegisterToken godoc
 // @Summary Create an account that uses a token to login.
@@ -1590,25 +1725,36 @@ func authHandleRegisterToken(c *gin.Context) {
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
 
-		// create or replace function q_auth_v1_register_token ( p_parent_user_id int,  p_hmac_password varchar,  p_userdata_password varchar )
-		stmt := "q_auth_v1_delete_account ( $1, $2, $3 )"
+		// function q_auth_v1_register_token ( p_parent_user_id uuid,  p_hmac_password varchar,  p_userdata_password varchar )
+		stmt := "q_auth_v1_regiser_token ( $1, $2, $3 )"
 		rv, e0 := CallDatabaseJSONFunction(c, stmt, "!.", UserId, gCfg.EncryptionPassword)
 		if e0 != nil {
 			return
 		}
 
 		dbgo.Fprintf(logFilePtr, "%(cyan)%(LF): rv=%s\n", rv)
-		// var rvStatus RvStatusType
-		var rvStatus StdErrorReturn
+		var rvStatus RvRegisterTokenAccountType
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus)) // xyzzy - Encrypted Log File Data
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, logJsonReturned(rvStatus)) // 400
 			return
 		}
 
-		// xyzzy - send email about this
+		// send email about registring a token based account
+		email.SendEmail("token_account_created",
+			"username", rvStatus.Email,
+			"email", rvStatus.Email,
+			"email_url_encoded", url.QueryEscape(rvStatus.Email),
+			"first_name", rvStatus.FirstName,
+			"last_name", rvStatus.LastName,
+			"real_name", rvStatus.FirstName+" "+rvStatus.LastName,
+			"application_name", gCfg.AuthApplicationName,
+			"realm", gCfg.AuthRealm,
+			"server", gCfg.BaseServerURL,
+			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
+		)
 
 		out := ReturnSuccess{Status: "success"}
 		c.JSON(http.StatusOK, logJsonReturned(out)) // 200
@@ -1625,10 +1771,17 @@ func authHandleRegisterToken(c *gin.Context) {
 // -------------------------------------------------------------------------------------------------------------------------
 // router.POST("/api/v1/auth/change-email-address", LoginRequiredClosure(authHandleChangeEmailAddress))   //
 
+// Input for api endpoint
 type ApiAuthChangeEmail struct {
 	NewEmail string `json:"new_email" form:"new_email"`
 	OldEmail string `json:"old_email" form:"old_email"`
 	Pw       string `json:"password" form:"password"`
+}
+
+type RvChangeEmailAddressType struct {
+	StdErrorReturn
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
 }
 
 // authHandleChangeEmailAddress godoc
@@ -1664,22 +1817,50 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 		}
 
 		dbgo.Fprintf(logFilePtr, "%(cyan)%(LF): rv=%s\n", rv)
-		// var rvStatus RvStatusType
-		var rvStatus StdErrorReturn
+		var rvStatus RvChangeEmailAddressType
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus)) // xyzzy - Encrypted Log File Data
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, logJsonReturned(rvStatus)) // 400
 			return
 		}
 
-		// xyzzy443 - TODO - send email that Email Address Changed (to both old and new address)
+		// TODO - send email that Email Address Changed (to both old and new address)
+		email.SendEmail("email_address_changed_old_address",
+			"username", pp.OldEmail,
+			"email", pp.OldEmail,
+			"email_url_encoded", url.QueryEscape(pp.OldEmail),
+			"first_name", rvStatus.FirstName,
+			"last_name", rvStatus.LastName,
+			"real_name", rvStatus.FirstName+" "+rvStatus.LastName,
+			"application_name", gCfg.AuthApplicationName,
+			"realm", gCfg.AuthRealm,
+			"server", gCfg.BaseServerURL,
+			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
+		)
+		email.SendEmail("email_address_changed_new_address",
+			"username", pp.NewEmail,
+			"email", pp.NewEmail,
+			"email_url_encoded", url.QueryEscape(pp.NewEmail),
+			"first_name", rvStatus.FirstName,
+			"last_name", rvStatus.LastName,
+			"real_name", rvStatus.FirstName+" "+rvStatus.LastName,
+			"application_name", gCfg.AuthApplicationName,
+			"realm", gCfg.AuthRealm,
+			"server", gCfg.BaseServerURL,
+			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
+		)
+
+		// xyzzy551 - Change Email NOT Tested
 
 		out := ReturnSuccess{Status: "success"}
 		c.JSON(http.StatusOK, logJsonReturned(out)) // 200
 		return
+	} else {
+		time.Sleep(1500 * time.Millisecond)
 	}
+
 	out := StdErrorReturn{
 		Status:   "error",
 		Msg:      "401 not authorized",
@@ -1714,7 +1895,7 @@ func authHandleChangeAccountInfo(c *gin.Context) {
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
 
-		// TODO ---------------------------
+		// xyzzy770000 TODO --------------------------- change account info
 		// create or replace function xyzzy ( p_un varchar, p_pw varchar, p_hmac_password varchar )
 		stmt := "q_auth_v1_xyzzy ( $1, $2, $3 )"
 		rv, e0 := CallDatabaseJSONFunction(c, stmt, "e!.", pp.Email, AuthToken, gCfg.EncryptionPassword)
@@ -1728,17 +1909,18 @@ func authHandleChangeAccountInfo(c *gin.Context) {
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus)) // xyzzy - Encrypted Log File Data
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, logJsonReturned(rvStatus)) // 400
 			return
 		}
 
-		// xyzzy443 - send email about this
-
 		out := ReturnSuccess{Status: "success"}
 		c.JSON(http.StatusOK, logJsonReturned(out)) // 200
 		return
+	} else {
+		time.Sleep(1500 * time.Millisecond)
 	}
+
 	out := StdErrorReturn{
 		Status:   "error",
 		Msg:      "401 not authorized",
@@ -1750,6 +1932,12 @@ func authHandleChangeAccountInfo(c *gin.Context) {
 
 // -------------------------------------------------------------------------------------------------------------------------
 // router.POST("/api/v1/auth/change-password-admin", LoginRequiredClosure(authHandleChangePasswordAdmin)) //
+
+type RvChangePasswordAdminType struct {
+	StdErrorReturn
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
+}
 
 // authHandleChangePasswordAdmin godoc
 // @Summary Allows an admin to change a users password.
@@ -1774,25 +1962,38 @@ func authHandleChangePasswordAdmin(c *gin.Context) {
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
 
-		// create or replace function q_auth_v1_change_password_admin ( p_admin_user_id int, p_un varchar, p_new_pw varchar, p_hmac_password varchar, p_userdata_password varchar )
+		// function q_auth_v1_change_password_admin ( p_admin_user_id int, p_un varchar, p_new_pw varchar, p_hmac_password varchar, p_userdata_password varchar )
 		stmt := "q_auth_v1_change_password_admin ( $1, $2, $3, $4, $5 )"
 		rv, e0 := CallDatabaseJSONFunction(c, stmt, "e!.", pp.Email, AuthToken, gCfg.EncryptionPassword)
 		if e0 != nil {
 			return
 		}
 
+		// “If opportunity doesn’t knock, build a door.” – Milton Berle
+
 		dbgo.Fprintf(logFilePtr, "%(cyan)%(LF): rv=%s\n", rv)
-		// var rvStatus RvStatusType
-		var rvStatus StdErrorReturn
+		var rvStatus RvChangePasswordAdminType
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus)) // xyzzy - Encrypted Log File Data
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, logJsonReturned(rvStatus)) // 400
 			return
 		}
 
-		// xyzzy443 - send email about this
+		// send email about admin changging password
+		email.SendEmail("admin_password_changed",
+			"username", pp.Email,
+			"email", pp.Email,
+			"email_url_encoded", url.QueryEscape(pp.Email),
+			"first_name", rvStatus.FirstName,
+			"last_name", rvStatus.LastName,
+			"real_name", rvStatus.FirstName+" "+rvStatus.LastName,
+			"application_name", gCfg.AuthApplicationName,
+			"realm", gCfg.AuthRealm,
+			"server", gCfg.BaseServerURL,
+			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
+		)
 
 		out := ReturnSuccess{Status: "success"}
 		c.JSON(http.StatusOK, logJsonReturned(out)) // 200
@@ -1810,11 +2011,15 @@ func authHandleChangePasswordAdmin(c *gin.Context) {
 // -------------------------------------------------------------------------------------------------------------------------
 // router.POST("/api/v1/auth/regen-otp", LoginRequiredClosure(authHandleRegenOTP))                        // regenerate list of One Time Passwords (OTP)
 
+// DB Reutrn Data
 type RvRegenOTPType struct {
 	StdErrorReturn
-	Otp []string `json:"otp"`
+	Otp       []string `json:"otp"`
+	FirstName string   `json:"first_name,omitempty"`
+	LastName  string   `json:"last_name,omitempty"`
 }
 
+// Output returned
 type RegenOTPSuccess struct {
 	Status string   `json:"status"`
 	Otp    []string `json:"otp"`
@@ -1843,12 +2048,11 @@ func authHandleRegenOTP(c *gin.Context) {
 	}
 	_, AuthToken := GetAuthToken(c)
 
-	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
+	if AuthToken != "" { // if user is logged in then generate new OTP else - just ignore.
 
-		// TODO ---------------------------
-		// create or replace function q_auth_v1_regen_otp ( p_un varchar, p_pw varchar, p_hmac_password varchar )
-		stmt := "q_auth_v1_regen_otp ( $1, $2, $3 )"
-		rv, e0 := CallDatabaseJSONFunction(c, stmt, "e!.", pp.Email, pp.Pw, gCfg.EncryptionPassword)
+		// function q_auth_v1_regen_otp ( p_email varchar, p_pw varchar, p_hmac_password varchar , p_userdata_password varchar )
+		stmt := "q_auth_v1_regen_otp ( $1, $2, $3, $4 )"
+		rv, e0 := CallDatabaseJSONFunction(c, stmt, "e!..", pp.Email, pp.Pw, gCfg.EncryptionPassword, gCfg.UserdataPassword)
 		if e0 != nil {
 			return
 		}
@@ -1859,21 +2063,136 @@ func authHandleRegenOTP(c *gin.Context) {
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
 			dbgo.Fprintf(logFilePtr, "%(LF) email >%s< AuthToken >%s<\n", pp.Email, AuthToken)
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))                // xyzzy - Encrypted Log File Data
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, logJsonReturned(rvStatus.StdErrorReturn)) // 400
 			return
 		}
 
 		// "If you have to swallow a frog don't stare at it too long." -- Mark Twain
 
-		// xyzzy443 - send email about this
+		// send email about this -- regeneration of OTP passwords
+		email.SendEmail("regenerate_one_time_passwords",
+			"username", pp.Email,
+			"email", pp.Email,
+			"email_url_encoded", url.QueryEscape(pp.Email),
+			"first_name", rvStatus.FirstName,
+			"last_name", rvStatus.LastName,
+			"real_name", rvStatus.FirstName+" "+rvStatus.LastName,
+			"application_name", gCfg.AuthApplicationName,
+			"realm", gCfg.AuthRealm,
+			"server", gCfg.BaseServerURL,
+			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
+		)
+
 		out := RegenOTPSuccess{
 			Status: "success",
 			Otp:    rvStatus.Otp,
 		}
 		c.JSON(http.StatusOK, logJsonReturned(out))
 		return
+	} else {
+		time.Sleep(1500 * time.Millisecond)
 	}
+
+	out := StdErrorReturn{
+		Status:   "error",
+		Msg:      "401 not authorized",
+		Location: dbgo.LF(),
+	}
+	c.JSON(http.StatusUnauthorized, logJsonReturned(out))
+
+}
+
+// -------------------------------------------------------------------------------------------------------------------------
+// {Method: "POST", Path: "/api/v1/auth/refresh-token", Fx: authHandleRefreshToken, UseLogin: LoginRequired},            // (TODO - wrong function now)
+// -------------------------------------------------------------------------------------------------------------------------
+// {Method: "POST", Path: "/api/v1/auth/refresh-token", Fx: authHandleRefreshToken, UseLogin: LoginRequired},            // (TODO - wrong function now)
+type RvRefreshTokenType struct {
+	StdErrorReturn
+	AuthToken string `json:"auth_token,omitempty"`
+	Token     string `json:"token,omitempty"` // the JWT Token???
+}
+
+// Output returned
+type RefreshTokenSuccess struct {
+	Status string `json:"status"`
+	Token  string `json:"token,omitempty"` // the JWT Token???
+}
+
+// authHandleRefreshToken godoc
+// @Summary Refresh auth token.
+// @Schemes
+// @Description Given a valid logged in use and a current auth_token, refresh it.
+// @Tags auth
+// @Accept json,x-www-form-urlencoded
+// @Produce json
+// @Success 200 {object} jwt_auth.RefreshTokenSuccess
+// @Failure 401 {object} jwt_auth.StdErrorReturn
+// @Failure 406 {object} jwt_auth.StdErrorReturn
+// @Failure 500 {object} jwt_auth.StdErrorReturn
+// @Router /v1/auth/regen-otp [post]
+func authHandleRefreshToken(c *gin.Context) {
+	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF)\n")
+	var pp ApiAuthLogin
+	if err := BindFormOrJSON(c, &pp); err != nil {
+		return
+	}
+	UserId, AuthToken := GetAuthToken(c)
+
+	if AuthToken != "" { // if user is logged in then generate new OTP else - just ignore.
+
+		// function q_auth_v1_regen_otp ( p_email varchar, p_pw varchar, p_hmac_password varchar , p_userdata_password varchar )
+		stmt := "q_auth_v1_refresh_token ( $1, $2, $3, $4 )"
+		rv, e0 := CallDatabaseJSONFunction(c, stmt, "e!..", UserId, AuthToken, gCfg.EncryptionPassword, gCfg.UserdataPassword)
+		if e0 != nil {
+			return
+		}
+
+		dbgo.Fprintf(logFilePtr, "%(cyan)%(LF): rv=%s\n", rv)
+		var rvStatus RvRefreshTokenType
+		err := json.Unmarshal([]byte(rv), &rvStatus)
+		if err != nil || rvStatus.Status != "success" {
+			rvStatus.LogUUID = GenUUID()
+			dbgo.Fprintf(logFilePtr, "%(LF) email >%s< AuthToken >%s<\n", pp.Email, AuthToken)
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+			c.JSON(http.StatusBadRequest, logJsonReturned(rvStatus.StdErrorReturn)) // 400
+			return
+		}
+
+		// “Do what you can, with what you have, where you are.” – Theodore Roosevelt
+
+		// replace current cookie/header with new signed token
+		if rvStatus.AuthToken != "" {
+			theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken)
+			if err != nil {
+				return
+			}
+			dbgo.Fprintf(logFilePtr, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s\n", rvStatus.AuthToken, theJwtToken)
+
+			c.Set("__auth_token__", rvStatus.AuthToken)
+
+			if theJwtToken != "" {
+				// "Progressive improvement beats delayed perfection" -- Mark Twain
+				if gCfg.TokenHeaderVSCookie == "cookie" {
+					rvStatus.Token = ""
+					c.Set("__jwt_token__", "")
+				} else { // header or both
+					rvStatus.Token = theJwtToken
+					c.Set("__jwt_token__", theJwtToken)
+				}
+
+			}
+		}
+
+		out := RefreshTokenSuccess{
+			Status: "success",
+		}
+		c.JSON(http.StatusOK, logJsonReturned(out))
+		return
+	} else {
+		time.Sleep(1500 * time.Millisecond)
+	}
+
 	out := StdErrorReturn{
 		Status:   "error",
 		Msg:      "401 not authorized",
@@ -1905,8 +2224,125 @@ func authHandleNoLoginStatus(c *gin.Context) {
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
+// {Method: "POST", Path: "/api/v1/auth/resend-registration-email", Fx: authHandleResendRegistrationEmail, UseLogin: PublicApiCall},             // Must have password to send.
+
+// DB Reutrn Data
+type RvResendEmailRegisterType struct {
+	StdErrorReturn
+	UserId           *int   `json:"user_id,omitempty"`
+	EmailVerifyToken string `json:"email_verify_token,omitempty"`
+	Require2fa       string `json:"require_2fa,omitempty"`
+	Secret2fa        string `json:"secret_2,omitempty"`
+	URLFor2faQR      string `json:"url_for_2fa_qr"`
+	TotpSecret       string `json:"totp_secret"`
+	TmpToken         string `json:"tmp_token,omitempty"` // May be "" - used in 2fa part 1 / 2
+	FirstName        string `json:"first_name"`
+	LastName         string `json:"last_name"`
+}
+
+// Input for api endpoint
+type ApiAuthResendEmailRegister struct {
+	Email    string `json:"email"      form:"email"       binding:"required,email"` // yes
+	TmpToken string `json:"tmp_token"   form:"tmp_token"    binding:"required"`     // yes	-- used to validate resend of email?
+}
+
+// Output returned
+type ResendEmailRegisterSuccess struct {
+	Status      string `json:"status"`
+	URLFor2faQR string `json:"url_for_2fa_qr"`
+	TotpSecret  string `json:"totp_secret"`
+	TmpToken    string `json:"tmp_token,omitempty"` // May be "" - used in 2fa part 1 / 2
+}
+
+// authHandleNoLoginStatus godoc
+// @Summary Resend registration email.
+// @Schemes
+// @Description A call to this will use the email and the tmp_token to resend the registration email.
+// @Tags auth
+// @Accept json,x-www-form-urlencoded
+// @Produce json
+// @Success 200 {object} jwt_auth.ReturnStatusSuccess
+// @Failure 401 {object} jwt_auth.StdErrorReturn
+// @Failure 406 {object} jwt_auth.StdErrorReturn
+// @Failure 500 {object} jwt_auth.StdErrorReturn
+// @Router /v1/auth/auth/resend-registration-email [post]
+func authHandleResendRegistrationEmail(c *gin.Context) {
+	var err error
+	var pp ApiAuthResendEmailRegister
+	var RegisterResp RvResendEmailRegisterType
+	if err := BindFormOrJSON(c, &pp); err != nil {
+		return
+	}
+
+	var secret string
+	secret = ""
+
+	if IsXDBOn("authHandleRegister:error01") {
+		RegisterResp.LogUUID = GenUUID()
+		RegisterResp.Status = "error"
+		RegisterResp.Msg = "Simulated Error"
+		RegisterResp.Code = "0000"
+		RegisterResp.Location = dbgo.LF()
+		c.JSON(http.StatusBadRequest, logJsonReturned(RegisterResp.StdErrorReturn))
+		return
+	}
+
+	//                                   1                2                   3                          4
+	// q_auth_v1_resend_email_register ( p_email varchar, p_tmp_token varchar, p_hmac_password varchar,  p_userdata_password varchar )
+	stmt := "q_auth_v1_resend_email_register ( $1, $2, $3, $4 )"
+	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)
+	//                                                      1         2            3                        4             5            6                      7
+	rv, err := CallDatabaseJSONFunction(c, stmt, "ee.ee..", pp.Email, pp.TmpToken, gCfg.EncryptionPassword, gCfg.UserdataPassword)
+	if err != nil {
+		return
+	}
+	dbgo.Fprintf(logFilePtr, "%(yellow)%(LF): rv=%s\n", rv)
+	err = json.Unmarshal([]byte(rv), &RegisterResp)
+	if RegisterResp.Status != "success" {
+		RegisterResp.LogUUID = GenUUID()
+		log_enc.LogStoredProcError(c, stmt, "ee", SVar(RegisterResp), pp.Email, pp.TmpToken /*gCfg.EncryptionPassword,*/ /*, gCfg.UserdataPassword*/)
+		c.JSON(http.StatusBadRequest, logJsonReturned(RegisterResp.StdErrorReturn))
+		return
+	}
+
+	// ---------------------------------------------------------------------------------------------------------------------
+	// send email with validation - using: RegisterResp.EmailVerifyToken
+	// ---------------------------------------------------------------------------------------------------------------------
+	// ConfirmEmailAccount(c, RegisterResp.EmailVerifyToken)
+
+	email.SendEmail("welcome_registration", // Email Template
+		"username", pp.Email,
+		"email", pp.Email,
+		"email_url_encoded", url.QueryEscape(pp.Email),
+		"first_name", RegisterResp.FirstName,
+		"last_name", RegisterResp.LastName,
+		"real_name", RegisterResp.FirstName+" "+RegisterResp.LastName,
+		"token", RegisterResp.EmailVerifyToken,
+		"user_id", RegisterResp.UserId,
+		"server", gCfg.BaseServerURL,
+		"application_name", gCfg.AuthApplicationName,
+		"realm", gCfg.AuthRealm,
+	)
+
+	// ---------------------------------------------------------------------------------------------------------------------
+	// setup the QR code and link for 2fa tool
+	// ---------------------------------------------------------------------------------------------------------------------
+	// Confirm2faSetupAccount(c, *RegisterResp.UserId)
+
+	RegisterResp.TotpSecret = secret                                     // 	if htotp.CheckRfc6238TOTPKeyWithSkew(username, pin2fa, RegisterResp.Secret2fa, 0, 1) {
+	totp := htotp.NewDefaultTOTP(secret)                                 // totp := htotp.NewDefaultTOTP(RegisterResp.Secret2fa)
+	QRUrl := totp.ProvisioningUri(pp.Email /*username*/, gCfg.AuthRealm) // otpauth://totp/issuerName:demoAccountName?secret=4S62BZNFXXSZLCRO&issuer=issuerName
+	RegisterResp.URLFor2faQR = MintQRPng(c, QRUrl)
+
+	var out ResendEmailRegisterSuccess
+	copier.Copy(&out, &RegisterResp)
+	c.JSON(http.StatusOK, logJsonReturned(out))
+}
+
+// -------------------------------------------------------------------------------------------------------------------------
 // router.POST("/api/v1/auth/login-status", LoginRequiredClosure(authHandleLoginStatus))                  //	Test of Login Required Stuff
 
+// Output returned
 type ReturnStatusSuccess struct {
 	Status string `json:"status"`
 	Msg    string `json:"msg"`
@@ -1989,9 +2425,6 @@ func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
 		dbgo.Fprintf(os.Stderr, "COOKIE: %(Green) has=%v val=%s for X-Authentication - %(LF)\n", has, jwtTok)
 	}
 	if !has && (gCfg.TokenHeaderVSCookie == "header" || gCfg.TokenHeaderVSCookie == "both") {
-		// xyzzy1212 -  TokenHeaderVSCookie string `json:"token_header_vs_cookie" default:"cookie"` --  add in Berrer Token Check.
-		// has, jwtTok = HasCookie("X-Authentication", www, req)
-		// return { 'Authorization': 'Bearer ' + user.token };
 		s := c.Request.Header.Get("Authorization")
 		if s != "" {
 			ss := strings.Split(s, " ")
@@ -2027,8 +2460,6 @@ func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
 		// or if the signature does not match
 		var err error
 
-		// xyzzy-jwt -- New Verify Token on Login
-
 		// func VerifyToken(rawToken []byte, alg string, keyData []byte) (token *jwt.Token, err error) {
 		// token, err := jwtlib.VerifyToken([]byte(token), gCfg.AuthJWTKeyType, gCfg.AuthJWTPublic )
 		dbgo.Fprintf(os.Stderr, "%(green)== Authentication == New Section ======================================== at: %(LF)\n")
@@ -2050,7 +2481,7 @@ func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
 		if err != nil || tkn == nil || !tkn.Valid {
 			dbgo.Fprintf(logFilePtr, "X-Authentication - %(LF)\n")
 			dbgo.Fprintf(os.Stderr, "X-Authentication - %(LF) - token not valid\n")
-			// log-xyzzy-log
+			// log-xyzzy-log  Log info to log xyzzy
 			c.Writer.WriteHeader(http.StatusUnauthorized) // 401
 			return
 		}
@@ -2109,7 +2540,7 @@ func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
 			dbgo.Fprintf(logFilePtr, "X-Authentication - %(LF)\n")
 			dbgo.Fprintf(os.Stderr, "%(green)Is Authenticated! ----------------------- X-Authentication - %(LF)\n")
 			c.Set("__is_logged_in__", "y")
-			c.Set("__user_id__", fmt.Sprintf("%d", UserId))
+			c.Set("__user_id__", UserId)
 			c.Set("__auth_token__", AuthToken)
 			// c.Set("__privs__", ConvPrivs2(v2[0].Privileges))
 			rv, mr := ConvPrivs2(v2[0].Privileges)
@@ -2142,9 +2573,6 @@ func CreateJWTSignedCookie(c *gin.Context, DBAuthToken string) (rv string, err e
 
 	if DBAuthToken != "" { // If the Database code created an auth-token, then this needs to be converted to a JWT-Token and sent back to the user (Coookie, Header etc)
 
-		// SET: Cookie("X-Authentication", www, req)
-		// xyzzy-jwt -- New Sign Token on Login
-
 		claims := jwt.MapClaims{
 			"auth_token": DBAuthToken,
 		}
@@ -2175,7 +2603,7 @@ func CreateJWTSignedCookie(c *gin.Context, DBAuthToken string) (rv string, err e
 		}
 		if gCfg.TokenHeaderVSCookie == "cookie" || gCfg.TokenHeaderVSCookie == "both" {
 			SetCookie("X-Authentication", rv, c)          // Will be a secure http cookie on TLS.
-			SetInsecureCookie("X-Is-Logged-In", "yes", c) // To let the JS code know that it is logged in.
+			SetInsecureCookie("X-Is-Logged-In", "yes", c) // To let the JS code know that it is logged in.		// xyzzy-Expire
 		}
 	}
 	return
@@ -2299,6 +2727,38 @@ func CallDatabaseJSONFunction(c *gin.Context, fCall string, encPat string, data 
 		}
 		dbgo.Fprintf(logFilePtr, "    Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
 		log_enc.LogSQLError(c, stmt, err, encPat, data...)
+		return "", fmt.Errorf("Sql error")
+	}
+	if len(v2) > 0 {
+		dbgo.Fprintf(os.Stderr, "    %(yellow)Call Returns:%(reset) %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
+		dbgo.Fprintf(logFilePtr, "    Call Returns: %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
+		return v2[0].X, nil
+	}
+	dbgo.Fprintf(os.Stderr, "    %(yellow)Call Empty Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
+	dbgo.Fprintf(logFilePtr, "    Call Empty Return elapsed:%s at:%(LF)\n", elapsed)
+	return "{}", nil
+}
+
+func CallDatabaseJSONFunctionNoErr(c *gin.Context, fCall string, encPat string, data ...interface{}) (rv string, err error) {
+	var v2 []*SQLStringType
+	stmt := "select " + fCall + " as \"x\""
+	if conn == nil {
+		dbgo.Fprintf(logFilePtr, "!!!!! %(red)connection is nil at:%(LF)\n")
+		os.Exit(1)
+	}
+	dbgo.Fprintf(os.Stderr, "    %(yellow)Database Call:%(reset) ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
+	dbgo.Fprintf(logFilePtr, "    Database Call ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
+	start := time.Now()
+	err = pgxscan.Select(ctx, conn, &v2, stmt, data...)
+	elapsed := time.Since(start) // elapsed time.Duration
+	if err != nil {
+		if elapsed > (1 * time.Millisecond) {
+			dbgo.Fprintf(os.Stderr, "    %(red)Error on select stmt ->%s<- data %s %(red)elapsed:%s%(reset) at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
+		} else {
+			dbgo.Fprintf(os.Stderr, "    %(red)Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
+		}
+		dbgo.Fprintf(logFilePtr, "    Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
+		log_enc.LogSQLErrorNoErr(c, stmt, err, encPat, data...)
 		return "", fmt.Errorf("Sql error")
 	}
 	if len(v2) > 0 {
