@@ -45,7 +45,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pschlump/dbgo"
 	j5 "github.com/pschlump/json5"
-	"github.com/pschlump/uuid"
 )
 
 type StatusType int
@@ -778,7 +777,7 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 	case "POST": // insert
 		dbgo.DbPrintf("HandleCrudConfig", "  AT: %s\n", dbgo.LF())
 
-		cols, vals, inputData, id, genId, idColName, err := GetInsertNames(c, CrudData.InsertCols, CrudData.InsertPkCol, CrudData.ColsTypes, CrudData.ParameterList)
+		cols, vals, inputData, id, genIdOnInsert, idColName, err := GetInsertNames(c, CrudData.InsertCols, CrudData.InsertPkCol, CrudData.ColsTypes, CrudData.ParameterList)
 		dbgo.DbPrintf("HandleCRUD", "%(yellow)AT: %s cols [%s] vals [%s] inputData %s id %s err %s\n", dbgo.LF(), cols, vals, dbgo.SVar(inputData), id, err)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error setting up insert %s error %s at %s\n", CrudData.TableName, err, dbgo.LF())
@@ -788,7 +787,7 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 		stmt2, inputData2, _ := BindFixer(stmt, inputData)
 		dbgo.DbPrintf("HandleCRUD", "%(yellow)AT: %s stmt [%s] data=%s\n", dbgo.LF(), stmt2, dbgo.SVar(inputData2))
 		var xid int64
-		if genId {
+		if genIdOnInsert {
 			if DbType == "Postgres" {
 				stmt2 = stmt2 + fmt.Sprintf(" returning %s ", idColName)
 			}
@@ -809,7 +808,7 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 		}
 		SetJSONHeaders(c)
 		var rawData string
-		if genId {
+		if genIdOnInsert {
 			rawData = fmt.Sprintf(`{"status":"success","id":%d}`, xid)
 		} else {
 			rawData = fmt.Sprintf(`{"status":"success","id":%q}`, id)
@@ -1064,16 +1063,19 @@ func GetQueryNames(c *gin.Context, potentialCols []ParamListItem, StoredProcdure
 		colName := col.ReqVar
 		found, colVal := GetVar(colName, c)
 		if col.AutoGen == "uuid" && !found {
-			newUUID, err1 := uuid.NewV4()
-			err = err1
-			if err != nil {
-				err = fmt.Errorf("An error occurred generating a UUID: %s", err)
-				fmt.Fprintf(os.Stderr, "Error %s", err)
-				fmt.Fprintf(logFilePtr, "Error 500: %s %s\n", err, dbgo.LF())
-				c.Writer.WriteHeader(http.StatusInternalServerError) // 500
-				return
-			}
-			colVal = newUUID.String()
+			colVal = GenUUID()
+			/*
+				newUUID, err1 := uuid.NewV4()
+				err = err1
+				if err != nil {
+					err = fmt.Errorf("An error occurred generating a UUID: %s", err)
+					fmt.Fprintf(os.Stderr, "Error %s", err)
+					fmt.Fprintf(logFilePtr, "Error 500: %s %s\n", err, dbgo.LF())
+					c.Writer.WriteHeader(http.StatusInternalServerError) // 500
+					return
+				}
+				colVal = newUUID.String()
+			*/
 		} else if len(col.AutoGen) > 4 && col.AutoGen[0:4] == "ran:" && !found {
 			// xyzzy - TODO - xyzzy401 - generate random (number after ran:)
 		} else if len(col.AutoGen) > 4 && col.AutoGen[0:4] == "seq:" && !found {
@@ -1116,16 +1118,19 @@ func GetStoredProcNames(c *gin.Context, potentialCols []ParamListItem, StoredPro
 		colName := col.ReqVar
 		found, colVal := GetVar(colName, c)
 		if col.AutoGen == "uuid" && !found {
-			newUUID, err1 := uuid.NewV4()
-			err = err1
-			if err != nil {
-				err = fmt.Errorf("An error occurred generating a UUID: %s", err)
-				fmt.Fprintf(os.Stderr, "Error %s", err)
-				fmt.Fprintf(logFilePtr, "Error 500: %s %s\n", err, dbgo.LF())
-				c.Writer.WriteHeader(http.StatusInternalServerError) // 500
-				return
-			}
-			colVal = newUUID.String()
+			colVal = GenUUID()
+			/*
+				newUUID, err1 := uuid.NewV4()
+				err = err1
+				if err != nil {
+					err = fmt.Errorf("An error occurred generating a UUID: %s", err)
+					fmt.Fprintf(os.Stderr, "Error %s", err)
+					fmt.Fprintf(logFilePtr, "Error 500: %s %s\n", err, dbgo.LF())
+					c.Writer.WriteHeader(http.StatusInternalServerError) // 500
+					return
+				}
+				colVal = newUUID.String()
+			*/
 		} else if len(col.AutoGen) > 4 && col.AutoGen[0:4] == "ran:" && !found {
 			// xyzzy - TODO - xyzzy401 - generate random (number after ran:)
 		} else if len(col.AutoGen) > 4 && col.AutoGen[0:4] == "seq:" && !found {
@@ -1160,43 +1165,31 @@ func GetInsertNames(c *gin.Context, potentialCols []string, pkCol string, colTyp
 	if idfound && (iddt == "serial" || iddt == "bigserial") {
 		idColName = pkCol
 		genId = true
-	} else {
+		dbgo.Printf("%(cyan)%(LF) serial/bigsearial %+v\n", pkCol)
+	} else if idfound && iddt == "gen-uuid" {
 		idColName = pkCol
 		found_pk, pk := GetVar(pkCol, c)
-		if !found_pk {
-			newUUID, err1 := uuid.NewV4()
-			err = err1
-			if err != nil {
-				err = fmt.Errorf("An error occurred generating a UUID: %s", err)
-				fmt.Fprintf(os.Stderr, "Error %s", err)
-				fmt.Fprintf(logFilePtr, "Error 500: %s %s\n", err, dbgo.LF())
-				c.Writer.WriteHeader(http.StatusInternalServerError) // 500
-				return
-			}
-			pk = newUUID.String()
+		if !found_pk || pk == "" {
+			pk = GenUUID()
 		}
 		id = pk
 		inputData = append(inputData, pk)
 		colsSlice = append(colsSlice, pkCol)
 		valsSlice = append(valsSlice, fmt.Sprintf("$%d", nc))
 		nc++
-	}
-	if false {
-		for kInOrd, nvPair := range parameterList {
-			_ = kInOrd
-			colName := nvPair.ReqVar
-			if colName != pkCol {
-				found, val := GetVar(colName, c)
-				if found {
-					// ReqVar         string // variable for GetVar()
-					// ParamName      string // Name of variable (Checked v.s. stored procedure name variable names)
-					inputData = append(inputData, val)
-					colsSlice = append(colsSlice, nvPair.ParamName)
-					valsSlice = append(valsSlice, fmt.Sprintf("$%d", nc))
-					nc++
-				}
-			}
+		dbgo.Printf("%(cyan)%(LF) gen-uuid %+v, generated/used id = %s\n", pkCol, id)
+	} else {
+		idColName = pkCol
+		found_pk, pk := GetVar(pkCol, c)
+		if !found_pk {
+			pk = ""
 		}
+		id = pk
+		inputData = append(inputData, pk)
+		colsSlice = append(colsSlice, pkCol)
+		valsSlice = append(valsSlice, fmt.Sprintf("$%d", nc))
+		nc++
+		dbgo.Printf("%(cyan)%(LF) other %+v\n", pkCol)
 	}
 	dbgo.Printf("%(red)%(LF) cols %+v\n", potentialCols)
 	for kInOrd, colName := range potentialCols {
@@ -1286,7 +1279,7 @@ func GetUpdateNames(c *gin.Context, potentialCols []string, pkCol string, colTyp
 	colNameSlice := make([]string, 0, len(potentialCols))
 	nc := 1
 
-	dbgo.DbPrintf("GetInsertNames", "AT: %s pkCol=%s\n", dbgo.LF(), pkCol)
+	dbgo.DbPrintf("GetUpdateNames", "AT: %s pkCol=%s\n", dbgo.LF(), pkCol)
 
 	//	iddt, _ /*idseq*/, idfound := FindDataType(pkCol, colTypes)
 	//	if idfound && iddt == "serial" {
