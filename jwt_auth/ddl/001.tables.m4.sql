@@ -960,11 +960,15 @@ insert into q_qr_priv ( priv_id, priv_name ) values
 	, ( '18207657-b420-445a-aea5-6c0610002019'::uuid, 'May BOL' )
 
 	, ( '18207657-b420-445a-aea5-6c0610002022'::uuid, 'Admin: May Create Admin User' )
+
+	, ( '18207657-b420-445a-aea5-6c0610002023'::uuid, 'Factor Admin' )
+	, ( '18207657-b420-445a-aea5-6c0610002024'::uuid, 'May Create Role Based User' ) 
 ;
 insert into q_qr_role ( role_id, role_name ) values
 	  ( 'e35940af-720c-4438-be52-36e8f0001001'::uuid, 'role:admin' )
 	, ( 'e35940af-720c-4438-be52-36e8f0001002'::uuid, 'role:server-maint' )
 	, ( 'e35940af-720c-4438-be52-36e8f0001003'::uuid, 'role:user' )
+	, ( 'e35940af-720c-4438-be52-36e8f0001004'::uuid, 'role:factor-user' )
 ;
 insert into q_qr_role_priv ( role_id,  priv_id ) values
 	  ( 'e35940af-720c-4438-be52-36e8f0001001'::uuid, '18207657-b420-445a-aea5-6c0610002001'::uuid )
@@ -983,6 +987,7 @@ insert into q_qr_role_priv ( role_id,  priv_id ) values
 	, ( 'e35940af-720c-4438-be52-36e8f0001001'::uuid, '18207657-b420-445a-aea5-6c0610002018'::uuid )
 	, ( 'e35940af-720c-4438-be52-36e8f0001001'::uuid, '18207657-b420-445a-aea5-6c0610002019'::uuid )
 	, ( 'e35940af-720c-4438-be52-36e8f0001001'::uuid, '18207657-b420-445a-aea5-6c0610002022'::uuid )
+	, ( 'e35940af-720c-4438-be52-36e8f0001001'::uuid, '18207657-b420-445a-aea5-6c0610002024'::uuid )
 
 	, ( 'e35940af-720c-4438-be52-36e8f0001002'::uuid, '18207657-b420-445a-aea5-6c0610002002'::uuid )
 	, ( 'e35940af-720c-4438-be52-36e8f0001002'::uuid, '18207657-b420-445a-aea5-6c0610002004'::uuid )
@@ -991,8 +996,19 @@ insert into q_qr_role_priv ( role_id,  priv_id ) values
 	, ( 'e35940af-720c-4438-be52-36e8f0001003'::uuid, '18207657-b420-445a-aea5-6c0610002003'::uuid )
 	, ( 'e35940af-720c-4438-be52-36e8f0001003'::uuid, '18207657-b420-445a-aea5-6c0610002004'::uuid )
 	, ( 'e35940af-720c-4438-be52-36e8f0001003'::uuid, '18207657-b420-445a-aea5-6c0610002013'::uuid )
+	, ( 'e35940af-720c-4438-be52-36e8f0001003'::uuid, '18207657-b420-445a-aea5-6c0610002015'::uuid )
+	, ( 'e35940af-720c-4438-be52-36e8f0001003'::uuid, '18207657-b420-445a-aea5-6c0610002016'::uuid )
+	, ( 'e35940af-720c-4438-be52-36e8f0001003'::uuid, '18207657-b420-445a-aea5-6c0610002017'::uuid )
 	, ( 'e35940af-720c-4438-be52-36e8f0001003'::uuid, '18207657-b420-445a-aea5-6c0610002018'::uuid )
 	, ( 'e35940af-720c-4438-be52-36e8f0001003'::uuid, '18207657-b420-445a-aea5-6c0610002019'::uuid )
+
+	, ( 'e35940af-720c-4438-be52-36e8f0001004'::uuid, '18207657-b420-445a-aea5-6c0610002003'::uuid )
+	, ( 'e35940af-720c-4438-be52-36e8f0001004'::uuid, '18207657-b420-445a-aea5-6c0610002004'::uuid )
+	, ( 'e35940af-720c-4438-be52-36e8f0001004'::uuid, '18207657-b420-445a-aea5-6c0610002013'::uuid )
+	, ( 'e35940af-720c-4438-be52-36e8f0001004'::uuid, '18207657-b420-445a-aea5-6c0610002018'::uuid )
+	, ( 'e35940af-720c-4438-be52-36e8f0001004'::uuid, '18207657-b420-445a-aea5-6c0610002019'::uuid )
+	, ( 'e35940af-720c-4438-be52-36e8f0001004'::uuid, '18207657-b420-445a-aea5-6c0610002023'::uuid )
+
 ;
 
 
@@ -2179,7 +2195,9 @@ $$ LANGUAGE plpgsql;
 -- A few accounts are automatically built.  'root', 'admin' etc.   These accounts can then be used
 -- to create other administration accounts.
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-create or replace function q_auth_v1_register_admin ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar, p_root_password varchar, p_specifed_role_name varchar, p_user_id uuid )
+drop function q_auth_v1_register_admin ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar, p_root_password varchar, p_specifed_role_name varchar, p_user_id uuid );
+
+create or replace function q_auth_v1_register_admin ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar, p_admin_password varchar, p_specifed_role_name varchar, p_admin_user_id uuid )
 	returns text
 	as $$
 DECLARE
@@ -2222,42 +2240,69 @@ BEGIN
 		insert into t_output ( msg ) values ( '  p_userdata_password ->'||coalesce(to_json(p_userdata_password)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_secret ->'||coalesce(to_json(p_secret)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_specified_role_name ->'||coalesce(to_json(p_specified_role_name)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  p_user_id ->'||coalesce(to_json(p_user_id)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_admin_user_id ->'||coalesce(to_json(p_admin_user_id)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  ' );
 	end if;
 
-	-- Cleanup any users that have expired tokens.
-	delete from q_qr_users
-		where email_verify_expire < current_timestamp - interval '30 days'
-		  and email_validated = 'n'
-		;
-	-- Cleanup any users that have expired saved state
-	delete from q_qr_saved_state
-		where expires < current_timestamp
-		;
+	-- TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+	-- Check the role/priv of the user that called this.... p_admin_user_id + p_admin_password
 
-	-- Cleanup old tmp tokens.
-	delete from q_qr_tmp_token 
-		where expires < current_timestamp
-		;
-
-	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
-	select q_auth_v1_delete_user ( user_id )
-		into l_junk
-		from q_qr_users as t1
-		where t1.email_hmac = l_email_hmac
-		  and t1.login_success = 0
-		;
-	select user_id
-		into l_bad_user_id
-		from q_qr_users as t1
-		where t1.email_hmac = l_email_hmac
-		;
-	if found then
+	if not q_amdin_HasPriv ( p_admin_user_id, 'May Create Role Based User' ) then
 		l_fail = true;
-		l_data = '{"status":"error","msg":"Account already exists.  Please login or recover password.","code":"0011","location":"m4___file__ m4___line__"}';
-		-- insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Accont', 'File:m4___file__ Line No:m4___line__');
-		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Account.', '0011', 'File:m4___file__ Line No:m4___line__');
+		l_data = '{"status":"error","msg":"Not authoriazed to create role based user.  Missing ''May Create Role Based User'' privilage","code":"0096","location":"m4___file__ m4___line__"}'; 
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Not authorized to change others password.  Missing ''May Create Role Based User'' privilage', '0096', 'File:m4___file__ Line No:m4___line__');
+	end if;
+
+	if not l_fail then
+		select 'found'
+			from q_qr_users as t1
+			where user_id = p_admin_user_id 
+			  and t1.password_hash = crypt(p_admin_password, password_hash)
+			;
+		if not found then
+			l_fail = true;
+			l_data = '{"status":"error","msg":"Not authoriazed to change create role based user","code":"0095","location":"m4___file__ m4___line__"}'; 
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Not authorized to create role based user ', '0095', 'File:m4___file__ Line No:m4___line__');
+		end if;
+	end if;
+
+
+	if not l_fail then
+
+		-- Cleanup any users that have expired tokens.
+		delete from q_qr_users
+			where email_verify_expire < current_timestamp - interval '30 days'
+			  and email_validated = 'n'
+			;
+		-- Cleanup any users that have expired saved state
+		delete from q_qr_saved_state
+			where expires < current_timestamp
+			;
+
+		-- Cleanup old tmp tokens.
+		delete from q_qr_tmp_token 
+			where expires < current_timestamp
+			;
+
+		l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
+		select q_auth_v1_delete_user ( user_id )
+			into l_junk
+			from q_qr_users as t1
+			where t1.email_hmac = l_email_hmac
+			  and t1.login_success = 0
+			;
+		select user_id
+			into l_bad_user_id
+			from q_qr_users as t1
+			where t1.email_hmac = l_email_hmac
+			;
+		if found then
+			l_fail = true;
+			l_data = '{"status":"error","msg":"Account already exists.  Please login or recover password.","code":"0011","location":"m4___file__ m4___line__"}';
+			-- insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Accont', 'File:m4___file__ Line No:m4___line__');
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Account.', '0011', 'File:m4___file__ Line No:m4___line__');
+		end if;
+
 	end if;
 
 	if not l_fail then
@@ -5496,8 +5541,11 @@ BEGIN
 						from q_qr_users
 						where email_hmac = q_auth_v1_hmac_encode ( 'bob2@example.com', 'my long secret password' )
 					)
-		) lll
+		) 
 		;
+						-- where email_hmac = q_auth_v1_hmac_encode ( 'bob0@bob.com', 'bob' )
+						-- where email_hmac = q_auth_v1_hmac_encode ( 'bob2@example.com', 'my long secret password' )
+
 	if l_cnt2 != 2 then
 		insert into t_output ( msg ) values ( 'Test Failed: File:m4___file__ Line No:m4___line__ -- should have 2 roles - got:'||l_cnt2::text );
 		l_fail = true;
@@ -5568,6 +5616,18 @@ select name from x_tmp_pass_fail;
 
 drop table if exists x_tmp_values ;
 
+
+
+-- TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+
+-- create 'root@tcs.com' 		 : role:admin
+-- create 'admin@tcs.com' 		 : role:admin
+-- create 'server.admin@tcs.com' : role:server-maint
+-- create 'factor.user@tcs.com'  : role:factor-user
+
+--	  ( 'e35940af-720c-4438-be52-36e8f0001001'::uuid, 'role:admin' )
+--	, ( 'e35940af-720c-4438-be52-36e8f0001002'::uuid, 'role:server-maint' )
+--	, ( 'e35940af-720c-4438-be52-36e8f0001004'::uuid, 'role:factor-user' )
 
 
 
