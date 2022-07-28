@@ -39,6 +39,8 @@ package jwt_auth
 //		Return token experation date/time to user so can do intellegent refresh.
 // 		SetInsecureCookie("X-Is-Logged-In", "yes", c) // To let the JS code know that it is logged in.
 
+// xyzzy8888 -------------------------- TODO - add/remove 2fa secret
+
 import (
 	"fmt"
 	"net/http"
@@ -54,7 +56,6 @@ import (
 	"github.com/pschlump/HashStrings"
 	"github.com/pschlump/dbgo"
 	"github.com/pschlump/filelib"
-	"github.com/pschlump/gintools/email"
 	"github.com/pschlump/gintools/log_enc"
 	"github.com/pschlump/gintools/qr_svr2"
 	"github.com/pschlump/gintools/run_template"
@@ -215,6 +216,7 @@ type RvLoginType struct {
 	FirstName        string `json:"first_name,omitempty"`
 	LastName         string `json:"last_name,omitempty"`
 	IsNewDeviceLogin string `json:"is_new_device_login,omitempty"`
+	ClientId         string `json:"client_id,omitempty"`
 }
 
 // Input for login
@@ -299,7 +301,8 @@ func authHandleLogin(c *gin.Context) {
 		c.Set("__privs__", rv)
 		c.Set("__privs_map__", mr)
 		c.Set("__email_hmac_password__", gCfg.EncryptionPassword)
-		c.Set("__user_password__", gCfg.UserdataPassword)
+		c.Set("__user_password__", gCfg.UserdataPassword) // __userdata_password__
+		c.Set("__client_id__", rvStatus.ClientId)
 
 		if theJwtToken != "" {
 			// "Progressive improvement beats delayed perfection" -- Mark Twain
@@ -316,7 +319,19 @@ func authHandleLogin(c *gin.Context) {
 
 	// send email if a login is from a new device. ??
 	if rvStatus.IsNewDeviceLogin == "y" {
-		email.SendEmail("login_new_device",
+		fmt.Printf("at:%s em=%+v\n", dbgo.LF(), em, "login_new_device",
+			"username", pp.Email,
+			"email", pp.Email,
+			"email_url_encoded", url.QueryEscape(pp.Email),
+			"first_name", rvStatus.FirstName,
+			"last_name", rvStatus.LastName,
+			"real_name", rvStatus.FirstName+" "+rvStatus.LastName,
+			"application_name", gCfg.AuthApplicationName,
+			"realm", gCfg.AuthRealm,
+			"server", gCfg.BaseServerURL,
+			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
+		)
+		em.SendEmail("login_new_device",
 			"username", pp.Email,
 			"email", pp.Email,
 			"email_url_encoded", url.QueryEscape(pp.Email),
@@ -438,7 +453,7 @@ func authHandleRegister(c *gin.Context) {
 	// ---------------------------------------------------------------------------------------------------------------------
 	// ConfirmEmailAccount(c, RegisterResp.EmailVerifyToken)
 
-	email.SendEmail("welcome_registration", // Email Template
+	em.SendEmail("welcome_registration", // Email Template
 		"username", pp.Email,
 		"email", pp.Email,
 		"email_url_encoded", url.QueryEscape(pp.Email),
@@ -720,7 +735,7 @@ func authHandleChangePassword(c *gin.Context) {
 		}
 
 		// send email about change
-		email.SendEmail("password_changed",
+		em.SendEmail("password_changed",
 			"username", pp.Email,
 			"email", pp.Email,
 			"email_url_encoded", url.QueryEscape(pp.Email),
@@ -733,7 +748,7 @@ func authHandleChangePassword(c *gin.Context) {
 			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
 		)
 
-		// email.SendEmail("password_updated", "username", un, "email", emailaddr, "real_name", real_name, "token", recovery_token, "realm", gCfg.AuthRealm, "server", gCfg.AuthSelfURL)
+		// em.SendEmail("password_updated", "username", un, "email", emailaddr, "real_name", real_name, "token", recovery_token, "realm", gCfg.AuthRealm, "server", gCfg.AuthSelfURL)
 		// "email_url_encoded", url.QueryEscape(pp.Email),
 	} else {
 		time.Sleep(1500 * time.Millisecond)
@@ -804,7 +819,7 @@ func authHandleRecoverPassword01Setup(c *gin.Context) {
 		return
 	}
 
-	email.SendEmail("recover_password",
+	em.SendEmail("recover_password",
 		"username", pp.Email,
 		"email", pp.Email,
 		"email_url_encoded", url.QueryEscape(pp.Email),
@@ -959,7 +974,7 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 		return
 	}
 
-	email.SendEmail("password_updated",
+	em.SendEmail("password_updated",
 		"username", pp.Email,
 		"email", pp.Email,
 		"email_url_encoded", url.QueryEscape(pp.Email),
@@ -1299,6 +1314,7 @@ type RvValidate2faTokenType struct {
 	Secret2fa      string `json:"secret_2fa,omitempty"`
 	EmailValidated string `json:"email_validated,omitempty"`
 	X2faValidated  string `json:"x2fa_validated,omitempty"`
+	ClientId       string `json:"client_id,omitempty"`
 }
 
 type RvGetSecretType struct {
@@ -1307,7 +1323,7 @@ type RvGetSecretType struct {
 	UserId    string `json:"user_id"`
 }
 
-var PrivilegedNames = []string{"__is_logged_in__", "__user_id__", "__auth_token__", "__privs__", "__jwt_token__", "__email_hmac_password__", "__user_password__"}
+var PrivilegedNames = []string{"__is_logged_in__", "__user_id__", "__auth_token__", "__privs__", "__privs_map__", "__jwt_token__", "__email_hmac_password__", "__user_password__", "__client_id__"}
 
 // authHandleValidate2faToken is called after login to validate a 2fa token and after registration to comnplete the registration.
 //
@@ -1497,7 +1513,8 @@ func authHandleValidate2faToken(c *gin.Context) {
 		c.Set("__privs__", rv)
 		c.Set("__privs_map__", mr)
 		c.Set("__email_hmac_password__", gCfg.EncryptionPassword)
-		c.Set("__user_password__", gCfg.UserdataPassword)
+		c.Set("__user_password__", gCfg.UserdataPassword) // __userdata_password__
+		c.Set("__client_id__", rvStatus.ClientId)
 
 		if theJwtToken != "" {
 			// "Progressive improvement beats delayed perfection" -- Mark Twain
@@ -1586,7 +1603,7 @@ func authHandleDeleteAccount(c *gin.Context) {
 		}
 
 		// send email about delete account
-		email.SendEmail("account_deleted",
+		em.SendEmail("account_deleted",
 			"username", pp.Email,
 			"email", pp.Email,
 			"email_url_encoded", url.QueryEscape(pp.Email),
@@ -1671,7 +1688,7 @@ func authHandleRegisterUnPw(c *gin.Context) {
 		}
 
 		// send email about registraiton of un/pw sub-account
-		email.SendEmail("un_pw_account_created",
+		em.SendEmail("un_pw_account_created",
 			"username", rvStatus.Email,
 			"email", rvStatus.Email,
 			"email_url_encoded", url.QueryEscape(rvStatus.Email),
@@ -1743,7 +1760,7 @@ func authHandleRegisterToken(c *gin.Context) {
 		}
 
 		// send email about registring a token based account
-		email.SendEmail("token_account_created",
+		em.SendEmail("token_account_created",
 			"username", rvStatus.Email,
 			"email", rvStatus.Email,
 			"email_url_encoded", url.QueryEscape(rvStatus.Email),
@@ -1827,7 +1844,7 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 		}
 
 		// TODO - send email that Email Address Changed (to both old and new address)
-		email.SendEmail("email_address_changed_old_address",
+		em.SendEmail("email_address_changed_old_address",
 			"username", pp.OldEmail,
 			"email", pp.OldEmail,
 			"email_url_encoded", url.QueryEscape(pp.OldEmail),
@@ -1839,7 +1856,7 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 			"server", gCfg.BaseServerURL,
 			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
 		)
-		email.SendEmail("email_address_changed_new_address",
+		em.SendEmail("email_address_changed_new_address",
 			"username", pp.NewEmail,
 			"email", pp.NewEmail,
 			"email_url_encoded", url.QueryEscape(pp.NewEmail),
@@ -1982,7 +1999,7 @@ func authHandleChangePasswordAdmin(c *gin.Context) {
 		}
 
 		// send email about admin changging password
-		email.SendEmail("admin_password_changed",
+		em.SendEmail("admin_password_changed",
 			"username", pp.Email,
 			"email", pp.Email,
 			"email_url_encoded", url.QueryEscape(pp.Email),
@@ -2071,7 +2088,7 @@ func authHandleRegenOTP(c *gin.Context) {
 		// "If you have to swallow a frog don't stare at it too long." -- Mark Twain
 
 		// send email about this -- regeneration of OTP passwords
-		email.SendEmail("regenerate_one_time_passwords",
+		em.SendEmail("regenerate_one_time_passwords",
 			"username", pp.Email,
 			"email", pp.Email,
 			"email_url_encoded", url.QueryEscape(pp.Email),
@@ -2310,7 +2327,7 @@ func authHandleResendRegistrationEmail(c *gin.Context) {
 	// ---------------------------------------------------------------------------------------------------------------------
 	// ConfirmEmailAccount(c, RegisterResp.EmailVerifyToken)
 
-	email.SendEmail("welcome_registration", // Email Template
+	em.SendEmail("welcome_registration", // Email Template
 		"username", pp.Email,
 		"email", pp.Email,
 		"email_url_encoded", url.QueryEscape(pp.Email),
@@ -2412,6 +2429,7 @@ func authHandleRemove2faSecret(c *gin.Context) {
 type SQLUserIdPrivsType struct {
 	UserId     string `json:"user_id,omitempty" db:"user_id"`
 	Privileges string `json:"privileges,omitempty"`
+	ClientId   string `json:"client_id,omitempty" db:"client_id"`
 }
 
 func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
@@ -2515,7 +2533,7 @@ func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
 		*/
 		var v2 []*SQLUserIdPrivsType
 		stmt := `
-			select t1.user_id as "user_id", json_agg(t3.priv_name)::text as "privileges"
+			select t1.user_id as "user_id", json_agg(t3.priv_name)::text as "privileges", coalesce(t1.client_id::text,'') as client_id
 			from q_qr_users as t1
 				join q_qr_auth_tokens as t2 on ( t1.user_id = t2.user_id )
 				left join q_qr_user_to_priv as t3 on ( t1.user_id = t3.user_id )
@@ -2547,7 +2565,8 @@ func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
 			c.Set("__privs__", rv)
 			c.Set("__privs_map__", mr)
 			c.Set("__email_hmac_password__", gCfg.EncryptionPassword)
-			c.Set("__user_password__", gCfg.UserdataPassword)
+			c.Set("__user_password__", gCfg.UserdataPassword) // __userdata_password__
+			c.Set("__client_id__", v2[0].ClientId)
 		} else {
 			dbgo.Fprintf(logFilePtr, "X-Authentication - %(LF) - did not find auth_token in database\n")
 			dbgo.Fprintf(os.Stderr, "X-Authentication - %(LF) - %(red)did not find auth_token in database\n")

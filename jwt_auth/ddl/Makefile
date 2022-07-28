@@ -10,6 +10,12 @@ SQL= \
 
 all:  pre $(SQL) post
 
+fix_code:
+	cp 001.tables.m4.sql /tmp
+	./fix-code.pl <001.tables.m4.sql >,a
+	cp ,a 001.tables.m4.sql 
+
+
 pre:
 	cat setup.sql >all-sql.sql
 

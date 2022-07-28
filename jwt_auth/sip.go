@@ -10,7 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 	"github.com/pschlump/dbgo"
-	"github.com/pschlump/gintools/email"
 	"github.com/pschlump/gintools/log_enc"
 	"github.com/pschlump/htotp"
 	"github.com/pschlump/json"
@@ -91,7 +90,7 @@ func authHandleSipRegister(c *gin.Context) {
 	// ---------------------------------------------------------------------------------------------------------------------
 	// send email with validation - using: RegisterResp.EmailVerifyToken
 	// ---------------------------------------------------------------------------------------------------------------------
-	email.SendEmail("welcome_registration", // Email Template
+	em.SendEmail("welcome_registration", // Email Template
 		"username", pp.Email,
 		"email", pp.Email,
 		"first_name", pp.FirstName,
