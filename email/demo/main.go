@@ -17,7 +17,7 @@ func main() {
 	logFilePtr = os.Stderr
 
 	// email.SetupEmail(gcfg *ymux.BaseConfigType, db map[string]bool, f *os.File)
-	email.SetupEmail(&gCfg, DbFlag, logFilePtr)
+	em := email.NewEmailSender(&gCfg, DbFlag, logFilePtr, nil, nil)
 
 	fromName := "Philip Schlump"
 	fromAddress := "pschlump@gmail.com"
@@ -27,6 +27,6 @@ func main() {
 	textBody := "Text Body"
 	htmlBody := "<h1> HTML body </h1>"
 
-	email.SendEmailViaSendgrid(fromName, fromAddress, subject, toName, toAddress, textBody, htmlBody)
+	em.SendEmailViaVendor("", fromName, fromAddress, subject, toName, toAddress, textBody, htmlBody)
 
 }

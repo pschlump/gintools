@@ -44,6 +44,10 @@ type PathRewrite struct {
 	RewriteList map[string]string `json:"path_rewrite"`
 }
 
+type FontConfig struct {
+	FontPathFile string `json:"font_path_file" default:"/Users/philip/go/src/github.com/golang/freetype/testdata/luxisr.ttf"`
+}
+
 type GlobalConfigData struct {
 	BaseConfigType
 	QRConfig
@@ -52,6 +56,7 @@ type GlobalConfigData struct {
 	UploadConfig
 	awss3v2.AwsS3Cfg
 	PathRewrite
+	FontConfig
 }
 
 type UploadConfig struct {

@@ -2,21 +2,6 @@ package table_rest
 
 // This file is BSD 3 Clause licensed.
 
-// !!! xyzzy-UseRLS -- Implemented NOT tested. -- order by with no where, id= pk case.
-
-// xyzzy1000000 TODO - Cors Fix
-
-// xyzzy999 - Add output maping to query blocks (Derived Values)
-//	- Maping of column names
-//	- Output Filtering - col | base45 | genQrURL ( urlPath )
-//			outputFilter: {
-//				{
-//					Key: "colname",
-//					Maping: []string{ "base45", "genQrUrl({{.urlPath}})" },
-//				},
-//			}
-//	-
-
 // mux:956: func (mux *ServeMux) Handle(pattern string, handler http.Handler) (rv *MuxAdditionalCriteria) {		// xyzzy424232 TODO - creation of the new endpoint.
 // xyzzy5 - TODO - Must have error text returned. -- this is a general error - all error returns must have a message.
 
@@ -71,6 +56,11 @@ type CrudColTypeData struct {
 	SeqName string `json:"ColTypeSeqName"`
 }
 
+type RLSColumns struct {
+	ColumnName       string `json:"ColumnName"`
+	ContextValueName string `json:"ContextValueName"`
+}
+
 type CrudConfig struct {
 	CrudBaseConfig
 	MethodsAllowed      []string          `json:"MethodsAllowed"`      // Set of methods that are allowed
@@ -93,7 +83,7 @@ type CrudConfig struct {
 	SelectAuthPrivs     []string          `json:"SelectAuthPrivs"`     // Prives that are requried to access this end point (requires login/auth_token/jwt)
 	KeywordSearch       []string          `json:"KeywordSearch"`       // List of columns that will have tsvector data safedn from.
 	KeywordKeyColumn    string            `json:"KewordKeyColumn"`     // tsvector colum where prioritiezed data is stored.
-	UseRLS              []string          `json:"UseRLS"`              // Use Row Lelve Secuirty basesed on colums specified. (user_id=$1)
+	UseRLS              []RLSColumns      `json:"UseRLS"`              // Use Row Level Secuirty basesed on colums specified. (user_id=$1)
 }
 type ParamListItem struct {
 	ReqVar    string // variable for GetVar()
@@ -487,20 +477,11 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 		if found_id {
 			stmt := fmt.Sprintf("select %s from %q where ( \"%s\" = $1 ) ", GenProjected(CrudData.ProjectedCols), CrudData.TableName, IfEmpty(CrudData.SelectPkCol, "id"))
 
-			bindColData := []interface{}{id} // !!! xyzzy-UseRLS
+			bindColData := []interface{}{id}
 			if len(CrudData.UseRLS) > 0 {
 				addStmt := AppendWhereUseRLS(2, CrudData.UseRLS)
 				for _, col := range CrudData.UseRLS {
-					xcol := col
-					if col == "user_id" {
-						xcol = "__user_id__"
-					}
-					if col == "group_id" {
-						xcol = "__group_id__"
-					}
-					if col == "customer_id" {
-						xcol = "__customer_id__"
-					}
+					xcol := col.ContextValueName
 					ok, val := GetVar(xcol, c)
 					dbgo.Printf("%(red)FoundCol/InlineCRUD: col/xcol [%s][%s] ok=%v val= ->%s<- AT: %(LF)\n", col, xcol, ok, val)
 					if ok {
@@ -556,21 +537,12 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 
 		} else if HasOrderByList(c) { // xyzzy - TODO - should be a add-on to existing queries for order, not a different query -- this is an error
 
-			bindColData := []interface{}{id} // !!! xyzzy-UseRLS
+			bindColData := []interface{}{id}
 			where := ""
 			if len(CrudData.UseRLS) > 0 {
 				addStmt := AppendWhereUseRLS(1, CrudData.UseRLS)
 				for _, col := range CrudData.UseRLS {
-					xcol := col
-					if col == "user_id" {
-						xcol = "__user_id__"
-					}
-					if col == "group_id" {
-						xcol = "__group_id__"
-					}
-					if col == "customer_id" {
-						xcol = "__customer_id__"
-					}
+					xcol := col.ContextValueName
 					ok, val := GetVar(xcol, c)
 					dbgo.Printf("%(red)FoundCol/InlineCRUD: col/xcol [%s][%s] ok=%v val= ->%s<- AT: %(LF)\n", col, xcol, ok, val)
 					if ok {
@@ -608,21 +580,12 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 
 		} else {
 
-			bindColData := []interface{}{id} // !!! xyzzy-UseRLS
+			bindColData := []interface{}{id}
 			where := ""
 			if len(CrudData.UseRLS) > 0 {
 				addStmt := AppendWhereUseRLS(1, CrudData.UseRLS)
 				for _, col := range CrudData.UseRLS {
-					xcol := col
-					if col == "user_id" {
-						xcol = "__user_id__"
-					}
-					if col == "group_id" {
-						xcol = "__group_id__"
-					}
-					if col == "customer_id" {
-						xcol = "__customer_id__"
-					}
+					xcol := col.ContextValueName
 					ok, val := GetVar(xcol, c)
 					dbgo.Printf("%(red)FoundCol/InlineCRUD: col/xcol [%s][%s] ok=%v val= ->%s<- AT: %(LF)\n", col, xcol, ok, val)
 					if ok {
@@ -937,7 +900,7 @@ func ParserOrderBy(val string, c *gin.Context, CrudData *CrudConfig) (p, e []str
 
 // cols, colsData, found := FoundCol ( c, CrudData.WhereCols )
 // Used in  } else if cols, colsData, found := FoundCol(c, CrudData.WhereCols, CrudData.UseRLS); found {
-func FoundCol(c *gin.Context, WhereCols, UseRLS []string) (cols []string, colsData []interface{}, found bool) {
+func FoundCol(c *gin.Context, WhereCols []string, UseRLS []RLSColumns) (cols []string, colsData []interface{}, found bool) {
 	if len(WhereCols) == 0 {
 		return
 	}
@@ -957,16 +920,7 @@ func FoundCol(c *gin.Context, WhereCols, UseRLS []string) (cols []string, colsDa
 		colsData = append(colsData, val)
 	}
 	for _, col := range UseRLS {
-		xcol := col
-		if col == "user_id" {
-			xcol = "__user_id__"
-		}
-		if col == "group_id" {
-			xcol = "__group_id__"
-		}
-		if col == "customer_id" {
-			xcol = "__customer_id__"
-		}
+		xcol := col.ContextValueName
 		ok, val := GetVar(xcol, c)
 		dbgo.Printf("%(red)FoundCol: col/xcol [%s][%s] ok=%v val= ->%s<- AT: %(LF)\n", col, xcol, ok, val)
 		if ok {
@@ -981,7 +935,7 @@ func FoundCol(c *gin.Context, WhereCols, UseRLS []string) (cols []string, colsDa
 
 // GenWhere(cols) generates the WHERE clause for a table.   Used in `func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {`
 // this also handles the case where we havve specifed a __keyword__ column for full text search and adds in the and user_id=$1 for RLS.
-func GenWhere(cols []string, KeywordKeyColumn, TableName string, UseRLS []string) string {
+func GenWhere(cols []string, KeywordKeyColumn, TableName string, UseRLS []RLSColumns) string {
 	if len(cols) == 0 {
 		return ""
 	}
@@ -1011,7 +965,7 @@ func GenWhere(cols []string, KeywordKeyColumn, TableName string, UseRLS []string
 	}
 	fmt.Fprintf(foo, " ) ")
 	for _, ss := range UseRLS {
-		fmt.Fprintf(foo, "%s%q = $%d", com, ss, dd)
+		fmt.Fprintf(foo, "%s%q = $%d", com, ss.ColumnName, dd)
 		com = " and "
 		dd++
 	}
@@ -1023,7 +977,7 @@ func GenWhere(cols []string, KeywordKeyColumn, TableName string, UseRLS []string
 }
 
 // addStmt := AppendWhereUseRLS ( CrudData.UseRLS )
-func AppendWhereUseRLS(dd int, UseRLS []string) string {
+func AppendWhereUseRLS(dd int, UseRLS []RLSColumns) string {
 	if len(UseRLS) == 0 {
 		return ""
 	}
@@ -1031,7 +985,7 @@ func AppendWhereUseRLS(dd int, UseRLS []string) string {
 	var b bytes.Buffer
 	foo := bufio.NewWriter(&b)
 	for _, ss := range UseRLS {
-		fmt.Fprintf(foo, "%s%q = $%d", com, ss, dd)
+		fmt.Fprintf(foo, "%s%q = $%d", com, ss.ColumnName, dd)
 		com = " and "
 		dd++
 	}

@@ -12,6 +12,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -359,18 +360,27 @@ func RowsToInterface(rows pgx.Rows) ([]map[string]interface{}, string, int) {
 
 		// Print data
 		for i, value := range values {
-			// fmt.Printf ( "at top i=%d %T\n", i, value )
+			// dbgo.Printf("%(cyan)RowsToInterface... At %(LF)  top i=%d %T\n", i, value)
 			switch value.(type) {
 			case nil:
 				// fmt.Println("n, %s", columns[i], ": NULL", dbgo.LF())
 				oneRow[columns[i]] = nil
 
+			case [16]uint8:
+				// fmt.Printf("%s--- In [16]uint8 Case [%s] - %T %s\n", MiscLib.ColorRed, dbgo.LF(), value, MiscLib.ColorReset)
+				var uu uuid.UUID
+				uu = (uuid.UUID)(value.([16]uint8))
+
+				// dbgo.Fprintf(os.Stderr, "%(cyan)\n--- In [16]uint8 Case [%s] - %T uu=%s\n", value, value, uu)
+
+				if strings.HasSuffix(columns[i], "_id") || columns[i] == "id" {
+					id = fmt.Sprintf("%s", uu.String())
+				}
+				oneRow[columns[i]] = fmt.Sprintf("%s", uu.String())
+
 			case []byte:
 				// fmt.Printf("[]byte, len = %d, %s\n", len(value.([]byte)), dbgo.LF())
-				// if len==16 && odbc - then - convert from UniversalIdentifier to string (UUID convert?)
 				if len(value.([]byte)) == 16 {
-					// var u *uuid.UUID
-					//
 					if uuid.IsUUID(fmt.Sprintf("%s", value.([]byte))) {
 						u, err := uuid.Parse(value.([]byte))
 						if err != nil {
