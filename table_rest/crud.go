@@ -113,7 +113,7 @@ type CrudBaseConfig struct {
 	NoValidate       bool            // Skip all validation - useful for items like files that do not have an active component.
 	FileWhereDefined string          // debugging info on where the definition comes from
 	Comment          string          //
-	EncryptPat       string          // . - pass, e encrypt,
+	EncryptPat       string          // . - pass, e encrypt, ! ignore
 }
 
 // --------------------------------------------------------------------------------------------

@@ -498,7 +498,11 @@ CREATE TRIGGER q_qr_saved_state_expire_trig
 -- alter table q_qr_users add column first_name_hmac 		text;
 -- alter table q_qr_users add column last_name_hmac 		text;
 -- alter table q_qr_users add column pdf_enc_password				text;
--- alter table q_qr_users add column acct_state				varchar(40) default 'registered' check ( acct_state in ( 'registered', 'change-pw', 'change-2fa', 'change-email', 'other' ) );
+
+-- alter table q_qr_users drop column acct_state	;
+-- alter table q_qr_users add column acct_state		varchar(40) default 'reg0' not null check ( acct_state in ( 'reg0', 'change-pw', 'change-2fa', 'change-email', 'other', 'reg1', 'reg2', 'reg3', 'reg4', 'reg5', 'reg6', 'reg7' ) );
+-- reg0 => 2fa, email not confirmed.
+-- reg2 => 2fa, email setup
 
 CREATE TABLE if not exists q_qr_users (
 	user_id 				uuid default uuid_generate_v4() not null primary key,
@@ -516,7 +520,7 @@ CREATE TABLE if not exists q_qr_users (
 	first_name_hmac 		text not null,
 	last_name_enc			bytea not null,
 	last_name_hmac 			text not null,
-	acct_state				varchar(40) default 'registered' not null check ( acct_state in ( 'registered', 'change-pw', 'change-2fa', 'change-email', 'other' ) ),
+	acct_state				varchar(40) default 'reg0' not null check ( acct_state in ( 'reg0', 'change-pw', 'change-2fa', 'change-email', 'other', 'reg1', 'reg2', 'reg3', 'reg4', 'reg5', 'reg6', 'reg7' ) ),
 	email_validated			varchar(1) default 'n' not null,
 	email_verify_token		uuid,
 	email_verify_expire 	timestamp,
@@ -1169,9 +1173,6 @@ insert into q_qr_role_priv ( role_id,  priv_id ) values
 	, ( 'e35940af-720c-4438-be52-36e8f0001006'::uuid, '18207657-b420-445a-aea5-6c0610002026'::uuid )
 	, ( 'e35940af-720c-4438-be52-36e8f0001006'::uuid, '18207657-b420-445a-aea5-6c0610002027'::uuid )
 	, ( 'e35940af-720c-4438-be52-36e8f0001006'::uuid, '18207657-b420-445a-aea5-6c0610002028'::uuid )
-
-
-
 ;
 
 
@@ -1182,6 +1183,12 @@ insert into q_qr_user_role ( user_id, role_id )
 	from q_qr_users as t1
  		, q_qr_role as t2
 	where t2.role_name = 'role:user'
+	  and not exists (
+		select 'found'
+		from q_qr_user_role as t3
+		where t3.user_id = t1.user_id
+		  and t3.role_id = t2.role_id
+	  )
 ;
 
 
@@ -3338,6 +3345,13 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+
+
+
+
+
+
+
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- drop function q_auth_v1_change_password ( p_un varchar, p_pw varchar, p_new_pw varchar, p_hmac_password varchar, p_userdata_password varchar );
@@ -3621,6 +3635,7 @@ DECLARE
 	l_otp_hmac              text;
 	l_is_new_device_login	varchar(1);
 	l_client_id				uuid;
+	l_acct_state				text;
 BEGIN
 	l_debug_on = q_get_config_bool ( 'debug' );
 
@@ -3678,6 +3693,7 @@ BEGIN
 				, password_hash
 				, parent_user_id
 				, client_id
+				, acct_state				
 			from q_qr_users
 			where email_hmac = l_email_hmac
 		)
@@ -3696,6 +3712,7 @@ BEGIN
 				, login_failures
 				, validation_method
 				, client_id
+				, acct_state
 			into
 				  l_user_id
 				, l_email_validated
@@ -3711,6 +3728,7 @@ BEGIN
 				, l_login_failures
 				, l_validation_method
 				, l_client_id
+				, l_acct_state
 			from email_user
 		    where
 				(
@@ -3743,6 +3761,7 @@ BEGIN
 				, login_failures
 				, validation_method
 				, client_id
+				, acct_state
 			into l_user_id
 				, l_email_validated
 				, l_setup_complete_2fa
@@ -3757,6 +3776,7 @@ BEGIN
 				, l_login_failures
 				, l_validation_method
 				, l_client_id
+				, l_acct_state
 			from q_qr_users
 			where email_hmac = l_email_hmac
 			;
@@ -3810,6 +3830,7 @@ BEGIN
 		insert into t_output ( msg ) values ( 'l_email_validated = ->'||coalesce(to_json(l_email_validated)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( 'l_setup_complete_2fa = ->'||coalesce(to_json(l_setup_complete_2fa)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( 'l_client_id = ->'||coalesce(to_json(l_client_id)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( 'l_acct_state = ->'||coalesce(to_json(l_acct_state)::text,'---null---')||'<-');
 	end if;
 
 	if not l_fail then
@@ -3979,6 +4000,7 @@ BEGIN
 			||', "last_name":'   			||coalesce(to_json(l_last_name)::text,'""')
 			||', "is_new_device_login":' 	||coalesce(to_json(l_is_new_device_login)::text,'"n"')
 			||', "client_id":'     			||coalesce(to_json(l_client_id)::text,'""')
+			||', "acct_state":'     		||coalesce(to_json(l_acct_state)::text,'""')
 			||'}';
 	else
 		if l_user_id is not null then
@@ -4599,6 +4621,8 @@ DECLARE
 	l_debug_on 				bool;
 	l_tmp_token				uuid;	-- when 2fa is on this is returnd as not null (UUID)
 	l_user_id				uuid;
+	l_acct_state			text;
+	l_setup_complete_2fa  	varchar(1);
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -4615,8 +4639,12 @@ BEGIN
 
 	select t1.user_id
 		    , pgp_sym_decrypt(t1.email_enc,p_userdata_password)::text as email
+			, setup_complete_2fa 		
+			, acct_state
 		into l_user_id
 			, l_email
+			, l_setup_complete_2fa 		
+			, l_acct_state 
 		from q_qr_users as t1
 		where t1.email_verify_expire > current_timestamp
 			and t1.email_verify_token = p_email_verify_token::uuid
@@ -4629,10 +4657,14 @@ BEGIN
 		insert into t_output ( msg ) values ( '  l_user_id ->'||coalesce(to_json(l_user_id)::text,'---null---')||'<-');
 	end if;
 
+	if l_setup_complete_2fa = 'y' and l_acct_state = 'reg0' then
+		l_acct_state = 'reg1';
+	end if;
 	if not l_fail then
 		update q_qr_users
 			set email_validated = 'y'
 			  , email_verify_expire = null
+			  , acct_state = l_acct_state
 		where email_verify_expire > current_timestamp
 			and email_verify_token = p_email_verify_token::uuid
 		;
@@ -4747,13 +4779,18 @@ $$ LANGUAGE plpgsql;
 
 
 
+
+
+
+
+
+
+
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Called as a part of login and registration.
 --
 -- This is called after validatio of the TOTP/HOTP token.
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
--- drop function q_auth_v1_validate_2fa_token ( p_email varchar, p_tmp_token varchar, p_2fa_secret varchar, p_hmac_password varchar );
 
 create or replace function q_auth_v1_validate_2fa_token ( p_email varchar, p_tmp_token varchar, p_2fa_secret varchar, p_hmac_password varchar, p_userdata_password varchar )
 	returns text
@@ -4769,6 +4806,7 @@ DECLARE
 	l_expires				text;
 	l_email_validated		text;
 	l_x2fa_validated		text;
+	l_acct_state			text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -4811,10 +4849,12 @@ BEGIN
 			, t1.secret_2fa
 			, t1.email_validated
 			, t1.setup_complete_2fa
+			, t1.acct_state
 		into l_user_id
 			, l_secret_2fa
 			, l_email_validated
 			, l_x2fa_validated
+			, l_acct_state
 		from q_qr_users as t1
 			join q_qr_tmp_token as t2 on ( t1.user_id = t2.user_id )
 		where t1.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
@@ -4848,10 +4888,14 @@ BEGIN
 
 	if not l_fail then
 		if l_debug_on then
-			insert into t_output ( msg ) values ( 'Seting the user up' );
+			insert into t_output ( msg ) values ( 'Seting the user up, acct_state = '||l_acct_state );
+		end if;
+		if l_email_validated = 'y' and l_acct_state = 'reg0' then
+			l_acct_state = 'reg1';
 		end if;
 		update q_qr_users as t2
 			set setup_complete_2fa 	= 'y'
+			  , acct_state = l_acct_state
 			where t2.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
 			;
 		l_x2fa_validated = 'y';
@@ -4892,7 +4936,15 @@ BEGIN
 			||', "secret_2fa":'  	 ||coalesce(to_json(l_secret_2fa)::text,'""')
 			||', "email_validated":' ||coalesce(to_json(l_email_validated)::text,'""')
 			||', "x2fa_validated":'  ||coalesce(to_json(l_x2fa_validated)::text,'""')
+			||', "acct_state":'  	 ||coalesce(to_json(l_acct_state)::text,'""')
 			||'}';
+	end if;
+
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'In q_auth_v1_validate_2fa_token (v2) - at bottom' );
+		insert into t_output ( msg ) values ( '  l_data ->'||coalesce(to_json(l_data)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_acct_state ->'||coalesce(to_json(l_acct_state)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  ' );
 	end if;
 
 	RETURN l_data;
@@ -6269,7 +6321,7 @@ select name from x_tmp_pass_fail;
 
 
 
-drop table if exists x_tmp_values ;
+-- drop table if exists x_tmp_values ;
 
 
 

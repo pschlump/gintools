@@ -217,6 +217,7 @@ type RvLoginType struct {
 	LastName         string `json:"last_name,omitempty"`
 	IsNewDeviceLogin string `json:"is_new_device_login,omitempty"`
 	ClientId         string `json:"client_id,omitempty"`
+	AcctState        string `json:"acct_state",omitempty"`
 }
 
 // Input for login
@@ -235,6 +236,7 @@ type LoginSuccess struct {
 	Privileges string `json:"privileges,omitempty"`
 	FirstName  string `json:"first_name,omitempty"`
 	LastName   string `json:"last_name,omitempty"`
+	AcctState  string `json:"acct_state",omitempty"`
 }
 
 // /api/register-user, send-data={"user":"alice","v":13136}
@@ -567,8 +569,9 @@ func MintQRPng(c *gin.Context, InputString string) (qrurl string) {
 // DB Reutrn Data
 type RvEmailConfirm struct {
 	StdErrorReturn
-	Email    string `json:"email,omitempty"`
-	TmpToken string `json:"tmp_token,omitempty"` // May be "" - used in 2fa part 1 / 2
+	Email     string `json:"email,omitempty"`
+	TmpToken  string `json:"tmp_token,omitempty"` // May be "" - used in 2fa part 1 / 2
+	AcctState string `json:"acct_state",omitempty"`
 }
 
 // Input for api endpoint
@@ -580,8 +583,9 @@ type ApiAuthEmailValidate struct {
 
 // Output returned
 type EmailConfirmSuccess struct {
-	Status   string `json:"status"`
-	TmpToken string `json:"tmp_token"`
+	Status    string `json:"status"`
+	TmpToken  string `json:"tmp_token"`
+	AcctState string `json:"acct_state",omitempty"`
 }
 
 // authHandlerEmailConfirm uses the token to lookup a user and confirms that the email that received the token is real.
@@ -1315,6 +1319,7 @@ type RvValidate2faTokenType struct {
 	EmailValidated string `json:"email_validated,omitempty"`
 	X2faValidated  string `json:"x2fa_validated,omitempty"`
 	ClientId       string `json:"client_id,omitempty"`
+	AcctState      string `json:"acct_state",omitempty"`
 }
 
 type RvGetSecretType struct {
@@ -1348,6 +1353,7 @@ type Validate2faTokenSuccess struct {
 	EmailValidated string `json:"email_validated,omitempty"`
 	X2faValidated  string `json:"x2fa_validated,omitempty"`
 	Expires        string `json:"expires,omitempty"`
+	AcctState      string `json:"acct_state",omitempty"`
 }
 
 // authHandleValidate2faToken godoc
