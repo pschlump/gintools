@@ -1,0 +1,111 @@
+{
+	  "__comment_version": "Version 0.0.1"
+	, "__comment_copyright": "Copyright (C) Philip Schlump, 2016,2022"
+
+	, "release_mode": "dev"
+
+	, "db_host": "$ENV$PG_HOST"
+	, "db_user": "philip"
+	, "db_password": "$ENV$DB_PASS"
+	, "db_name": "philip"
+	, "db_flag": "HandleLogin,HandleCRUD,dump-db-flag,x-ignore-privs,x-dump-email"
+
+	, "log_file_name": "./log/log.out"
+	, "email_log_file_name": "./log/email-log.out"
+
+	, "__comment_005": "This will cause the subdomain to set the database that PG is using to connect to.  So user1.q8s.co will be looked up in y_dbname and et the database to it."
+	, "subdomain_sets_pg_database": "no"
+
+	, "auth_key": "$ENV$QR_TODAY_AUTH_TOKEN"
+	, "static_path":"./www"
+
+	, "auth_method":				"jwt"
+	, "x_auth_jwt_public_file" : 		"keys/ed25519-public.pem"
+	, "x_auth_jwt_private_file": 		"keys/ed25519-private.pem"
+	, "auth_jwt_public_file" : 		"$FILE$./keys/bob.pub"
+	, "auth_jwt_private_file": 		"$FILE$./keys/bob"
+	, "auth_jwt_key_type":       	"EdDSA"
+	, "x_auth_jwt_key_type":       	"HS256"
+
+	, "upload_table": "q_qr_uploaded_files"
+	, "upload_path": "./www/files"
+	, "url_upload_path": "/files"
+	, "push_to_aws": "no"
+	, "s3_bucket": "backup-docs"
+	, "s3_perms": "public-read"
+	, "base_aws_server_url": "https://backup-docs.s3.amazonaws.com/"
+	, "pdfcpu": "./bin/pdfcpu"
+	, "pdftoppm": "./bin/cd-pdftoppm.sh"
+
+	, "aws_s3_bucket_url": "https://backup-docs.s3.amazonaws.com/"
+	, "aws_s3_bucket": "backup-docs"
+	, "aws_s3_perms": "public-read"
+
+	, "__comment_015": "Fonts are open souce, see license in ./fontfiles"
+	, "x_font_path_file": "/Users/philip/go/src/github.com/golang/freetype/testdata/luxisr.ttf" 
+	, "font_path_file": "./fontfiles/luxisr.ttf" 
+
+	, "use_role_priv": "no"
+	, "auth_realm": "example.com"
+	, "auth_2fa_enabled": "no"
+	, "rfc_6238_2fa_on": "no"
+	, "auth_login_on_register": "yes"
+	, "auth_email_confirm": "no"
+	, "use_registration_token": "no"
+	, "auth_password_recovery_uri":"forgotten-password/web-set-password"			, "__comment_22222__": "msut *NOT* start with a /"
+	, "auth_confirm_email_uri":"regPt2-confirm"										, "__comment_22223__": "/regPt2-confirm/email/tmp_token"
+
+	, "use_log_encryption": "no"
+
+	, "__comment_002": "Thumbnail Paths"
+	, "__comment_004": "Output image path and URL"
+	, "x_thumbnail_path": "../build/thumb"
+	, "x_thumbnail_path_url": "/thumb"
+	, "__comment_003": "Input image path and URL"
+	, "x_image_path" :"../build/files"
+	, "x_image_url": "/files"
+
+	, "__comment_001": "path_rewrite is for vue.js/React so that paths/bookmarks like '/info' will redirect to index.html"
+	, "path_rewrite": {
+		  "/about": "/index.html"
+		, "/end-load": "/index.html"
+		, "/home": "/index.html"
+		, "/login": "/index.html"
+		, "/logout": "/index.html"
+		, "/regPt2": "/index.html"
+		, "/register": "/index.html"
+		, "/review-photo": "/index.html"
+		, "/start-load": "/index.html"
+		, "/status": "/index.html"
+		, "/take-photo": "/index.html"
+		, "/validate2faPin": "/index.html"
+		}
+
+	, "ticker_seconds" : 60
+
+	, "CORS_CheckTable" : true
+
+	, "static_files":"./www"
+	, "host_port":"http://0.0.0.0:9080"
+	, "db_flags": [ "debug-log", "get-issue-detail.01"] 
+
+	, "__comment_2222__": "Must have a / at end."
+	, "base_server_url": "http://localhost:8080/"
+
+	, "template_search_path": "./tmpl/%{user_id%};./tmpl" 
+	, "template_location_html_tmpl": "location.html.tmpl"
+
+	, "no_email_send_list": [
+		  "bob@example.com"
+	]
+	, "no_email_send_list_re": [
+		  "bob[0-9]*@example.com"
+	]
+	, "redirect_email_send_to": "pschlump@gmail.com"
+	, "x_email_from_address": "philip@example.com"
+	, "email_from_address": "no-reply@example.com"
+	, "x_token_header_vs_cookie": "both"
+	, "token_header_vs_cookie": "cookie"
+
+	, "qr_base_server_url": "http://localhost:9080/"
+}

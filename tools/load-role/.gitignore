@@ -1,0 +1,11 @@
+load-role
+,*
+cfg.json
+tcs.json
+load-role_linux
+
+example-privs.json
+json-data.json
+json-test.sql
+keys/
+used.txt
