@@ -188,6 +188,7 @@ func (em *SendgridEmailSender) SendEmailViaVendor(rowID, fromName, fromAddress, 
 	if response.StatusCode == 202 || response.StatusCode == 200 {
 		em.md.AddCounter("email_sender_successful_emails", 1)
 		dbgo.Printf("%(green)StatusCode=%v\n", response.StatusCode)
+		fmt.Fprintf(em.emailLogFilePtr, "#Email# Send Success, %d\n", response.StatusCode)
 		fmt.Println(response.Body)
 		fmt.Println(response.Headers)
 	} else {
@@ -195,6 +196,7 @@ func (em *SendgridEmailSender) SendEmailViaVendor(rowID, fromName, fromAddress, 
 		dbgo.Printf("%(red)StatusCode=%v\n", response.StatusCode)
 		dbgo.Printf("%(red)body=$s\n", response.Body)
 		dbgo.Printf("%(red)Headers=%s\n", response.Headers)
+		fmt.Fprintf(em.emailLogFilePtr, "#Email# Send Error: %s\n", e0)
 		err = fmt.Errorf("Status: %v Message: %s\n", response.StatusCode, response.Body)
 		return
 	}
@@ -226,7 +228,9 @@ func (em *SendgridEmailSender) SendEmail(template_name string, param ...interfac
 // -------------------------------------------------------------------------------------------------------------------------
 func (em *SendgridEmailSender) SendEmailMapdata(template_name string, mdata map[string]interface{}) (err error) {
 
-	dbgo.Printf("%(LF)\n")
+	dbgo.Printf("%(LF) %(cyan) ---- AT TOP mdata=%s\n", dbgo.SVarI(mdata))
+	dbgo.Fprintf(em.emailLogFilePtr, "%(LF) --- AT TOP --- mdata=%s\n", dbgo.SVarI(mdata))
+
 	tfn := fmt.Sprintf("%s/%s.tmpl", em.gCfg.EmailTmplDir, template_name)
 	if !ReadConfig.Exists(tfn) {
 		fmt.Fprintf(os.Stderr, "#Email# Missing template file [%s]\n", tfn)
@@ -235,11 +239,14 @@ func (em *SendgridEmailSender) SendEmailMapdata(template_name string, mdata map[
 	}
 
 	dbgo.Printf("%(LF)\n")
+
 	mdata["tfn"] = tfn
 	mdata["from_name"] = em.gCfg.EmailFromName
 	mdata["from_address"] = em.gCfg.EmailFromAddress
 
-	dbgo.Printf("%(LF)\n")
+	dbgo.Printf("%(LF) %(yellow) mdata=%s\n", dbgo.SVarI(mdata))
+	dbgo.Fprintf(em.emailLogFilePtr, "%(LF) mdata=%s\n", dbgo.SVarI(mdata))
+
 	// run_template.RunTemplate(TemplateFn string, name_of string, g_data map[string]interface{}) string {
 	fromName := run_template.RunTemplate(tfn, "from_name", mdata)
 	fromAddress := run_template.RunTemplate(tfn, "from_address", mdata)
@@ -296,6 +303,11 @@ func (em *SendgridEmailSender) SendEmailMapdata(template_name string, mdata map[
 	// Used in test scripts to get the email token from the email log.  Do not change syntax.  ./test/tgo_register_and_login.sh
 	dbgo.Fprintf(em.emailLogFilePtr, "\nAT: Email Data %(LF)\n\n#EmailToken#: %s\n\n", mdata["token"])
 
+	dbgo.Printf("%(LF) %(yellow) mdata=%s\n", dbgo.SVarI(mdata))
+	dbgo.Fprintf(em.emailLogFilePtr, "%(LF) mdata=%s\n", dbgo.SVarI(mdata))
+	dbgo.Fprintf(em.emailLogFilePtr, "#textBody#= ---[[[%s]]]---\n", textBody)
+	dbgo.Fprintf(em.emailLogFilePtr, "#htmlBody#= ---[[[->%s]]]---\n", htmlBody)
+
 	/*
 	   -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	   -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -326,9 +338,9 @@ func (em *SendgridEmailSender) SendEmailMapdata(template_name string, mdata map[
 
 	dbgo.Printf("%(LF) DbFlag=%s\n", dbgo.SVarI(em.DbFlag))
 	if em.DbFlag["__email_no_send__:"+toAddress] {
-		//dbgo.Printf("%(LF)[info] address %s blocked send\n", toAddress)
-		//fmt.Fprintf(os.Stderr, "at bottom - skip, at:%s\n", dbgo.LF())
-		//fmt.Fprintf(em.emailLogFilePtr, "at bottom - skip, at:%s\n", dbgo.LF())
+		dbgo.Printf("%(LF) address %s in __email_no_send__\n", toAddress)
+		dbgo.Fprintf(os.Stderr, "%(LF) address %s in __email_no_send__\n", toAddress)
+		dbgo.Fprintf(em.emailLogFilePtr, "%(LF) address %s in __email_no_send__\n", toAddress)
 
 		stmt := `
 			update q_qr_email_log 
@@ -377,6 +389,7 @@ func (em *SendgridEmailSender) SendEmailMapdata(template_name string, mdata map[
 	} else {
 
 		dbgo.Printf("\n%(green)Just before actual send of email to:%s, %(LF)\n", toAddress)
+		dbgo.Fprintf(em.emailLogFilePtr, "\n%(green)Just before actual send of email to:%s, %(LF)\n", toAddress)
 		err = em.SendEmailViaVendor(rowID, fromName, fromAddress, subject, toName, toAddress, textBody, htmlBody)
 		if err != nil {
 			dbgo.Printf("%(LF)%(red) Failed to send email: %s\n", err)
@@ -384,20 +397,8 @@ func (em *SendgridEmailSender) SendEmailMapdata(template_name string, mdata map[
 			dbgo.Fprintf(em.emailLogFilePtr, "%(LF)Failed to send email: %s\n", err)
 		}
 
-		if false {
-			if err == nil {
-				stmt := `
-			update q_qr_email_log 
-				set state = 'sent'
-				where email_log_id = $1
-			`
-				_, err := em.SqlRunStmt(stmt, "..", rowID, fmt.Sprintf("%s", err))
-				if err != nil {
-					dbgo.Fprintf(os.Stderr, "%(red)%(LF)Error on update of q_qr_email_log ->%s<- %s error:%s\n", stmt, XData(rowID), err)
-					dbgo.Fprintf(em.emailLogFilePtr, "%(LF)Error on update of q_qr_email_log ->%s<- %s error:%s\n", stmt, XData(rowID), err)
-				}
-			}
-		}
+		// logging occures in the SendEmailViaValidator ...
+
 	}
 
 	if err != nil {

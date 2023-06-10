@@ -4005,7 +4005,14 @@ func LogJsonReturned(x interface{}) interface{} {
 	return x
 }
 
-func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string) {
+func convertStringArrayToInterface(ss []string) (rv []interface{}) {
+	for _, vv := range ss {
+		rv = append(rv, vv)
+	}
+	return
+}
+
+func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string, AdditionalData string) {
 
 	// var SendTestEmailTemplateToRun = flag.String("send-test-email-template-to-run", "", "ONLY! run 1 ttemplate")
 	// jwt_auth.TestSendEmail ( *SendTestEmail, *SendTestEmailTemplateToRun )
@@ -4019,7 +4026,7 @@ func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string) {
 	EmailVerifyToken = "45faa5c6-3f6f-4fb1-8ede-83611ecd3597"
 	UserId := "18207657-b420-445a-aea5-000000002023"
 	RecoveryToken := "e35940af-720c-4438-be52-000000222001"
-	dbgo.Printf("Email Test is Using (at:%(LF)) %s\n",
+	dbgo.Printf("Email Test is Using (at:%(LF)) %s ------------ Predefined Values ------------ \n",
 		dbgo.SVarI(map[string]interface{}{
 			"username":           Email,
 			"email":              Email,
@@ -4034,6 +4041,26 @@ func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string) {
 			"RecoveryToken":      RecoveryToken,
 		}),
 	)
+
+	ss := strings.Split(AdditionalData, ",")
+	if len(ss) > 0 {
+		//		"application_name":   gCfg.AuthApplicationName,
+		//		"realm":              gCfg.AuthRealm,
+		//		"server":             gCfg.BaseServerURL,
+		//		"reset_password_uri": gCfg.AuthPasswordRecoveryURI,
+		ss = append(ss, "email")
+		ss = append(ss, Email)
+		ss = append(ss, "application_name")
+		ss = append(ss, gCfg.AuthApplicationName)
+		ss = append(ss, "realm")
+		ss = append(ss, gCfg.AuthRealm)
+		ss = append(ss, "server")
+		ss = append(ss, gCfg.BaseServerURL)
+		ss = append(ss, "reset_password_uri")
+		ss = append(ss, gCfg.AuthPasswordRecoveryURI)
+		dbgo.Printf("Email Test is Using (at:%(LF)) %s ------------ User Values ------------ \n    These are values used if you are NOT runing a pre-defined email\n", dbgo.SVarI(ss))
+	}
+
 	if SendTestEmailTemplateToRun == "welcome_registration" || SendTestEmailTemplateToRun == "" {
 		em.SendEmail("welcome_registration", // Email Template
 			"username", Email,
@@ -4048,8 +4075,7 @@ func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string) {
 			"application_name", gCfg.AuthApplicationName,
 			"realm", gCfg.AuthRealm,
 		)
-	}
-	if SendTestEmailTemplateToRun == "login_new_device" || SendTestEmailTemplateToRun == "" {
+	} else if SendTestEmailTemplateToRun == "login_new_device" || SendTestEmailTemplateToRun == "" {
 		em.SendEmail("login_new_device",
 			"username", Email,
 			"email", Email,
@@ -4062,8 +4088,7 @@ func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string) {
 			"server", gCfg.BaseServerURL,
 			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
 		)
-	}
-	if SendTestEmailTemplateToRun == "password_changed" || SendTestEmailTemplateToRun == "" {
+	} else if SendTestEmailTemplateToRun == "password_changed" || SendTestEmailTemplateToRun == "" {
 		em.SendEmail("password_changed",
 			"username", Email,
 			"email", Email,
@@ -4076,8 +4101,7 @@ func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string) {
 			"server", gCfg.BaseServerURL,
 			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
 		)
-	}
-	if SendTestEmailTemplateToRun == "recover_password" || SendTestEmailTemplateToRun == "" {
+	} else if SendTestEmailTemplateToRun == "recover_password" || SendTestEmailTemplateToRun == "" {
 		em.SendEmail("recover_password",
 			"username", Email,
 			"email", Email,
@@ -4091,8 +4115,7 @@ func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string) {
 			"server", gCfg.BaseServerURL,
 			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
 		)
-	}
-	if SendTestEmailTemplateToRun == "password_updated" || SendTestEmailTemplateToRun == "" {
+	} else if SendTestEmailTemplateToRun == "password_updated" || SendTestEmailTemplateToRun == "" {
 		em.SendEmail("password_updated",
 			"username", Email,
 			"email", Email,
@@ -4105,8 +4128,7 @@ func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string) {
 			"realm", gCfg.AuthRealm,
 			"server", gCfg.BaseServerURL,
 		)
-	}
-	if SendTestEmailTemplateToRun == "account_deleted" || SendTestEmailTemplateToRun == "" {
+	} else if SendTestEmailTemplateToRun == "account_deleted" || SendTestEmailTemplateToRun == "" {
 		em.SendEmail("account_deleted",
 			"username", Email,
 			"email", Email,
@@ -4119,8 +4141,7 @@ func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string) {
 			"server", gCfg.BaseServerURL,
 			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
 		)
-	}
-	if SendTestEmailTemplateToRun == "admin_password_changed" || SendTestEmailTemplateToRun == "" {
+	} else if SendTestEmailTemplateToRun == "admin_password_changed" || SendTestEmailTemplateToRun == "" {
 		em.SendEmail("admin_password_changed",
 			"username", Email,
 			"email", Email,
@@ -4133,6 +4154,8 @@ func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string) {
 			"server", gCfg.BaseServerURL,
 			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
 		)
+	} else {
+		em.SendEmail(SendTestEmailTemplateToRun, convertStringArrayToInterface(ss)...)
 	}
 }
 
