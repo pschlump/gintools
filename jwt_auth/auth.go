@@ -1298,18 +1298,42 @@ func authHandleRecoverPassword01Setup(c *gin.Context) {
 		return
 	}
 
-	em.SendEmail("recover_password",
+	// AuthPasswordRecoveryURI  string `json:"auth_password_recovery_uri" default:"forgotten-password/web-set-password"` // Path inside app to the form that changes a password
+	// http://localhost:15080/popup.html?email=bob@park.com&token=123#PageForgotPassword02
+	gCfg_BaseServerURL := gCfg.BaseServerURL
+	gCfg_AuthPasswordRecoveryURI := gCfg.AuthPasswordRecoveryURI
+	template_name := "recover_password"
+	if strings.HasPrefix(gCfg.AuthPasswordRecoveryURI, "http://") ||
+		strings.HasPrefix(gCfg.AuthPasswordRecoveryURI, "https://") {
+		template_name = "recover_password_tmpl"
+		gCfg_BaseServerURL = ""
+		dbgo.Fprintf(os.Stderr, "%(LF)%(cyan)Has 'http' or 'https'\n")
+	}
+
+	// Apply Template : gCfg_AuthPasswordRecoveryURI := gCfg.AuthPasswordRecoveryURI
+	// , "x_auth_password_recovery_uri":"http://localhost:15080/popup.html?email={{.email_addr}}&token={{.email_token}}#PageForgotPassword02"
+	// {{.email_addr}} and {{.email_token}} may need to be substituted.
+	mdata := map[string]string{
+		"email_addr":  url.QueryEscape(pp.Email),
+		"email_token": rvStatus.RecoveryToken,
+	}
+	dbgo.Fprintf(os.Stderr, "%(LF)%(cyan)Before Template ->%s<-\n", gCfg_AuthPasswordRecoveryURI)
+	gCfg_AuthPasswordRecoveryURI = filelib.Qt(gCfg.AuthPasswordRecoveryURI, mdata)
+	dbgo.Fprintf(os.Stderr, "%(LF)%(cyan)After  Template ->%s<-\n", gCfg_AuthPasswordRecoveryURI)
+
+	em.SendEmail(template_name,
 		"username", pp.Email,
 		"email", pp.Email,
 		"email_url_encoded", url.QueryEscape(pp.Email),
+		"reset_password_uri_enc", gCfg_AuthPasswordRecoveryURI, // xyzzy - should change & to &and;
 		"token", rvStatus.RecoveryToken,
 		"first_name", rvStatus.FirstName,
 		"last_name", rvStatus.LastName,
 		"real_name", rvStatus.FirstName+" "+rvStatus.LastName,
 		"application_name", gCfg.AuthApplicationName,
 		"realm", gCfg.AuthRealm,
-		"server", gCfg.BaseServerURL,
-		"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
+		"server", gCfg_BaseServerURL,
+		"reset_password_uri", gCfg_AuthPasswordRecoveryURI,
 	)
 
 	time.Sleep(500 * time.Millisecond)
@@ -3742,11 +3766,11 @@ func CallDatabaseJSONFunction(c *gin.Context, fCall string, encPat string, data 
 			dbgo.Fprintf(os.Stderr, "    %(red)Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
 		}
 		dbgo.Fprintf(logFilePtr, "    Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
-		if c == nil {
-			dbgo.Fprintf(os.Stderr, "Error: %s stmt %s at %(LF)\n", stmt, err)
-		} else {
-			log_enc.LogSQLError(c, stmt, err, encPat, data...)
-		}
+		//if c == nil {
+		//	dbgo.Fprintf(os.Stderr, "Error: %s stmt %s at %(LF)\n", stmt, err)
+		//} else {
+		log_enc.LogSQLError(c, stmt, err, encPat, data...)
+		//}
 		return "", fmt.Errorf("Sql error")
 	}
 	if len(v2) > 0 {
@@ -3777,11 +3801,11 @@ func SelectString(c *gin.Context, stmt string, encPat string, data ...interface{
 			dbgo.Fprintf(os.Stderr, "    %(red)Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
 		}
 		dbgo.Fprintf(logFilePtr, "    Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
-		if c == nil {
-			dbgo.Fprintf(os.Stderr, "Error: %s stmt %s at %(LF)\n", stmt, err)
-		} else {
-			log_enc.LogSQLError(c, stmt, err, encPat, data...)
-		}
+		//if c == nil {
+		//	dbgo.Fprintf(os.Stderr, "Error: %s stmt %s at %(LF)\n", stmt, err)
+		//} else {
+		log_enc.LogSQLError(c, stmt, err, encPat, data...)
+		//}
 		return "", fmt.Errorf("Sql error")
 	}
 	if len(v2) > 0 {

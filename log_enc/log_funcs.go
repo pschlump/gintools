@@ -83,6 +83,16 @@ func LogSQLError(c *gin.Context, stmt string, err error, encPat string, data ...
 }
 
 func LogSQLErrorNoErr(c *gin.Context, stmt string, err error, encPat string, data ...interface{}) {
+	if c == nil {
+		LogIt("SQLError",
+			"stmt", stmt,
+			"error", errToString(err),
+			// "data", EncryptLogData(encPat, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
+			"data", dbgo.SVar(data),
+			"AT", godebug.LF(-2),
+		)
+		return
+	}
 	// LogEncryptionPassword string `json:"log_encryption_password" default:"$ENV$QR_LOG_ENCRYPTION_PASSWORD"`
 	requestId := c.GetString("__request_id__")
 	LogIt("SQLError",
