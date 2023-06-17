@@ -17,7 +17,7 @@ func main() {
 	logFilePtr = os.Stderr
 
 	// email.SetupEmail(gcfg *ymux.BaseConfigType, db map[string]bool, f *os.File)
-	em := email.NewEmailSender(&gCfg, DbFlag, logFilePtr, nil /*conn*/, nil /*ctx*/, nil /*logger*/, nil /* /metrics */)
+	em := email.NewEmailSender("sendgird", &gCfg, DbFlag, logFilePtr, nil /*conn*/, nil /*ctx*/, nil /*logger*/, nil /* /metrics */)
 
 	fromName := "Philip Schlump"
 	fromAddress := "pschlump@gmail.com"
