@@ -63,7 +63,8 @@ type GenericEmailSender struct {
 	timeout chan string
 }
 
-func NewEmailSender(senderType string, gcfg *data.BaseConfigType, db map[string]bool, f *os.File, conn *pgxpool.Pool, ctx context.Context, lgr *zap.Logger, xmd *metrics.MetricsData) (rv GenericEmailSender) {
+// func NewEmailSender(senderType string, gcfg *data.BaseConfigType, db map[string]bool, f *os.File, conn *pgxpool.Pool, ctx context.Context, lgr *zap.Logger, xmd *metrics.MetricsData) (rv GenericEmailSender) {
+func NewEmailSender(senderType string, gcfg *data.BaseConfigType, db map[string]bool, f *os.File, conn *pgxpool.Pool, ctx context.Context, lgr *zap.Logger, xmd *metrics.MetricsData) (rv EmailSender) {
 
 	if xmd != nil {
 		validKeys := []metrics.MetricsTypeInfo{
@@ -92,33 +93,35 @@ func NewEmailSender(senderType string, gcfg *data.BaseConfigType, db map[string]
 		xmd.AddMetricsKeys(validKeys)
 	}
 
-	rv.SenderName = senderType
-	rv.nTicks = 0
-	rv.ch = make(chan string, 1)
-	rv.timeout = make(chan string, 2)
-	rv.emailLogFilePtr = f
-	rv.gCfg = gcfg
-	rv.DbFlag = db
-	rv.conn = conn
-	rv.ctx = ctx
-	rv.logger = lgr
-	rv.md = xmd
+	var xv GenericEmailSender
+
+	xv.SenderName = senderType
+	xv.nTicks = 0
+	xv.ch = make(chan string, 1)
+	xv.timeout = make(chan string, 2)
+	xv.emailLogFilePtr = f
+	xv.gCfg = gcfg
+	xv.DbFlag = db
+	xv.conn = conn
+	xv.ctx = ctx
+	xv.logger = lgr
+	xv.md = xmd
 
 	switch senderType {
 	case "sendgrid":
-		rv.TheSender = NewEmailSenderSendgrid(f)
+		xv.TheSender = NewEmailSenderSendgrid(f)
 	case "aws_ses":
-		rv.TheSender = NewEmailSenderAwsSes(f)
+		xv.TheSender = NewEmailSenderAwsSes(f)
 	default:
-		fmt.Fprintf(rv.emailLogFilePtr, "Fatal Configuration Error: Invalid email sender type >%s<-, should be one of [ \"sendgrid\", \"aws_ses\" ]\n", senderType)
+		fmt.Fprintf(xv.emailLogFilePtr, "Fatal Configuration Error: Invalid email sender type >%s<-, should be one of [ \"sendgrid\", \"aws_ses\" ]\n", senderType)
 		os.Exit(1)
 	}
 
 	if gcfg.EmailTickerSeconds >= 1 {
-		rv.initializeTimedSender()
+		xv.initializeTimedSender()
 	}
 
-	return
+	return &xv
 }
 
 // -------------------------------------------------------------------------------------------------------------------------

@@ -50,7 +50,7 @@ func (em *SendgridEmailSender) SendEmailViaVendor(rowID, fromName, fromAddress, 
 		fmt.Println(response.Headers)
 	} else {
 		dbgo.Printf("%(red)StatusCode=%v\n", response.StatusCode)
-		dbgo.Printf("%(red)body=$s\n", response.Body)
+		dbgo.Printf("%(red)body=%s\n", response.Body)
 		dbgo.Printf("%(red)Headers=%s\n", response.Headers)
 		err = fmt.Errorf("Status: %v Message: %s\n", response.StatusCode, response.Body)
 		return err, ""
