@@ -204,6 +204,7 @@ type BaseConfigType struct {
 	EmailTmplDir     string `json:"email_template_dir" default:"./tmpl"`
 	EmailFromName    string `json:"email_from_name" default:"Authentication"`
 	EmailFromAddress string `json:"email_from_address" default:"pschlump@gmail.com"`
+	EmailSender      string `json:"email_sender" default:"sendgrid"`
 
 	UseRolePriv string `json:"use_role_priv" default:"yes"`
 
@@ -215,7 +216,7 @@ type BaseConfigType struct {
 
 	EmailRegistrationToken string `json:"email_registration_token" default:"no"`
 
-	// xyzzy TODO - encrypte IsSecret values into log file using following key
+	// xyzzy TODO - encrypt IsSecret values into log file using following key
 	LogFileEncryptionKey string `json:"log_file_encryption_key" default:"$ENV$LOG_ENCRYPTION_KEY"`
 
 	DB_Enc_Key string `json:"DB_Enc_Key" default:"$ENV$DB_ENC_KEY"`
