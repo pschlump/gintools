@@ -1421,7 +1421,7 @@ alter table q_qr_n6_email_verify add column if not exists created 				timestamp 
 
 CREATE TABLE if not exists q_qr_n6_email_verify (
 	n6_token 				int not null,
-	email_verify_token		uuid not null
+	email_verify_token		uuid not null,
 	updated 				timestamp, 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 				timestamp default current_timestamp not null 		-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
