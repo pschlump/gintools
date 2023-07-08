@@ -288,7 +288,9 @@ type ApiAuthLogin struct {
 	XsrfId   string `json:"xsrf_id"    form:"xsrf_id"     binding:"required"`
 	FPData   string `json:"fp_data"    form:"fp_data"` // fingerprint data
 	ScID     string `json:"scid"       form:"scid"`    // y_id - local storage ID
-	NoCookie string `json:"no_cookie"  form:"no_cookie"`
+
+	// You can set any value for the 'no_cookie' data field.   Normally if you want to skip cookies send 'nc' for the value.
+	NoCookie string `json:"no_cookie"  form:"no_cookie"` // default is to NOT send cookie if cookies and headers (both ==> , "token_header_vs_cookie": "both") are defined,
 }
 
 //type UserConfigData struct {
@@ -417,6 +419,7 @@ func authHandleLogin(c *gin.Context) {
 			if aCfg.TokenHeaderVSCookie == "cookie" {
 				rvStatus.Token = ""
 				c.Set("__jwt_token__", "")
+				c.Set("__jwt_cookie_only__", "yes")
 			} else { // header or both
 				rvStatus.Token = theJwtToken
 				c.Set("__jwt_token__", theJwtToken)
@@ -1956,8 +1959,9 @@ type ApiAuthValidate2faToken struct {
 	X2FaPin          string `json:"x2fa_pin"   form:"x2fa_pin"   binding:"required"`
 	AmIKnown         string `json:"am_i_known" form:"am_i_known"`
 	EmailVerifyToken string `json:"email_verify_token" form:"email_verify_token"`
-	NoCookie         string `json:"no_cookie"  form:"no_cookie"`
-	// MarkerId string `json:"marker_id"  form:"marker_id"`
+
+	// You can set any value for the 'no_cookie' data field.   Normally if you want to skip cookies send 'nc' for the value.
+	NoCookie string `json:"no_cookie"  form:"no_cookie"` // default is to NOT send cookie if cookies and headers (both ==> , "token_header_vs_cookie": "both") are defined,
 }
 
 // Output returned
@@ -2180,6 +2184,7 @@ func authHandleValidate2faToken(c *gin.Context) {
 			// "Progressive improvement beats delayed perfection" -- Mark Twain
 			if aCfg.TokenHeaderVSCookie == "cookie" {
 				rvStatus.Token = ""
+				c.Set("__jwt_cookie_only__", "yes")
 			} else { // header or both
 				rvStatus.Token = theJwtToken
 			}
@@ -2923,7 +2928,9 @@ type RefreshTokenSuccess struct {
 type ApiAuthRefreshToken struct {
 	AmIKnown string `json:"am_i_known" form:"am_i_known"`
 	XsrfId   string `json:"xsrf_id"    form:"xsrf_id"     binding:"required"`
-	NoCookie string `json:"no_cookie"  form:"no_cookie"`
+
+	// You can set any value for the 'no_cookie' data field.   Normally if you want to skip cookies send 'nc' for the value.
+	NoCookie string `json:"no_cookie"  form:"no_cookie"` // default is to NOT send cookie if cookies and headers (both ==> , "token_header_vs_cookie": "both") are defined,
 }
 
 // authHandleRefreshToken godoc
@@ -2999,6 +3006,7 @@ func authHandleRefreshToken(c *gin.Context) {
 				if aCfg.TokenHeaderVSCookie == "cookie" {
 					rvStatus.Token = ""
 					c.Set("__jwt_token__", "")
+					c.Set("__jwt_cookie_only__", "yes")
 				} else { // header or both
 					rvStatus.Token = theJwtToken
 					c.Set("__jwt_token__", theJwtToken)
@@ -3552,7 +3560,7 @@ func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
 //	AuthJWTPrivate           string `json:"auth_jwt_private_file" default:""`                                                    // Private Key File
 //	AuthJWTKeyType           string `json:"auth_jwt_key_type" default:"ES" validate:"v.In(['ES256','RS256', 'ES512', 'RS512'])"` // Key type ES = ESDSA or RS = RSA
 
-func CreateJWTSignedCookie(c *gin.Context, DBAuthToken, email_addr, no_cookie string) (rv string, err error) {
+func CreateJWTSignedCookie(c *gin.Context, DBAuthToken, email_addr, NoCookie string) (rv string, err error) {
 
 	if DBAuthToken != "" { // If the Database code created an auth-token, then this needs to be converted to a JWT-Token and sent back to the user (Coookie, Header etc)
 
@@ -3584,7 +3592,10 @@ func CreateJWTSignedCookie(c *gin.Context, DBAuthToken, email_addr, no_cookie st
 			c.Writer.Header().Set("Authorization", "Bearer "+rv)
 		}
 		if aCfg.TokenHeaderVSCookie == "cookie" || aCfg.TokenHeaderVSCookie == "both" {
-			if no_cookie != "nc" {
+			// Skip cookeis - this is useful for browser extensions that can not use a "cookie" for auth.
+			// You can set any value for the 'no_cookie' data field.   Normally if you want to skip cookies
+			// send 'nc' for the value.
+			if NoCookie == "" { // if NoCookie != "nc" { - if "nc" then will be skipped.
 				SetCookie("X-Authentication", rv, c) // Will be a secure http cookie on TLS.
 				if gCfg.ReleaseMode == "dev" {
 					SetCookie("X-Authentication-User", email_addr, c) // Will be a secure http cookie on TLS.
@@ -3593,6 +3604,7 @@ func CreateJWTSignedCookie(c *gin.Context, DBAuthToken, email_addr, no_cookie st
 			}
 		}
 	}
+
 	return
 }
 

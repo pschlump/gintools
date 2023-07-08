@@ -3,6 +3,7 @@
 -- MIT Licensed.  See LICENSE.mit file.
 -- BSD Licensed.  See LICENSE.bsd file.
 
+-- xyzzyUpload
 
 
 m4_include(setup.m4)
@@ -277,7 +278,7 @@ BEGIN
 			||'}';
 	else
 		if l_state = 'un/pw' then
-			if p_state = '2va/valid' then
+			if p_state = '2fa/valid' then
 				update q_qr_device_track
 					set state_date = p_state
 					where id = l_id
@@ -290,7 +291,7 @@ BEGIN
 		elsif l_state = '2fa/valid' then
 			l_fail = false;					-- successful return
 		elsif l_state = 'unknown' then
-			if p_state = '2va/valid' then
+			if p_state = '2fa/valid' then
 				update q_qr_device_track
 					set state_date = p_state
 					where id = l_id
@@ -354,7 +355,7 @@ BEGIN
 		insert into t_output ( msg ) values ( '		p_user_id ->'||coalesce(to_json(p_user_id)::text,'---null---')||'<-');
 	end if;
 
-	if p_state = 'un/pw' or p_state = '2va/valid' then
+	if p_state = 'un/pw' or p_state = '2fa/valid' then
 		delete from q_qr_device_track
 			where fingerprint_data = p_fingerprint_data
 			  and valid_user_id <> p_user_id
@@ -1058,6 +1059,8 @@ CREATE SEQUENCE if not exists t_order_seq
 -- stmt := "insert into q_qr_uploaded_fiels ( id, original_file_name, content_type, size ) values ( $1, $2, $3, $4 )"
 -- alter table q_qr_uploaded_files  add image_confirmed	varchar(1) default 'n' not null check ( image_confirmed in ( 'y', 'n' ) );
 
+alter table q_qr_uploaded_files add column if not exists user_id				uuid;				-- UserId for the if login is used, may be null
+
 -- drop table if exists q_qr_uploaded_files ;
 CREATE TABLE if not exists q_qr_uploaded_files (
 	id					uuid DEFAULT uuid_generate_v4() not null primary key,
@@ -1070,7 +1073,8 @@ CREATE TABLE if not exists q_qr_uploaded_files (
 	url_path			text,
 	local_file_path		text,
 	image_confirmed		varchar(1) default 'n' not null check ( image_confirmed in ( 'y', 'n' ) ),
-    seq 				bigint DEFAULT nextval('t_order_seq'::regclass) NOT NULL
+    seq 				bigint DEFAULT nextval('t_order_seq'::regclass) NOT NULL,
+	user_id				uuid				-- UserId for the if login is used, may be null
 );
 comment on table q_qr_uploaded_files is 'files uploaded - Copyright (C) Philip Schlump, 2008-2023. -- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()';
 
@@ -1083,6 +1087,119 @@ create index if not exists q_qr_uploaded_files_p2 on q_qr_uploaded_files using h
 create index if not exists q_qr_uploaded_files_p3 on q_qr_uploaded_files ( group_n_id );
 create index if not exists q_qr_uploaded_files_p4 on q_qr_uploaded_files ( url_path );
 create index if not exists q_qr_uploaded_files_p5 on q_qr_uploaded_files ( local_file_path );
+create index if not exists q_qr_uploaded_files_p6 on q_qr_uploaded_files ( user_id, group_id )
+	where user_id is not null
+	;
+
+-- xyzzyUpload
+-- stmt = "insert into q_qr_uploaded_files ( id, original_file_name, content_type, size, file_hash, group_id, local_file_path, image_confirmed, url_path ) values ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )"
+-- stmt = "q_auth_v1_uploaded_files ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 )"
+CREATE OR REPLACE FUNCTION q_auth_v1_uploaded_files ( p_id uuid, p_original_file_name varchar, p_content_type varchar, p_size varchar, p_file_hash varchar, p_group_id varchar, p_local_file_path varchar, p_image_confirmed varchar, p_url_path varchar, p_user_id varchar ) RETURNS text
+AS $$
+DECLARE
+	l_data					text;
+	l_fail					bool;
+	l_user_id				uuid;
+	l_debug_on 				bool;
+	l_size 					int;
+BEGIN
+	l_debug_on = q_get_config_bool ( 'debug' );
+
+	-- Copyright (C) Philip Schlump, 2008-2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	begin
+
+		if p_user_id is not null then
+			l_user_id = p_user_id::uuid;
+		else
+			l_user_id = NULL;
+		end if;
+
+		if p_size is not null then
+			l_size = p_size::int;
+		else
+			l_size = 0;
+		end if;
+
+	exception
+		when others then
+
+			l_fail = true;
+			l_data = '{"status":"error","msg":"Type conversion error.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+
+	end;
+
+
+	begin
+
+		insert into q_qr_uploaded_files ( id, original_file_name, content_type, size, file_hash, group_id, local_file_path, image_confirmed, url_path, user_id ) 
+			values ( p_id, p_original_file_name, l_content_type, l_size, p_file_hash, p_group_id, p_locap_file_path, p_image_confirmed, p_url_path, l_user_id ) 
+			;
+
+	exception
+		when others then
+
+			l_fail = true;
+			l_data = '{"status":"error","msg":"error on insert.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+
+	end;
+
+	if not l_fail then
+
+		l_data = '{"status":"success"'
+			||'}';
+
+		if l_debug_on then
+			insert into t_output ( msg ) values ( ' l_data= '||l_data );
+		end if;
+
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
