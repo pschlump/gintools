@@ -51,3 +51,5 @@ func ValidateInputParametersMap(c *gin.Context, CrudData CrudConfig, dMa map[str
 	return
 
 }
+
+/* vim: set noai ts=4 sw=4: */

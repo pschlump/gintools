@@ -28,3 +28,5 @@ func TestEncryptTextToB64Indexable(t *testing.T) {
 }
 
 var db8112 = false
+
+/* vim: set noai ts=4 sw=4: */

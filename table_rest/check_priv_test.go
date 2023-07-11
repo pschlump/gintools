@@ -28,3 +28,5 @@ func TestCheckPriv(t *testing.T) {
 		fmt.Printf("v=%v\n", v)
 	}
 }
+
+/* vim: set noai ts=4 sw=4: */

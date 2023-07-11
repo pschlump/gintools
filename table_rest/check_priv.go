@@ -66,3 +66,5 @@ func CheckPriv(c *gin.Context, user_id, needs_priv string) (rv bool) {
 	}
 	return true
 }
+
+/* vim: set noai ts=4 sw=4: */

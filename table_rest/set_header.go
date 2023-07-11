@@ -156,3 +156,5 @@ func IsValidOrigin(c *gin.Context, origin string) (ok bool, err error) {
 	dbgo.DbPf(true, "CORS database check returns %v: %(LF)\n", found)
 	return found, nil
 }
+
+/* vim: set noai ts=4 sw=4: */

@@ -289,11 +289,13 @@ func GetTypeCode(ty string) (rv string) {
 }
 
 /*
-	SELECT routines.routine_name, parameters.data_type, parameters.ordinal_position
-	FROM information_schema.routines
-		JOIN information_schema.parameters ON routines.specific_name=parameters.specific_name
-	WHERE routines.specific_schema='public'
-	ORDER BY routines.routine_name, parameters.ordinal_position;
+SELECT routines.routine_name, parameters.data_type, parameters.ordinal_position
+FROM information_schema.routines
+
+	JOIN information_schema.parameters ON routines.specific_name=parameters.specific_name
+
+WHERE routines.specific_schema='public'
+ORDER BY routines.routine_name, parameters.ordinal_position;
 */
 func GetFunctionInformationSchema(FunctionName string, DbSchema string) (rv DbTableType, err error) {
 	// OLD: if DB == nil {
@@ -367,3 +369,5 @@ var db90 = false
 var db91 = false
 
 // Load PG - setup schema - tables - functiosn - etc.
+
+/* vim: set noai ts=4 sw=4: */

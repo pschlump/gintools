@@ -28,3 +28,5 @@ type MuxInput struct {
 	Comment             string      `json:"Comment,omitempty"`              //	A User Comment
 	Schema              string      `json:"Schema,omitempty"`               // A JSON Schema for validation
 }
+
+/* vim: set noai ts=4 sw=4: */

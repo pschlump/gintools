@@ -107,3 +107,5 @@ func ConvGeolocation(c *gin.Context, pp PrePostFlag, cfgData, inData string) (ou
 	}
 	return
 }
+
+/* vim: set noai ts=4 sw=4: */

@@ -24,3 +24,5 @@ func MethodReplace(c *gin.Context) (methodOut string) {
 	}
 	return
 }
+
+/* vim: set noai ts=4 sw=4: */

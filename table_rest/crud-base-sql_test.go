@@ -157,3 +157,5 @@ func TestCrudSql(t *testing.T) {
 }
 
 var db240 = false
+
+/* vim: set noai ts=4 sw=4: */

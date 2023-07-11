@@ -4365,8 +4365,4 @@ func CreateTmpAuthToken(c *gin.Context, UserId string) (AToken string, err error
 	return
 }
 
-/*
-
- */
-
 /* vim: set noai ts=4 sw=4: */

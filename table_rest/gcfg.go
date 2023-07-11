@@ -19,3 +19,5 @@ func SetupCRUD(gcfg *data.BaseConfigType, acfg *data.AppConfig, ucfg *data.Uploa
 	aCfg = acfg
 	uCfg = ucfg
 }
+
+/* vim: set noai ts=4 sw=4: */

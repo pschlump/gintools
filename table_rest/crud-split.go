@@ -9,8 +9,9 @@ import (
 	"strings"
 )
 
-// 4. Split URL path into components then match by components.
-// 	/abc/def/ghi -> []{"abc","def","ghi"}
+//  4. Split URL path into components then match by components.
+//     /abc/def/ghi -> []{"abc","def","ghi"}
+//
 // cleans URI
 func SplitURI(uri string) (result []string) {
 	if len(uri) == 0 {
@@ -25,3 +26,5 @@ func SplitURI(uri string) (result []string) {
 	}
 	return
 }
+
+/* vim: set noai ts=4 sw=4: */

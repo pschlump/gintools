@@ -60,3 +60,5 @@ func TestSplitURI(t *testing.T) {
 		}
 	}
 }
+
+/* vim: set noai ts=4 sw=4: */

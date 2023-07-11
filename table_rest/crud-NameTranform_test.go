@@ -22,3 +22,5 @@ func Test_NameTransform(t *testing.T) {
 		t.Fatalf("Test  Expected %s got %s\n", exp, got)
 	}
 }
+
+/* vim: set noai ts=4 sw=4: */

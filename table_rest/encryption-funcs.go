@@ -103,3 +103,5 @@ func EncryptTextIndexable(key, xiv, text []byte) ([]byte, error) {
 	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(b))
 	return ciphertext, nil
 }
+
+/* vim: set noai ts=4 sw=4: */

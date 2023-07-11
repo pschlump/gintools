@@ -1565,24 +1565,26 @@ func PrependCRUDConfigData(gob GobType) error {
 }
 
 func SetupProcCheck() {
-	var usedStoredProcConfig = []CrudStoredProcConfig{
-		{
-			CrudBaseConfig: CrudBaseConfig{
-				URIPath:       "n/a",
-				TableNameList: []string{"q_qr_role", "q_qr_priv", "q_qr_role_priv", "q_qr_user", "q_qr_auth_token"},
-				ParameterList: []ParamListItem{
-					{ReqVar: "auth_token", ParamName: "p_auth_token"},
-					{ReqVar: "user_id", ParamName: "p_user_id"},
-					{ReqVar: "needs_priv", ParamName: "p_needs_priv"},
-				},
-			},
-			StoredProcedureName: "s_check_priv",
-		},
-	}
-
-	// dbgo.Fprintf(os.Stderr, "%(yellow)At:%(LF)\n")
-
-	ValidateStoredProcs(usedStoredProcConfig)
-
-	// dbgo.Fprintf(os.Stderr, "%(yellow)At:%(LF)\n")
+	//	var usedStoredProcConfig = []CrudStoredProcConfig{
+	//		{
+	//			CrudBaseConfig: CrudBaseConfig{
+	//				URIPath:       "n/a",
+	//				TableNameList: []string{"q_qr_role", "q_qr_priv", "q_qr_role_priv", "q_qr_user", "q_qr_auth_token"},
+	//				ParameterList: []ParamListItem{
+	//					{ReqVar: "auth_token", ParamName: "p_auth_token"},
+	//					{ReqVar: "user_id", ParamName: "p_user_id"},
+	//					{ReqVar: "needs_priv", ParamName: "p_needs_priv"},
+	//				},
+	//			},
+	//			StoredProcedureName: "s_check_priv",
+	//		},
+	//	}
+	//
+	// // dbgo.Fprintf(os.Stderr, "%(yellow)At:%(LF)\n")
+	//
+	// ValidateStoredProcs(usedStoredProcConfig)
+	//
+	// // dbgo.Fprintf(os.Stderr, "%(yellow)At:%(LF)\n")
 }
+
+/* vim: set noai ts=4 sw=4: */

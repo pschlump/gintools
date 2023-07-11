@@ -664,7 +664,7 @@ func ValidInListQry(em string, data interface{}, dataX []string) bool {
 	return ValidInList(em, data2, dataX)
 }
 
-// {Name: "fmt", Label: "File Format ( '' => JSON, 'JSON', 'xml', 'csv' or 'Excel' )", Type: "s", ListValues: []string{"JSON", "csv", "xml", "Excel"}, Validate: "list_case_insensitive"},
+// {Name: "fmt", Label: "File Format ( ” => JSON, 'JSON', 'xml', 'csv' or 'Excel' )", Type: "s", ListValues: []string{"JSON", "csv", "xml", "Excel"}, Validate: "list_case_insensitive"},
 // {Name: "method", Label: "Processing Methode, one of GET, POST, PUT, DELETE", Type: "s", ListValues: []string{"GET", "POST", "PUT", "DELETE"}, Validate: "list"},
 var namedChecks = map[string]ValidationFunction{
 	"email":                 ValidEmailAddress,
@@ -693,3 +693,5 @@ var Db8_vd = false
 var db400 = true
 var db401 = false // print out skipped validation
 var db405 = false
+
+/* vim: set noai ts=4 sw=4: */

@@ -74,3 +74,5 @@ func Test_BindFixer_2(t *testing.T) {
 
 	DbType = ""
 }
+
+/* vim: set noai ts=4 sw=4: */
