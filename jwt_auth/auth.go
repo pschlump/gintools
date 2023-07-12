@@ -352,16 +352,19 @@ func authHandleLogin(c *gin.Context) {
 
 	hashOfHeaders := HeaderFingerprint(c)
 
-	dbgo.Printf("%(red)--------------------------------------------------\n")
-	dbgo.Printf("%(red)hashOfHeadrs ->%s<-\n", hashOfHeaders)
-	dbgo.Printf("%(red)--------------------------------------------------\n")
+	dbgo.Printf("\n%(red)--------------------------------------------------------------------------------------------------\n")
+	dbgo.Printf("%(cyan)AT: %(LF)\n\temail ->%(yellow)%s%(cyan)<- pw ->%(yellow)%s%(cyan)<-\n\tAmIKnown ->%(yellow)%s%(cyan)<-     XsrfId ->%(yellow)%s%(cyan)<-\n", pp.Email, pp.Pw, pp.AmIKnown, pp.XsrfId)
+	dbgo.Printf("%(red)\thashOfHeadrs ->%s<-\n", hashOfHeaders)
+	dbgo.Printf("%(red)\tFPData ->%s<-\n", pp.FPData)
+	dbgo.Printf("%(red)\tScID ->%s<-\n", pp.ScID)
+	dbgo.Printf("%(red)--------------------------------------------------------------------------------------------------\n\n")
 
 	// xyzzy8 - fingerprint
-	// create or replace function q_auth_v1_login ( p_un varchar, p_pw varchar, p_am_i_knwon varchar, p_hmac_password varchar, p_userdata_password varchar )
-	stmt := "q_auth_v1_login ( $1, $2, $3, $4, $5, $6, $7, $8 )" //, $6, $7, $8 ) xyzzy TODO - add in FP, y_id, HeaderHash....
-	// stmt := "q_auth_v1_login ( $1, $2, $3, $4, $5 )"                                                                                                                       //, $6, $7, $8 ) xyzzy TODO - add in FP, y_id, HeaderHash	, $6, $7, $8 ...
-	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)                                                                                                     //
-	rv, err := CallDatabaseJSONFunction(c, stmt, "ee.!!", pp.Email, pp.Pw, pp.AmIKnown, aCfg.EncryptionPassword, aCfg.UserdataPassword, pp.FPData, pp.ScID, hashOfHeaders) //
+	// FUNCTION q_auth_v1_login ( p_email varchar, p_pw varchar, p_am_i_known varchar, p_hmac_password varchar, p_userdata_password varchar, p_fingerprint varchar, p_sc_id varchar, p_hash_of_headers varchar, p_xsrf_id varchar ) RETURNS text
+	stmt := "q_auth_v1_login ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )"
+	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)
+	//                                                    1         2      3            4                        5                      6          7        8              9
+	rv, err := CallDatabaseJSONFunction(c, stmt, "ee.!!", pp.Email, pp.Pw, pp.AmIKnown, aCfg.EncryptionPassword, aCfg.UserdataPassword, pp.FPData, pp.ScID, hashOfHeaders, pp.XsrfId)
 	if err != nil {
 		md.AddCounter("jwt_auth_failed_login_attempts", 1)
 		return

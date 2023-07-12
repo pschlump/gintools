@@ -171,12 +171,17 @@ func timedDispatch(md *MetricsData) {
 	for {
 		select {
 		case <-ch:
-			dbgo.Printf("%(magenta)Chanel Activated\n")
+			ts := time.Now().Format("2006-01-02 15:04:05")
+			if DbFlag["monitor-timed-data-save"] {
+				dbgo.Printf("%(magenta)Chanel Activated via Message %s / Prometheus Metrics Data Save - %(yellow)%(LF)%(reset)\n", ts)
+			}
 			md.SaveData()
 
 		case <-timeout:
 			ts := time.Now().Format("2006-01-02 15:04:05")
-			dbgo.Printf("%(magenta)Clock-Ping At %s / Data Save%(reset)\n", ts)
+			if DbFlag["monitor-timed-data-save"] {
+				dbgo.Printf("%(magenta)Clock-Ping At %s / Prometheus Metrics Data Save - %(yellow)%(LF)%(reset)\n", ts)
+			}
 			md.SaveData()
 		}
 	}

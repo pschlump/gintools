@@ -323,6 +323,7 @@ func loginTrackingJsonHandler(c *gin.Context) {
 		dbgo.Fprintf(os.Stderr, "At:%(LF) %(yellow)---------- if none match ------------\n")
 		dbgo.Fprintf(os.Stderr, "%(yellow)ETag(If-None-Match): %s previous\n", inm)
 		newId = GenUUID()
+		// FUNCTION q_auth_v1_etag_seen ( p_id varchar, p_etag varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
 		stmt := "q_auth_v1_etag_seen ( $1, $2, $3, $4 )"
 		rv, e0 := CallDatabaseJSONFunction(c, stmt, "..!!", newId, inm, aCfg.EncryptionPassword, aCfg.UserdataPassword)
 		if e0 != nil {
@@ -376,6 +377,7 @@ gen:
 	etag := HashStrings.HashStrings(output, aCfg.EtagPassword)[0:20] // Hash the file
 	dbgo.Printf("%(cyan)Generate Etag at:%(LF) ->%s<-\n", etag)      // Dump so we can see what we are inserting
 	if db100 {
+		// FUNCTION q_auth_v1_etag_seen ( p_id varchar, p_etag varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
 		stmt := "q_auth_v1_etag_seen ( $1, $2, $3, $4 )"
 		rv, e0 := CallDatabaseJSONFunction(c, stmt, "..!!", newId, etag, aCfg.EncryptionPassword, aCfg.UserdataPassword)
 		if e0 != nil {

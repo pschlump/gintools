@@ -67,6 +67,7 @@ func (em *GenericEmailSender) initializeTimedSender() {
 	// ticker on channel - send once a minute
 	go func(n int) {
 		for {
+			dbgo.Printf("%(red)-------------------------------------------------------------------------------------------------------------------------------------------- %(cyan)Email - Time in Seconss %(LF) = %d\n", n)
 			time.Sleep(time.Duration(n) * time.Second)
 			em.timeout <- "timeout"
 			em.nTicks++

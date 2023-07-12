@@ -5,6 +5,8 @@
 
 -- xyzzyUpload
 
+-- FUNCTION q_auth_v1_login ( p_email varchar, p_pw varchar, p_am_i_known varchar, p_hmac_password varchar, p_userdata_password varchar, p_fingerprint varchar, p_sc_id varchar, p_hash_of_headers varchar, p_xsrf_id varchar ) RETURNS text
+
 
 m4_include(setup.m4)
 m4_include(ver.m4)
@@ -99,34 +101,122 @@ ALTER TABLE t_key_value
 
 
 
-
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- id.json - tracking table to see if user has been seen before on this device.
+-- AT: File: /Users/philip/go/src/github.com/pschlump/gintools/jwt_auth/auth.go LineNo:356
+-- 		email ->admin2@write-it-right.com<- pw ->abcdefghij<-
+-- 		AmIKnown ->141cd3a8-321d-40e0-6d0b-352202e7dbd6<- XrefID ->63ddad38-66df-4ca2-be0f-2f6e8f40d110<-
+-- 		hashOfHeadrs ->c0913a7535439615871db5a171fa7293e8f937102adb09c7d5341e3b33276e2a<-
+-- 		FPData ->b11ba821e996ecc6b9dd1b0ca7fe139a<-
+-- 		ScID ->06ee6e25-3158-4f19-9335-38c9b3822389<-
+--------------------------------------------------------------------------------------------------
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-CREATE TABLE if not exists q_qr_valid_xsrf_id (
-	xsrf_id			uuid not null primary key
-);
-comment on table q_qr_valid_xsrf_id is 'Valid xref_id values - Copyright (C) Philip Schlump, 2008-2023. -- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()';
+drop table if exists q_qr_device_track;
+drop table if exists q_qr_manifest_version;
+alter table q_qr_manifest_version rename to q_qr_device_track;
 
+-- alter table q_qr_device_track add column if not exists   user_id			uuid					;
+-- alter table q_qr_device_track add column if not exists   etag_seen			text					;
+-- alter table q_qr_device_track add column if not exists   n_seen 			int default 0 not null  ;
+-- alter table q_qr_device_track add column if not exists   n_login 			int default 0 not null  ;
+-- alter table q_qr_device_track add column if not exists   n_2fa_token 		int default 0 not null  ;
+-- alter table q_qr_device_track add column if not exists   expires 			timestamp not null		;
+-- alter table q_qr_device_track add column if not exists   fingerprint_data	text not null			;
+-- alter table q_qr_device_track add column if not exists   sc_id				text 					;
+-- alter table q_qr_device_track add column if not exists   header_hash		text 					;
+-- alter table q_qr_device_track add column if not exists   am_i_known		text 					;
+-- alter table q_qr_device_track add column if not exists   valid_user_id		uuid not null			;
+-- alter table q_qr_device_track add column if not exists   state_data		text not null			;
+-- alter table q_qr_device_track add column if not exists   updated 			timestamp				;
+-- alter table q_qr_device_track add column if not exists   created 			timestamp default current_timestamp not null;
 
-
--- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CREATE TABLE if not exists q_qr_device_track (
-	  id					uuid not null primary key
-	, fingerprint_data		text not null
-	, valid_user_id			uuid not null			-- Valid  User that has successfuly loged in on this device.
-	, state_data			text not null
-	, updated 				timestamp
-	, created 				timestamp default current_timestamp not null		-- could be used to expire data?
+	  id				uuid DEFAULT uuid_generate_v4() not null primary key
+	, user_id			uuid					-- a user specified ID to join to Q_QR_USERS.user_id
+	, etag_seen			text					-- etag for id.json
+    , n_seen 			int default 0 not null
+    , n_login 			int default 0 not null
+    , n_2fa_token 		int default 0 not null
+	, expires 			timestamp not null
+	, fingerprint_data	text    				-- FPDdata
+	, sc_id				text 					-- ScID
+	, header_hash		text 					-- hashOfHeaders	
+	, am_i_known		text 					-- AmIKnown
+	, valid_user_id		uuid 					-- Valid  User that has successfuly loged in on this device.
+	, state_data		text 
+	, updated 			timestamp
+	, created 			timestamp default current_timestamp not null
 );
-comment on table q_qr_device_track is 'Valid device fingerprints - Copyright (C) Philip Schlump, 2008-2023. -- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()';
+comment on table q_qr_device_track is 'Valid vesion of id.json, and device tracking - Copyright (C) Philip Schlump, 2008-2023. -- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()';
+
+create index if not exists q_qr_device_track_p1 on q_qr_device_track using hash ( hash_seen );
+create index if not exists q_qr_device_track_p2 on q_qr_device_track ( created, user_id );
+create index if not exists q_qr_device_track_p4 on q_qr_device_track ( expires );
+create index if not exists q_qr_device_track_p5 on q_qr_device_track ( fingerprint_data );
+create index if not exists q_qr_device_track_p6 on q_qr_device_track ( valid_user_id );
+create index if not exists q_qr_device_track_p7 on q_qr_device_track ( fingerprint_data, valid_user_id );
 
 m4_updTrig(q_qr_device_track)
 
-create index if not exists q_qr_device_track_p1 on q_qr_device_track ( fingerprint_data );
-create index if not exists q_qr_device_track_p2 on q_qr_device_track ( valid_user_id );
 
-create unique index if not exists q_qr_device_track_u1 on q_qr_device_track ( fingerprint_data, valid_user_id );
+
+
+
+
+DROP FUNCTION q_qr_device_track_expires();
+DROP TRIGGER if exists q_qr_manifest_version_expire_trig
+	ON "q_qr_device_track"
+	;
+
+
+
+
+-- trigger to set expires
+CREATE OR REPLACE FUNCTION q_qr_device_track_expires() RETURNS trigger 
+AS $$
+BEGIN
+	-- Copyright (C) Philip Schlump, 2008-2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+	NEW.expires := current_timestamp + interval '92 days';
+	RETURN NEW;
+END
+$$ LANGUAGE 'plpgsql';
+
+
+DROP TRIGGER if exists q_qr_device_track_expire_trig
+	ON "q_qr_device_track"
+	;
+
+
+CREATE TRIGGER q_qr_device_track_expire_trig
+	BEFORE insert or update ON "q_qr_device_track"
+	FOR EACH ROW
+	EXECUTE PROCEDURE q_qr_device_track_expires();
+
+
+
+
+-- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+drop table if exists q_qr_valid_xsrf_id ;
+
+CREATE TABLE if not exists q_qr_valid_xsrf_id (
+	  id				uuid DEFAULT uuid_generate_v4() not null primary key
+	, device_track_id	uuid					-- a FK to q_qr_device_track.id
+	, user_id			uuid					-- a user specified ID to join to Q_QR_USERS.user_id
+	, xsrf_id			uuid not null
+	, updated 			timestamp
+	, created 			timestamp default current_timestamp not null
+);
+comment on table q_qr_valid_xsrf_id is 'Valid xref_id values - Copyright (C) Philip Schlump, 2008-2023. -- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()';
+
+m4_updTrig(q_qr_valid_xsrf_id)
+
+create index q_qr_valid_xsrf_id_h1 on q_qr_valid_xsrf_id using hash ( xsrf_id );
+
+
+
 
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -330,6 +420,7 @@ $$ LANGUAGE plpgsql;
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- remove all other fingerpirnts that are from this device but not from this user.
+-- Not used yet
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- xyzzy8 - fingerprint 
 CREATE OR REPLACE FUNCTION q_auth_v1_login_cleanup_fingerprint_data ( p_fingerprint_data varchar, p_state varchar, p_user_id uuid, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
@@ -503,59 +594,6 @@ $$ LANGUAGE plpgsql;
 
 
 
-
-
-
--- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- id.json - tracking table to see if user has been seen before on this device.
--- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- alter table q_qr_manifest_version add   n_seen 		int default 0 not null;
--- alter table q_qr_manifest_version add   n_login 	int default 0 not null;
--- alter table q_qr_manifest_version add   n_2fa_token	int default 0 not null;
--- alter table q_qr_manifest_version add   expires 		timestamp ;
--- alter table q_qr_manifest_version add column if not exists   expires 		timestamp ;
-CREATE TABLE if not exists q_qr_manifest_version (
-	  id			uuid DEFAULT uuid_generate_v4() not null primary key
-	, hash_seen		text
-	, user_id		uuid					-- a user specified ID to join to Q_QR_USERS.user_id
-    , n_seen 		int default 0 not null
-    , n_login 		int default 0 not null
-    , n_2fa_token 	int default 0 not null
-	, expires 		timestamp not null
-	, updated 		timestamp
-	, created 		timestamp default current_timestamp not null
-);
-comment on table q_qr_manifest_version is 'Valid vesion of id.json - Copyright (C) Philip Schlump, 2008-2023. -- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()';
-
-create index if not exists q_qr_user_seen_before_p1 on q_qr_manifest_version using hash ( hash_seen );
-create index if not exists q_qr_user_seen_before_p2 on q_qr_manifest_version ( created, user_id );
-create index if not exists q_qr_user_seen_before_p4 on q_qr_manifest_version ( expires );
-
-m4_updTrig(q_qr_manifest_version)
-
-
--- trigger to set expires
-
-CREATE OR REPLACE FUNCTION q_qr_manifest_version_expires() RETURNS trigger 
-AS $$
-BEGIN
-	-- Copyright (C) Philip Schlump, 2008-2023.
-	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
-	NEW.expires := current_timestamp + interval '92 days';
-	RETURN NEW;
-END
-$$ LANGUAGE 'plpgsql';
-
-
-DROP TRIGGER if exists q_qr_manifest_version_expire_trig
-	ON "q_qr_manifest_version"
-	;
-
-CREATE TRIGGER q_qr_manifest_version_expire_trig
-	BEFORE insert or update ON "q_qr_manifest_version"
-	FOR EACH ROW
-	EXECUTE PROCEDURE q_qr_manifest_version_expires();
 
 
 
@@ -754,8 +792,8 @@ BEGIN
 	delete from t_output where created < current_timestamp - interval '1 hour' ;
 
 	delete from q_qr_auth_tokens where expires < current_timestamp ;
-	delete from q_qr_manifest_version where expires < current_timestamp ;
-	delete from q_qr_manifest_version where user_id is null and created < current_timestamp - interval '1 hour' ;
+	delete from q_qr_device_track where expires < current_timestamp ;
+	delete from q_qr_device_track where user_id is null and created < current_timestamp - interval '1 hour' ;
 	delete from q_qr_n6_email_verify where created < current_timestamp - interval '2 days' ;
 	delete from q_qr_saved_state where expires < current_timestamp ;
 	delete from q_qr_tmp_token where expires < current_timestamp ;
@@ -905,26 +943,26 @@ BEGIN
 			into
 				  l_id
 				, l_user_id
-			from q_qr_manifest_version as t1
-			where t1.hash_seen = p_etag
+			from q_qr_device_track as t1
+			where t1.etag_seen = p_etag
 			for update
 		;
 		if not found then
 			l_fail = true;
 			l_data = '{"status":"success","msg":"created"}';
-			insert into q_qr_manifest_version ( id, hash_seen ) values ( p_id::uuid, p_etag );
+			insert into q_qr_device_track ( id, etag_seen ) values ( p_id::uuid, p_etag );
 			l_id = p_id;
 			if l_debug_on then
-				insert into t_output ( msg ) values ( ' etag not found in q_qr_manifest_version ' );
+				insert into t_output ( msg ) values ( ' etag not found in q_qr_device_track ' );
 			end if;
 		else
-			update q_qr_manifest_version as t1
+			update q_qr_device_track as t1
 				set updated = current_timestamp
 				  , n_seen = n_seen + 1
 				where t1.id = l_id
 			;
 			if l_debug_on then
-				insert into t_output ( msg ) values ( ' etag found -updated with current timestamp in q_qr_manifest_version ' );
+				insert into t_output ( msg ) values ( ' etag found -updated with current timestamp in q_qr_device_track ' );
 			end if;
 		end if;
 	end if;
@@ -965,11 +1003,11 @@ $$ LANGUAGE plpgsql;
 --
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --
--- select * from q_qr_manifest_version ;
+-- select * from q_qr_device_track ;
 --
 -- select q_auth_v1_etag_device_mark ( 'cf217b21-b030-4e47-59d3-6ce00174e4ea',4,'my long secret password','user info password');
 --
--- select * from q_qr_manifest_version ;
+-- select * from q_qr_device_track ;
 
 -- drop function q_auth_v1_etag_device_mark ( p_seen_id varchar, p_user_id varchar, p_hmac_password varchar, p_userdata_password varchar );
 -- drop function q_auth_v1_etag_device_mark ( p_seen_id varchar, p_user_id uuid, p_hmac_password varchar, p_userdata_password varchar );
@@ -999,7 +1037,7 @@ BEGIN
 
 	if not l_fail then
 		-- xyzzy - TODO - upsert!
-		update q_qr_manifest_version as t1
+		update q_qr_device_track as t1
 			set user_id = p_user_id
 			  , n_2fa_token = n_2fa_token + 1
 			where t1.id = p_seen_id::uuid
@@ -1007,13 +1045,13 @@ BEGIN
 		GET DIAGNOSTICS v_cnt = ROW_COUNT;
 		if v_cnt = 0 then
 			-- xyzzy - Error p_etag!!!!!!!!!!!!!!!!
-			-- insert into q_qr_manifest_version ( id, user_id, hash_seen ) values ( p_seen_id::uuid, p_user_id, '38656434363231316634' );
-			insert into q_qr_manifest_version ( id, user_id, hash_seen ) values ( p_seen_id::uuid, p_user_id, '00000000000000000000' );
-			insert into t_output ( msg ) values ( '		set p_user_id ->'||p_user_id||'<- in q_qr_manifest_version -- shoudl be unreachable code');
+			-- insert into q_qr_device_track ( id, user_id, etag_seen ) values ( p_seen_id::uuid, p_user_id, '38656434363231316634' );
+			insert into q_qr_device_track ( id, user_id, etag_seen ) values ( p_seen_id::uuid, p_user_id, '00000000000000000000' );
+			insert into t_output ( msg ) values ( '		set p_user_id ->'||p_user_id||'<- in q_qr_device_track -- shoudl be unreachable code');
 		elsif v_cnt > 0 then
-			insert into t_output ( msg ) values ( '		set p_user_id ->'||p_user_id||'<- in q_qr_manifest_version -- multiple rows, why');
+			insert into t_output ( msg ) values ( '		set p_user_id ->'||p_user_id||'<- in q_qr_device_track -- multiple rows, why');
 		else
-			insert into t_output ( msg ) values ( '		set p_user_id ->'||p_user_id||'<- !! not set !! q_qr_manifest_version');
+			insert into t_output ( msg ) values ( '		set p_user_id ->'||p_user_id||'<- !! not set !! q_qr_device_track');
 		end if;
 	end if;
 
@@ -1590,7 +1628,7 @@ m4_updTrig(q_qr_user_config)
 
 
 
--- xyzzy400 - must create user with with this user_id!
+-- xyzzy400 - must create user with this user_id!
 
 -- insert into q_qr_user_config ( user_id, name, value ) values 
 -- 	  ( '71fee0ec-5697-4d45-9759-5a6db492adc1'::uuid, 'display-mode',    		'light' )
@@ -1717,7 +1755,7 @@ $$ LANGUAGE plpgsql;
 -- Auth Token Table
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CREATE TABLE if not exists q_qr_auth_tokens (
-	auth_token_id 	uuid default uuid_generate_v4() primary key not null,
+	auth_token_id 			uuid default uuid_generate_v4() primary key not null,
 	user_id 				uuid not null,
 	token			 		uuid not null,
 	api_encryption_key		text,
@@ -3003,7 +3041,7 @@ BEGIN
 	end if;
 
 	-- Delete all the id.json rows for this user - every marked device will need to 2fa after this request.
-	delete from q_qr_manifest_version where user_id = l_user_id;
+	delete from q_qr_device_track where user_id = l_user_id;
 
 	if not l_fail then
 		update q_qr_users as t1
@@ -5189,7 +5227,7 @@ BEGIN
 	-- Delete all the id.json rows for this user - every marked device will need to 2fa after this request.
 	-- Select to get l_user_id for email.  If it is not found above then this may not be a fully setup user.
 	-- The l_user_id is used below in a delete to prevent marking of devices as having been seen.
-	delete from q_qr_manifest_version
+	delete from q_qr_device_track
 		where user_id = (
 			select user_id
 			from q_qr_users as t1
@@ -5288,7 +5326,7 @@ BEGIN
 		-- Delete all the id.json rows for this user - every marked device will need to 2fa after this request.
 		-- Select to get l_user_id for email.  If it is not found above then this may not be a fully setup user.
 		-- The l_user_id is used below in a delete to prevent marking of devices as having been seen.
-		delete from q_qr_manifest_version
+		delete from q_qr_device_track
 			where user_id = l_user_id
 		;
 	end if;
@@ -5373,7 +5411,7 @@ BEGIN
 		-- Delete all the id.json rows for this user - every marked device will need to 2fa after this request.
 		-- Select to get l_user_id for email.  If it is not found above then this may not be a fully setup user.
 		-- The l_user_id is used below in a delete to prevent marking of devices as having been seen.
-		delete from q_qr_manifest_version
+		delete from q_qr_device_track
 			where user_id = l_user_id
 		;
 	end if;
@@ -5408,10 +5446,11 @@ $$ LANGUAGE plpgsql;
 --
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- rv, err := CallDatabaseJSONFunction(c, stmt, "ee.!!", pp.Email, pp.Pw, pp.AmIKnown, aCfg.EncryptionPassword, aCfg.UserdataPassword, pp.FPData, pp.ScID, hashOfHeaders) //
--- xyzzy8 - fingerprint -- add 3 params
 DROP FUNCTION if exists q_auth_v1_login ( p_email varchar, p_pw varchar, p_am_i_known varchar, p_hmac_password varchar, p_userdata_password varchar ) ;
+DROP FUNCTION if exists q_auth_v1_login ( p_email varchar, p_pw varchar, p_am_i_known varchar, p_hmac_password varchar, p_userdata_password varchar, p_fingerprint varchar, p_sc_id varchar, p_hash_of_headers varchar );
 
-CREATE OR REPLACE FUNCTION q_auth_v1_login ( p_email varchar, p_pw varchar, p_am_i_known varchar, p_hmac_password varchar, p_userdata_password varchar, p_fingerprint varchar, p_sc_id varchar, p_hash_of_headers varchar ) RETURNS text
+--                                          1                 2             3                     4                        5                            6                      7                8                          9
+CREATE OR REPLACE FUNCTION q_auth_v1_login ( p_email varchar, p_pw varchar, p_am_i_known varchar, p_hmac_password varchar, p_userdata_password varchar, p_fingerprint varchar, p_sc_id varchar, p_hash_of_headers varchar, p_xsrf_id varchar ) RETURNS text
 AS $$
 DECLARE
 	l_2fa_id				uuid;
@@ -5446,6 +5485,8 @@ DECLARE
 	l_client_id				uuid;
 	l_acct_state			text;
 	l_role_name				text;
+	l_is_new_device_msg		text;
+	l_device_track_id		uuid;
 BEGIN
 	l_debug_on = q_get_config_bool ( 'debug' );
 
@@ -5454,7 +5495,8 @@ BEGIN
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
-	l_is_new_device_login= 'n';
+	l_is_new_device_login = 'n';
+	l_is_new_device_msg = '--don''t-know--';
 
 	if l_debug_on then
 		insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<- m4___file__ m4___line__' );
@@ -5463,10 +5505,59 @@ BEGIN
 		insert into t_output ( msg ) values ( '  p_am_i_known ->'||coalesce(to_json(p_am_i_known)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_hmac_password ->'||coalesce(to_json(p_hmac_password)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_userdata_password ->'||coalesce(to_json(p_userdata_password)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_fingerprint ->'||coalesce(to_json(p_fingerprint)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_sc_id ->'||coalesce(to_json(p_sc_id)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_hash_of_headers ->'||coalesce(to_json(p_hash_of_headers)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_xsrf_id ->'||coalesce(to_json(p_xsrf_id)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  ' );
 	end if;
 
 	l_junk = q_auth_v1_cleanup_old_data();
+
+	-- --------------------------------------------------------------------------------------------------------------------------------------------------------
+	-- New Device
+	-- --------------------------------------------------------------------------------------------------------------------------------------------------------
+	-- If not found, ( p_am_i_known???, p_fingerprint , p_sc_id, p_hash_of_headers )
+	--		l_is_new_device_msg = 'based on: (a,b,c) not found this is a new device.
+	-- IF successful login THEN : Create new row in q_qr_device_track with entries, create dependent row with l_xsrf_id into q_qr_valid_xsrf_id. 	Set loign count to 1.
+	-- IF not new device THEN: if xsrf_id not in q_qr_valid_xsrf_id, for this user, then if successful login, create new row for l_xsrf_id.
+	-- IF not new device THEN: if succesful login then: update login count for this device.
+	-- --------------------------------------------------------------------------------------------------------------------------------------------------------
+	--
+	-- m4_comment([[[
+	--
+	-- 	autojob=# \i sql-get-device-track.sql
+	--       id      |   user_id    |      etag_seen       | n_seen | n_login |         fingerprint_data         |    sc_id     |                           header_hash                            |  am_i_known
+	-- --------------+--------------+----------------------+--------+---------+----------------------------------+--------------+------------------------------------------------------------------+--------------
+	--  5c04a7a7-638 |              | 3ddd89982a6f06303948 |      0 |       0 |                                  |              |                                                                  |
+	--  f467e984-2a1 | 524d58b1-b94 |                      |      0 |       2 | b11ba821e996ecc6b9dd1b0ca7fe139a | 06ee6e25-315 | bcaa4ba6cce30df4fc790d9c8466254d61b1ff6d0e53e5ab2fd91ea95928bcb8 | 060951a1-169
+	--  060951a1-169 |              | f9fdbdb8ddf03064341b |      3 |       0 |                                  |              |                                                                  |
+	--  a89d71d5-ae8 | 524d58b1-b94 |                      |      0 |       3 | b11ba821e996ecc6b9dd1b0ca7fe139a | 06ee6e25-315 | c0913a7535439615871db5a171fa7293e8f937102adb09c7d5341e3b33276e2a | 060951a1-169
+	-- (4 rows)
+	-- 
+	-- Note:
+	-- 	1. the am_i_known value for login matches with the "id"  in a row with etag_seen set.
+	--
+	-- ]]])
+	--
+	-- xyzzy8 - fingerprint
+	select id
+		into l_device_track_id		
+		from q_qr_device_track as t1
+		where t1.fingerprint_data = p_fingerprint
+		  and t1.sc_id = p_sc_id
+		  and t1.header_hash = p_hash_of_headers
+		limit 1
+		;
+
+	if not found then
+		l_is_new_device_login = 'y';
+		l_is_new_device_msg = 'new device, test 1';
+	else
+		l_is_new_device_login = 'n';
+		l_is_new_device_msg = 'Existing device fingerprint/sc_id/header_hash match';
+	end if;
+
 
 	-- validation_method		varchar(10) default 'un/pw' not null check ( validation_method in ( 'un/pw', 'sip', 'srp6a', 'hw-key' ) ),
 	if not l_fail then
@@ -5629,19 +5720,19 @@ BEGIN
 	if l_debug_on then
 		insert into t_output ( msg ) values ( '  [[[ Additional Fields ]]]' );
 		insert into t_output ( msg ) values ( '  ->'||coalesce(to_json(p_userdata_password)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  l_first_name = ->'||coalesce(to_json(l_first_name)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  l_last_name = ->'||coalesce(to_json(l_last_name)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  l_validation_method = ->'||coalesce(to_json(l_validation_method)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  l_start_date = ->'||coalesce(to_json(l_start_date)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  l_end_date = ->'||coalesce(to_json(l_end_date)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  l_email_validated = ->'||coalesce(to_json(l_email_validated)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  l_setup_complete_2fa = ->'||coalesce(to_json(l_setup_complete_2fa)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  l_client_id = ->'||coalesce(to_json(l_client_id)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  l_acct_state = ->'||coalesce(to_json(l_acct_state)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  l_require_2fa = ->'||coalesce(to_json(l_require_2fa)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  l_otp_hmac = ->'||coalesce(to_json(l_otp_hmac)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_first_name           = ->'||coalesce(to_json(l_first_name)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_last_name            = ->'||coalesce(to_json(l_last_name)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_validation_method    = ->'||coalesce(to_json(l_validation_method)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_start_date           = ->'||coalesce(to_json(l_start_date)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_end_date             = ->'||coalesce(to_json(l_end_date)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_email_validated      = ->'||coalesce(to_json(l_email_validated)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_setup_complete_2fa   = ->'||coalesce(to_json(l_setup_complete_2fa)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_client_id            = ->'||coalesce(to_json(l_client_id)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_acct_state           = ->'||coalesce(to_json(l_acct_state)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_require_2fa          = ->'||coalesce(to_json(l_require_2fa)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_otp_hmac             = ->'||coalesce(to_json(l_otp_hmac)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  l_one_time_password_id = ->'||coalesce(to_json(l_one_time_password_id)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  l_role_name = ->'||coalesce(to_json(l_role_name)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_role_name            = ->'||coalesce(to_json(l_role_name)::text,'---null---')||'<-');
 	end if;
 
 	if l_role_name is null then
@@ -5714,7 +5805,7 @@ BEGIN
 
 	if not l_fail then
 		l_auth_token = NULL;
--- xyzzy8 - fingerprint -- add 3 params
+		-- xyzzy8 - fingerprint -- add 3 params (done)
 		if l_require_2fa = 'y' and p_am_i_known is not null then
 			if p_am_i_known <> '' then
 				-- id.json - check to see if user has been seen before on this device.
@@ -5722,7 +5813,7 @@ BEGIN
 						  t1.id
 					into
 						  l_manifest_id
-					from q_qr_manifest_version as t1
+					from q_qr_device_track as t1
 					where t1.id = p_am_i_known::uuid
 					  and t1.user_id = l_user_id
 				;
@@ -5732,7 +5823,7 @@ BEGIN
 					end if;
 					l_is_new_device_login = 'y';
 				else
-					update q_qr_manifest_version as t1
+					update q_qr_device_track as t1
 						set updated = current_timestamp
 						  , n_login = n_login + 1
 						where t1.id = l_manifest_id
@@ -5843,6 +5934,41 @@ BEGIN
 			insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'Login - Part 1 Success: '||l_tmp_token::text, 'File:m4___file__ Line No:m4___line__');
 		else
 			insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'Successful Login', 'File:m4___file__ Line No:m4___line__');
+			if l_is_new_device_login = 'y' then
+
+				insert into q_qr_device_track (
+					  fingerprint_data 
+					, sc_id 
+					, header_hash 
+					, user_id
+					, am_i_known
+				) values (
+					  p_fingerprint
+					, p_sc_id
+					, p_hash_of_headers
+					, l_user_id
+					, p_am_i_known
+				) returning id into l_device_track_id;
+
+			else 
+
+				update q_qr_device_track 
+					set n_login = n_login + 1			
+					  , am_i_known = p_am_i_known
+					where id = l_device_track_id;
+
+			end if;
+
+			insert into q_qr_valid_xsrf_id (
+				  device_track_id
+				, user_id			
+				, xsrf_id			
+			) values (
+				  l_device_track_id
+				, l_user_id
+				, p_xsrf_id::uuid
+			);
+
 		end if;
 		l_data = '{"status":"success"'
 			||', "user_id":'     			||coalesce(to_json(l_user_id)::text,'""')
@@ -5858,6 +5984,7 @@ BEGIN
 			||', "is_new_device_login":' 	||coalesce(to_json(l_is_new_device_login)::text,'"n"')
 			||', "client_id":'     			||coalesce(to_json(l_client_id)::text,'""')
 			||', "acct_state":'     		||coalesce(to_json(l_acct_state)::text,'""')
+			||', "is_new_device_msg":' 		||coalesce(to_json(l_is_new_device_msg)::text,'"--not-set--')
 			||'}';
 
 	else
@@ -6657,13 +6784,13 @@ BEGIN
 						  t1.id
 					into
 						  l_manifest_id
-					from q_qr_manifest_version as t1
+					from q_qr_device_track as t1
 					where t1.id = p_am_i_known::uuid
 					  and t1.user_id = l_user_id
 				;
 				if not found then
 
-						insert into q_qr_manifest_version ( id, user_id )
+						insert into q_qr_device_track ( id, user_id )
 							values (  p_am_i_known::uuid, l_user_id )
 							on conflict (id) do
 								update
@@ -6722,7 +6849,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- insert into q_qr_manifest_version ( id, hash_seen, user_id ) values ( 'f2042a79-0df2-475a-6e35-3739cd323931', '35f2f2fd35988b400000', '11f670e5-944f-4200-99b2-874fcc964dab' );
+-- insert into q_qr_device_track ( id, etag_seen, user_id ) values ( 'f2042a79-0df2-475a-6e35-3739cd323931', '35f2f2fd35988b400000', '11f670e5-944f-4200-99b2-874fcc964dab' );
 -- select q_auth_v1_refresh_token ( '11f670e5-944f-4200-99b2-874fcc964dab', '92c8497f-fe5c-4692-b0ed-8cd5e7d62d64', 'f2042a79-0df2-475a-6e35-3739cd323931', 'my long secret password', 'user info password' );
 
 
@@ -6953,14 +7080,14 @@ BEGIN
 		where expires < current_timestamp
 		;
 
-	-- Cleanup old unused q_qr_manifest_version data
-	delete from q_qr_manifest_version 
-		where user_id is null
-		  and created < current_timestamp - interval '1 hour'
-		;
-	delete from q_qr_manifest_version 
-		where expires < current_timestamp 
-		;
+	-- Cleanup old unused q_qr_device_track data
+	--	delete from q_qr_device_track 
+	--		where user_id is null
+	--		  and created < current_timestamp - interval '1 hour'
+	--		;
+	--	delete from q_qr_device_track 
+	--		where expires < current_timestamp 
+	--		;
 
 
 	delete from q_qr_auth_tokens as t1

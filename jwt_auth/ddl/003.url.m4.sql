@@ -156,7 +156,7 @@ BEGIN
 	end if;
 
 	-- Delete all the id.json rows for this user - every marked device will nedd to 2fa after this request.
-	delete from q_qr_manifest_version where user_id = l_user_id;
+	delete from q_qr_device_track where user_id = l_user_id;
 
 	if not l_fail then
 		update q_qr_users as t1
