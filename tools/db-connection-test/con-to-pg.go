@@ -29,6 +29,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	_ "github.com/lib/pq"
 	"github.com/pschlump/MiscLib"
+	"github.com/pschlump/dbgo"
 	"github.com/pschlump/scany/pgxscan"
 )
 
@@ -52,6 +53,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// -------------------------- Try Simple Connection ---------------------------------------------------------------------
 	type IntType struct {
 		X *int
 	}
@@ -66,6 +68,27 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%sUnable to connection to database/failed on table select: %v%s\n", MiscLib.ColorRed, err, MiscLib.ColorReset)
 		os.Exit(1)
 	}
+
+	// -------------------------- Determin Database connect to --------------------------------------------------------------
+	type StrType struct {
+		X *string
+	}
+	var v3 []*StrType
+	stmt = "select current_database() as \"x\""
+	err = pgxscan.Select(ctx, conn, &v3, stmt)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%sUnable to connection to database/failed on table select: %v%s\n", MiscLib.ColorRed, err, MiscLib.ColorReset)
+		os.Exit(1)
+	}
+	if len(v3) == 0 {
+		fmt.Fprintf(os.Stderr, "%sUnable to connection to database/failed on table select: %v%s\n", MiscLib.ColorRed, err, MiscLib.ColorReset)
+		os.Exit(1)
+	}
+
+	if db1 {
+		fmt.Printf("Connected to ->%s<- database\n", dbgo.SVarI(v3[0]))
+	}
+	fmt.Printf("Connected to ->%s<- database\n", *v3[0].X)
 
 	fmt.Printf("%sPASS Success!!! Connected to database%s\n", MiscLib.ColorGreen, MiscLib.ColorReset)
 	os.Exit(0)
@@ -83,10 +106,15 @@ func ConnectToDb(s string) {
 	}
 	var err error
 	// func Connect(ctx context.Context, connString string) (*Pool, error)
-	fmt.Printf("Using: %s\n", constr)
+	fmt.Printf("Using: ->%s<-\n", constr)
+	if constr == "" {
+		fmt.Printf("\tNote: An empty connection string is the same as ->postgres://localhost<- for a connection string and may work\n")
+	}
 	conn, err = pgxpool.Connect(ctx, constr)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v connetion string [%s]\n", err, constr)
 		os.Exit(1)
 	}
 }
+
+var db1 = false

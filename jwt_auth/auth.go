@@ -148,28 +148,27 @@ var GinSetupTable = []GinLoginType{
 	{Method: "POST", Path: "/api/v1/auth/logout", Fx: authHandleLogout, UseLogin: LoginOptional}, // just logout - destroy auth-token
 
 	// Login UseLogin
-	{Method: "POST", Path: "/api/v1/auth/login-status", Fx: authHandleLoginStatus, UseLogin: LoginRequired},                  //	Test of Login UseLogin Stuff
-	{Method: "GET", Path: "/api/v1/auth/login-status", Fx: authHandleLoginStatus, UseLogin: LoginRequired},                   //	Test of Login UseLogin Stuff
-	{Method: "POST", Path: "/api/v1/auth/change-password", Fx: authHandleChangePassword, UseLogin: LoginRequired},            // change passwword
-	{Method: "POST", Path: "/api/v1/auth/delete-acct", Fx: authHandleDeleteAccount, UseLogin: LoginRequired},                 // self-terminate account
-	{Method: "POST", Path: "/api/v1/auth/regen-otp", Fx: authHandleRegenOTP, UseLogin: LoginRequired},                        // regenerate list of OTP list
-	{Method: "POST", Path: "/api/v1/auth/register-un-pw", Fx: authHandleRegisterUnPw, UseLogin: LoginRequired},               //
-	{Method: "POST", Path: "/api/v1/auth/register-token", Fx: authHandleRegisterToken, UseLogin: LoginRequired},              //
-	{Method: "POST", Path: "/api/v1/auth/change-email-address", Fx: authHandleChangeEmailAddress, UseLogin: LoginRequired},   //
-	{Method: "POST", Path: "/api/v1/auth/change-account-info", Fx: authHandleChangeAccountInfo, UseLogin: LoginRequired},     //
-	{Method: "POST", Path: "/api/v1/auth/change-password-admin", Fx: authHandleChangePasswordAdmin, UseLogin: LoginRequired}, //
-	{Method: "POST", Path: "/api/v1/auth/refresh-token", Fx: authHandleRefreshToken, UseLogin: LoginRequired},                //
-	{Method: "GET", Path: "/api/v1/auth/get-user-config", Fx: authHandleGetUserConfig, UseLogin: LoginRequired},              //
-	{Method: "POST", Path: "/api/v1/auth/get-user-config", Fx: authHandleGetUserConfig, UseLogin: LoginRequired},             //
-	{Method: "POST", Path: "/api/v1/auth/set-user-config", Fx: authHandleSetUserConfig, UseLogin: LoginRequired},             //
-	//{Method: "POST", Path: "/api/v1/auth/add-2fa-secret", Fx: authHandleAdd2faSecret, UseLogin: LoginRequired},               //
-	//{Method: "POST", Path: "/api/v1/auth/remove-2fa-secret", Fx: authHandleRemove2faSecret, UseLogin: LoginRequired},         //
-
+	{Method: "POST", Path: "/api/v1/auth/login-status", Fx: authHandleLoginStatus, UseLogin: LoginRequired},                          //	Test of Login UseLogin Stuff
+	{Method: "GET", Path: "/api/v1/auth/login-status", Fx: authHandleLoginStatus, UseLogin: LoginRequired},                           //	Test of Login UseLogin Stuff
+	{Method: "POST", Path: "/api/v1/auth/change-password", Fx: authHandleChangePassword, UseLogin: LoginRequired},                    // change passwword
+	{Method: "POST", Path: "/api/v1/auth/delete-acct", Fx: authHandleDeleteAccount, UseLogin: LoginRequired},                         // self-terminate account
+	{Method: "POST", Path: "/api/v1/auth/regen-otp", Fx: authHandleRegenOTP, UseLogin: LoginRequired},                                // regenerate list of OTP list
+	{Method: "POST", Path: "/api/v1/auth/register-un-pw", Fx: authHandleRegisterUnPw, UseLogin: LoginRequired},                       //
+	{Method: "POST", Path: "/api/v1/auth/register-token", Fx: authHandleRegisterToken, UseLogin: LoginRequired},                      //
+	{Method: "POST", Path: "/api/v1/auth/change-email-address", Fx: authHandleChangeEmailAddress, UseLogin: LoginRequired},           //
+	{Method: "POST", Path: "/api/v1/auth/change-account-info", Fx: authHandleChangeAccountInfo, UseLogin: LoginRequired},             //
+	{Method: "POST", Path: "/api/v1/auth/change-password-admin", Fx: authHandleChangePasswordAdmin, UseLogin: LoginRequired},         //
+	{Method: "POST", Path: "/api/v1/auth/refresh-token", Fx: authHandleRefreshToken, UseLogin: LoginRequired},                        //
+	{Method: "POST", Path: "/api/v1/auth/validate-token", Fx: authHandleValidateToken, UseLogin: LoginRequired},                      //  Checks that AuthToken + Fingerprint data is valid, if not display a Login
+	{Method: "GET", Path: "/api/v1/auth/get-user-config", Fx: authHandleGetUserConfig, UseLogin: LoginRequired},                      //
+	{Method: "POST", Path: "/api/v1/auth/get-user-config", Fx: authHandleGetUserConfig, UseLogin: LoginRequired},                     //
+	{Method: "POST", Path: "/api/v1/auth/set-user-config", Fx: authHandleSetUserConfig, UseLogin: LoginRequired},                     //
 	{Method: "POST", Path: "/api/v1/auth/create-client", Fx: authHandleCreateClient, UseLogin: LoginRequired},                        //
 	{Method: "POST", Path: "/api/v1/auth/create-registration-token", Fx: authHandleCreateRegistrationToken, UseLogin: LoginRequired}, //
 	{Method: "POST", Path: "/api/v1/auth/get-registration-token", Fx: authHandleGetRegistrationToken, UseLogin: LoginRequired},       //
-	// create or replace function q_admin_create_token_registration ( p_description varchar, p_client_id varchar, p_role_name varchar, p_user_id uuid, p_hmac_password varchar, p_userdata_password varchar )
-	// create or replace function q_admin_create_client ( p_client_name varchar, p_description varchar, p_role_name varchar, p_user_id uuid, p_hmac_password varchar, p_userdata_password varchar )
+
+	//{Method: "POST", Path: "/api/v1/auth/add-2fa-secret", Fx: authHandleAdd2faSecret, UseLogin: LoginRequired},               //
+	//{Method: "POST", Path: "/api/v1/auth/remove-2fa-secret", Fx: authHandleRemove2faSecret, UseLogin: LoginRequired},         //
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
@@ -1960,7 +1959,10 @@ type ApiAuthValidate2faToken struct {
 	Email            string `json:"email"      form:"email"      binding:"required"`
 	TmpToken         string `json:"tmp_token"  form:"tmp_token"  binding:"required"`
 	X2FaPin          string `json:"x2fa_pin"   form:"x2fa_pin"   binding:"required"`
-	AmIKnown         string `json:"am_i_known" form:"am_i_known"`
+	AmIKnown         string `json:"am_i_known" form:"am_i_known"` //
+	XsrfId           string `json:"xsrf_id"    form:"xsrf_id"`    // From Login
+	FPData           string `json:"fp_data"    form:"fp_data"`    // fingerprint data
+	ScID             string `json:"scid"       form:"scid"`       // y_id - local storage ID
 	EmailVerifyToken string `json:"email_verify_token" form:"email_verify_token"`
 
 	// You can set any value for the 'no_cookie' data field.   Normally if you want to skip cookies send 'nc' for the value.
@@ -2001,6 +2003,12 @@ func authHandleValidate2faToken(c *gin.Context) {
 		md.AddCounter("jwt_auth_failed_login_attempts", 1)
 		return
 	}
+
+	// xyzzy8 - fingerprint
+	// AmIKnown         string `json:"am_i_known" form:"am_i_known"` //
+	// XsrfId           string `json:"xsrf_id"    form:"xsrf_id"`    // From Login
+	// FPData           string `json:"fp_data"    form:"fp_data"`    // fingerprint data
+	// ScID             string `json:"scid"       form:"scid"`       // y_id - local storage ID
 
 	if pp.EmailVerifyToken != "" {
 		rv, stmt, err := ConfirmEmailAccount(c, pp.EmailVerifyToken)
@@ -4366,6 +4374,148 @@ func CreateTmpAuthToken(c *gin.Context, UserId string) (AToken string, err error
 	}
 
 	return
+}
+
+// -------------------------------------------------------------------------------------------------------------------------
+// {Method: "POST", Path: "/api/v1/auth/refresh-token", Fx: authHandleValidateToken, UseLogin: LoginRequired},            // (TODO - wrong function now)
+type RvValidateTokenType struct {
+	StdErrorReturn
+	AuthToken   string            `json:"auth_token,omitempty"`
+	Token       string            `json:"token,omitempty"` // the JWT Token???
+	UserId      string            `json:"user_id,omitempty"`
+	AccountType string            `json:"account_type,omitempty"`
+	Email       string            `json:"email_address"`
+	FirstName   string            `json:"first_name,omitempty"`
+	LastName    string            `json:"last_name,omitempty"`
+	AcctState   string            `json:"acct_state,omitempty"`
+	UserConfig  map[string]string `json:"user_config,omitempty"`
+}
+
+// Output returned
+type ValidateTokenSuccess struct {
+	Status      string            `json:"status"`
+	Token       string            `json:"token,omitempty"` // the JWT Token???
+	AccountType string            `json:"account_type,omitempty"`
+	FirstName   string            `json:"first_name,omitempty"`
+	LastName    string            `json:"last_name,omitempty"`
+	AcctState   string            `json:"acct_state,omitempty"`
+	UserConfig  map[string]string `json:"user_config,omitempty"`
+}
+
+// Input for refresh token
+type ApiAuthValidateToken struct {
+	AmIKnown string `json:"am_i_known" form:"am_i_known"`
+	XsrfId   string `json:"xsrf_id"    form:"xsrf_id"     binding:"required"`
+
+	FPData string `json:"fp_data"    form:"fp_data"` // fingerprint data
+	ScID   string `json:"scid"       form:"scid"`    // y_id - local storage ID
+
+	// You can set any value for the 'no_cookie' data field.   Normally if you want to skip cookies send 'nc' for the value.
+	NoCookie string `json:"no_cookie"  form:"no_cookie"` // default is to NOT send cookie if cookies and headers (both ==> , "token_header_vs_cookie": "both") are defined,
+}
+
+// authHandleValidateToken godoc
+// @Summary Validate auth token.
+// @Schemes
+// @Description Given a valid logged in use and a current auth_token, refresh it.
+// @Tags auth
+// @Accept json,x-www-form-urlencoded
+// @Produce json
+// @Success 200 {object} jwt_auth.ValidateTokenSuccess
+// @Failure 401 {object} jwt_auth.StdErrorReturn
+// @Failure 406 {object} jwt_auth.StdErrorReturn
+// @Failure 500 {object} jwt_auth.StdErrorReturn
+// @Router /api/v1/auth/refresh-token [post]
+func authHandleValidateToken(c *gin.Context) {
+	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF)\n")
+	var pp ApiAuthValidateToken
+	if err := BindFormOrJSON(c, &pp); err != nil {
+		return
+	}
+
+	// validate inputs AmIKnown, if "" - then 401 - pass to q_auth_v1_refresh_token
+
+	// validate inputs XsrfId, if "" - then 401
+	if err := ValidateXsrfId(c, pp.XsrfId); err != nil {
+		return
+	}
+
+	UserId, AuthToken := GetAuthToken(c)
+
+	if AuthToken != "" { // if user is logged in then generate new OTP else - just ignore.
+
+		DumpParamsToLog("After Auth - Top", c)
+
+		// function q_auth_v1_regen_otp ( p_email varchar, p_pw varchar, p_hmac_password varchar , p_userdata_password varchar )
+		stmt := "q_auth_v1_validate_token ( $1, $2, $3, $4, $5 )"
+		rv, e0 := CallDatabaseJSONFunction(c, stmt, "e!..", UserId, AuthToken, pp.AmIKnown, aCfg.EncryptionPassword, aCfg.UserdataPassword)
+		if e0 != nil {
+			return
+		}
+
+		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+		var rvStatus RvValidateTokenType
+		err := json.Unmarshal([]byte(rv), &rvStatus)
+		if rvStatus.Status == "401" {
+			goto no_auth
+		}
+		if err != nil || rvStatus.Status != "success" {
+			rvStatus.LogUUID = GenUUID()
+			// dbgo.Fprintf(logFilePtr, "%(LF) email >%s< AuthToken >%s<\n", pp.Email, AuthToken)
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+			c.JSON(http.StatusBadRequest, LogJsonReturned(rvStatus.StdErrorReturn)) // 400
+			return
+		}
+
+		// “Do what you can, with what you have, where you are.” – Theodore Roosevelt
+
+		// replace current cookie/header with new signed token
+		if rvStatus.AuthToken != "" {
+			theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken, rvStatus.Email, pp.NoCookie)
+			if err != nil {
+				return
+			}
+			dbgo.Fprintf(logFilePtr, "!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, rvStatus.Email)
+			dbgo.Fprintf(os.Stderr, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, rvStatus.Email)
+
+			c.Set("__auth_token__", rvStatus.AuthToken)
+
+			md.AddCounter("jwt_auth_success_login", 1)
+
+			if theJwtToken != "" {
+				// "Progressive improvement beats delayed perfection" -- Mark Twain
+				if aCfg.TokenHeaderVSCookie == "cookie" {
+					rvStatus.Token = ""
+					c.Set("__jwt_token__", "")
+					c.Set("__jwt_cookie_only__", "yes")
+				} else { // header or both
+					rvStatus.Token = theJwtToken
+					c.Set("__jwt_token__", theJwtToken)
+				}
+
+			}
+		}
+
+		var out ValidateTokenSuccess
+		copier.Copy(&out, &rvStatus)
+		c.JSON(http.StatusOK, LogJsonReturned(out))
+		return
+	}
+
+no_auth:
+
+	// Error Return -----------------------------------------------------------------------
+	// Sleep to mitigate DDOS attacks using this call to find out if a token is valid
+	time.Sleep(1500 * time.Millisecond)
+
+	out := StdErrorReturn{
+		Status:   "error",
+		Msg:      "401 not authorized",
+		Location: dbgo.LF(),
+	}
+	c.JSON(http.StatusUnauthorized, LogJsonReturned(out))
+	return
+
 }
 
 /* vim: set noai ts=4 sw=4: */
