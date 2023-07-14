@@ -110,7 +110,7 @@ func main() {
 
 	dbgo.SetDbFlag(DbOn)
 
-	em = email.NewEmailSender(&(gCfg.BaseConfigType), DbOn, emailLog, conn, ctx, nil /*logger*/, nil /* /metrics */)
+	em = email.NewEmailSender("sendgrid", &(gCfg.BaseConfigType), DbOn, emailLog, conn, ctx, nil /*logger*/, nil /* /metrics */)
 	if em == nil {
 		fmt.Printf("Failed to get an email sender\n")
 		os.Exit(1)
@@ -186,8 +186,8 @@ func main() {
 	// ----------------------------------------------------------------
 
 	//stmt = "function q_auth_v1_login ( p_email varchar, p_pw varchar, p_am_i_known varchar, p_hmac_password varchar, p_userdata_password varchar )
-	stmt = "q_auth_v1_login ( $1, $2, $3, $4, $5, $6, $7, $8 )"
-	md, rv, err = CallDatabaseJSONFunction(stmt, *Email, *Password, newId, gCfg.EncryptionPassword, gCfg.UserdataPassword, "xyzzy8", "xyzzy8", "xyzzy8")
+	stmt = "q_auth_v1_login ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )"
+	md, rv, err = CallDatabaseJSONFunction(stmt, *Email, *Password, newId, gCfg.EncryptionPassword, gCfg.UserdataPassword, "xyzzy8", "xyzzy8", "xyzzy8", "cf047ec4-38c1-4ad1-782e-dfb744bb92f6")
 	_ = rv
 
 	if err != nil {
