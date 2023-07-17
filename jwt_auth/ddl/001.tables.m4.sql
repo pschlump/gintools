@@ -1132,7 +1132,9 @@ create index if not exists q_qr_uploaded_files_p6 on q_qr_uploaded_files ( user_
 -- xyzzyUpload
 -- stmt = "insert into q_qr_uploaded_files ( id, original_file_name, content_type, size, file_hash, group_id, local_file_path, image_confirmed, url_path ) values ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )"
 -- stmt = "q_auth_v1_uploaded_files ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 )"
-CREATE OR REPLACE FUNCTION q_auth_v1_uploaded_files ( p_id uuid, p_original_file_name varchar, p_content_type varchar, p_size varchar, p_file_hash varchar, p_group_id varchar, p_local_file_path varchar, p_image_confirmed varchar, p_url_path varchar, p_user_id varchar ) RETURNS text
+drop FUNCTION q_auth_v1_uploaded_files ( p_id uuid, p_original_file_name varchar, p_content_type varchar, p_size varchar, p_file_hash varchar, p_group_id varchar, p_local_file_path varchar, p_image_confirmed varchar, p_url_path varchar, p_user_id varchar );
+--                                                    1          2                             3                       4           5                    6                   7                          8                          9                   10
+CREATE OR REPLACE FUNCTION q_auth_v1_uploaded_files ( p_id uuid, p_original_file_name varchar, p_content_type varchar, p_size int, p_file_hash varchar, p_group_id varchar, p_local_file_path varchar, p_image_confirmed varchar, p_url_path varchar, p_user_id varchar ) RETURNS text
 AS $$
 DECLARE
 	l_data					text;
