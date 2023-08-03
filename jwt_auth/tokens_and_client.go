@@ -68,7 +68,7 @@ type CreateRegistrationStuccess struct {
 	RegistrationToken string `json:"registration_token" form:"registration_token" db:"registration_token"`
 }
 
-// {Method: "POST", Path: "/api/v1/auth/get-user-config", Fx: authHandleGetUserConfig, UseLogin: LoginRequired},
+// {Method: "POST", Path: "/api/v1/auth/create-registration-token", Fx: authHandleCreateRegistrationToken, UseLogin: LoginRequired}, //
 //
 // authHandleGetUserConfig godoc
 // @Summary Return the current user configuration data.
@@ -81,7 +81,7 @@ type CreateRegistrationStuccess struct {
 // @Failure 403 {object} jwt_auth.StdErrorReturn
 // @Failure 406 {object} jwt_auth.StdErrorReturn
 // @Failure 500 {object} jwt_auth.StdErrorReturn
-// @Router /api/v1/auth/get-user-config [post]
+// @Router /api/v1/auth/create-registration-token [post]
 func authHandleCreateRegistrationToken(c *gin.Context) {
 	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF)\n")
 	var pp ApiCreateRegistrationToken
@@ -171,7 +171,7 @@ type CreateClientSuccess2 struct {
 	ClientId          string `json:"client_id,omitempty"`
 }
 
-// {Method: "POST", Path: "/api/v1/auth/get-user-config", Fx: authHandleGetUserConfig, UseLogin: LoginRequired},
+// {Method: "POST", Path: "/api/v1/auth/create-client", Fx: authHandleCreateClient, UseLogin: LoginRequired}, //
 //
 // authHandleGetUserConfig godoc
 // @Summary Return the current user configuration data.
@@ -184,7 +184,7 @@ type CreateClientSuccess2 struct {
 // @Failure 403 {object} jwt_auth.StdErrorReturn
 // @Failure 406 {object} jwt_auth.StdErrorReturn
 // @Failure 500 {object} jwt_auth.StdErrorReturn
-// @Router /api/v1/auth/get-user-config [post]
+// @Router /api/v1/auth/create-client [post]
 func authHandleCreateClient(c *gin.Context) {
 	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF)\n")
 	var pp ApiCreateClient
@@ -263,7 +263,7 @@ type CreateClientSuccess struct {
 // @Failure 403 {object} jwt_auth.StdErrorReturn
 // @Failure 406 {object} jwt_auth.StdErrorReturn
 // @Failure 500 {object} jwt_auth.StdErrorReturn
-// @Router /api/v1/auth/get-user-config [post]
+// @Router /api/v1/auth/get-registration-token [post]
 func authHandleGetRegistrationToken(c *gin.Context) {
 	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF)\n")
 	var pp ApiGetRegistrationToken

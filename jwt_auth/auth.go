@@ -3936,106 +3936,30 @@ func ConvPrivs2(Privileges []string) (rv string, mr map[string]bool) {
 }
 
 func BindFormOrJSON(c *gin.Context, bindTo interface{}) (err error) {
-	content_type := c.Request.Header.Get("Content-Type")
-	content_type = strings.ToLower(content_type)
-	method := c.Request.Method
 
-	if false {
-		//	dbgo.Printf("%(cyan)In BindFormOrJSON at:%(LF), content_type=%s method=%s\n", content_type, method)
-		if method == "POST" || method == "PUT" {
-			//		dbgo.Printf("%(cyan)In BindFormOrJSON at:%(LF)\n")
-			if strings.HasPrefix(content_type, "application/json") {
-				//			dbgo.Printf("%(cyan)In BindFormOrJSON at:%(LF)\n")
-				if err = c.ShouldBindJSON(bindTo); err != nil {
-					//				dbgo.Printf("%(red)In BindFormOrJSON at:%(LF) err=%s, caller=%s\n", err, dbgo.LF(-2))
-					// xyzzy - should be a log call - with a log_enc.LogInputValidationError... call...
-					c.JSON(http.StatusNotAcceptable, LogJsonReturned(gin.H{ // 406
-						"status": "error",
-						"msg":    fmt.Sprintf("Error: %s", err),
-					}))
-					return
-				}
-			} else {
-				//			dbgo.Printf("%(cyan)In BindFormOrJSON at:%(LF)\n")
-				if err = c.ShouldBind(bindTo); err != nil {
-					//				dbgo.Printf("%(red)In BindFormOrJSON at:%(LF) err=%s, caller=%s\n", err, dbgo.LF(-2))
-					c.JSON(http.StatusNotAcceptable, LogJsonReturned(gin.H{ // 406
-						"status": "error",
-						"msg":    fmt.Sprintf("Error: %s", err),
-					}))
-					return
-				}
-			}
-		} else {
-			//		dbgo.Printf("%(cyan)In BindFormOrJSON at:%(LF)\n")
-			//		if err = c.ShouldBindQuery(bindTo); err != nil {
-			//			dbgo.Printf("%(red)In BindFormOrJSON at:%(LF) err=%s\n", err)
-			//			c.JSON(http.StatusNotAcceptable, LogJsonReturned(gin.H{ // 406
-			//				"status": "error",
-			//				"msg":    fmt.Sprintf("Error: %s", err),
-			//			}))
-			//			return
-			//		}
-			if err = c.ShouldBind(bindTo); err != nil {
-				dbgo.Printf("%(red)In BindFormOrJSON at:%(LF) err=%s\n", err)
-				c.JSON(http.StatusNotAcceptable, LogJsonReturned(gin.H{ // 406
-					"status": "error",
-					"msg":    fmt.Sprintf("Error: %s", err),
-				}))
-				return
-			}
-		}
-	} else {
-		dbgo.Printf("%(cyan)In BindFormOrJSON at:%(LF), content_type=%s method=%s\n", content_type, method)
-		if err = c.ShouldBind(bindTo); err != nil {
-			dbgo.Printf("%(red)In BindFormOrJSON at:%(LF) err=%s\n", err)
-			c.JSON(http.StatusNotAcceptable, LogJsonReturned(gin.H{ // 406
-				"status": "error",
-				"msg":    fmt.Sprintf("Error: %s", err),
-			}))
-			return
-		}
+	if err = c.ShouldBind(bindTo); err != nil {
+		dbgo.Printf("%(red)In BindFormOrJSON at:%(LF) err=%s\n", err)
+		dbgo.Fprintf(logFilePtr, "%(red)In BindFormOrJSON at:%(LF) err=%s\n", err)
+		c.JSON(http.StatusNotAcceptable, LogJsonReturned(gin.H{ // 406
+			"status": "error",
+			"msg":    fmt.Sprintf("Error: %s", err),
+		}))
+		return
 	}
 
 	dbgo.Printf("%(cyan)Parameters: %s at %s\n", dbgo.SVarI(bindTo), dbgo.LF(2))
+	dbgo.Fprintf(logFilePtr, "%(cyan)Parameters: %s at %s\n", dbgo.SVarI(bindTo), dbgo.LF(2))
 	return
 }
 
 func BindFormOrJSONOptional(c *gin.Context, bindTo interface{}) (err error) {
-	content_type := c.Request.Header.Get("Content-Type")
-	content_type = strings.ToLower(content_type)
-	method := c.Request.Method
 
-	if false {
-		if method == "POST" || method == "PUT" {
-			if strings.HasPrefix(content_type, "application/json") {
-				if err = c.ShouldBindJSON(bindTo); err != nil {
-					dbgo.Printf("# DataBbind: %(yellow)In BindFormOrJSONOptional at:%(LF)   Binding error may mean missing data.  POST/PUT - JsonData  err=%s\n", err)
-					dbgo.Fprintf(logFilePtr, "# DataBbind: %(yellow)In BindFormOrJSONOptional at:%(LF)   Binding error may mean missing data.  POST/PUT - JsonData  err=%s\n", err)
-					// xyzzy - should be a log call - with a log_enc.LogInputValidationError... call...
-					return
-				}
-			} else {
-				if err = c.ShouldBind(bindTo); err != nil {
-					dbgo.Fprintf(os.Stdout, "#%(yellow)In BindFormOrJSONOptional at:%(LF) FormBind x-url-encoded POST/PUT Form err=%s\n", err)
-					dbgo.Fprintf(logFilePtr, "#%(yellow)In BindFormOrJSONOptional at:%(LF) FormBind x-url-encoded POST/PUT Form err=%s\n", err)
-					return
-				}
-			}
-		} else {
-			if err = c.ShouldBind(bindTo); err != nil {
-				dbgo.Printf("%(yellow)In BindFormOrJSONOptional at:%(LF) GET Query err=%s\n", err)
-				dbgo.Fprintf(logFilePtr, "%(yellow)In BindFormOrJSONOptional at:%(LF) GET Query err=%s\n", err)
-				return
-			}
-		}
-	} else {
-		if err = c.ShouldBind(bindTo); err != nil {
-			dbgo.Printf("%(yellow)In BindFormOrJSONOptional at:%(LF) GET Query err=%s\n", err)
-			dbgo.Fprintf(logFilePtr, "%(yellow)In BindFormOrJSONOptional at:%(LF) GET Query err=%s\n", err)
-			return
-		}
+	if err = c.ShouldBind(bindTo); err != nil {
+		dbgo.Printf("%(yellow)In BindFormOrJSONOptional at:%(LF) GET Query err=%s\n", err)
+		dbgo.Fprintf(logFilePtr, "%(yellow)In BindFormOrJSONOptional at:%(LF) GET Query err=%s\n", err)
+		return
 	}
+
 	dbgo.Printf("# BindData %(cyan)Parameters: %s at %s\n", dbgo.SVarI(bindTo), dbgo.LF(2))
 	dbgo.Fprintf(logFilePtr, "# BindData: %(cyan)Parameters: %s at %s\n", dbgo.SVarI(bindTo), dbgo.LF(2))
 	return
@@ -4377,7 +4301,8 @@ func CreateTmpAuthToken(c *gin.Context, UserId string) (AToken string, err error
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
-// {Method: "POST", Path: "/api/v1/auth/refresh-token", Fx: authHandleValidateToken, UseLogin: LoginRequired},            // (TODO - wrong function now)
+// {Method: "POST", Path: "/api/v1/auth/validate-token", Fx: authHandleValidateToken, UseLogin: LoginRequired},                      //  Checks that AuthToken + Fingerprint data is valid, if not display a Login
+
 type RvValidateTokenType struct {
 	StdErrorReturn
 	AuthToken   string            `json:"auth_token,omitempty"`
@@ -4425,7 +4350,7 @@ type ApiAuthValidateToken struct {
 // @Failure 401 {object} jwt_auth.StdErrorReturn
 // @Failure 406 {object} jwt_auth.StdErrorReturn
 // @Failure 500 {object} jwt_auth.StdErrorReturn
-// @Router /api/v1/auth/refresh-token [post]
+// @Router /api/v1/auth/validate-token [post]
 func authHandleValidateToken(c *gin.Context) {
 	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF)\n")
 	var pp ApiAuthValidateToken
