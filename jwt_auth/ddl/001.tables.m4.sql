@@ -1174,19 +1174,19 @@ BEGIN
 	end;
 
 
-	begin
+--	begin
 
 		insert into q_qr_uploaded_files ( id, original_file_name, content_type, size, file_hash, group_id, local_file_path, image_confirmed, url_path, user_id ) 
-			values ( p_id, p_original_file_name, l_content_type, l_size, p_file_hash, p_group_id, p_locap_file_path, p_image_confirmed, p_url_path, l_user_id ) 
+			values ( p_id, p_original_file_name, p_content_type, l_size, p_file_hash, p_group_id::uuid, p_local_file_path, p_image_confirmed, p_url_path, l_user_id ) 
 			;
 
-	exception
-		when others then
-
-			l_fail = true;
-			l_data = '{"status":"error","msg":"error on insert.","code":"m4_count()","location":"m4___file__ m4___line__"}';
-
-	end;
+--	exception
+--		when others then
+--
+--			l_fail = true;
+--			l_data = '{"status":"error","msg":"error on insert.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+--
+--	end;
 
 	if not l_fail then
 
@@ -3753,6 +3753,9 @@ BEGIN
 			insert into q_qr_user_hierarchy ( user_id, parent_user_id ) 
 				values ( l_user_id, null )
 			;
+			if l_debug_on then
+				insert into t_output ( msg ) values ( ' l_admin_email= '||l_admin_email||' is equal to p_email' );
+			end if;
 		else 
 			insert into q_qr_user_hierarchy ( user_id, parent_user_id ) 
 				select l_user_id, t1.user_id 
@@ -3764,6 +3767,9 @@ BEGIN
 				l_fail = true;
 				l_data = '{"status":"error","msg":"Unable to create account as a part of the account hierarchy.  Please login or recover password.","code":"m4_count()","location":"m4___file__ m4___line__"}';
 				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'Unable to create account as a part of the account hierarchy.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+			end if;
+			if l_debug_on then
+				insert into t_output ( msg ) values ( ' l_admin_email= '||l_admin_email||' is *NOT* equal to p_email='||p_email );
 			end if;
 		end if;
 	end if;

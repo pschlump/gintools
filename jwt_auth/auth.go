@@ -621,8 +621,8 @@ func authHandleRegister(c *gin.Context) {
 	// q_auth_v1_register ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar, p_n6_flag varchar ) RETURNS text
 	stmt := "q_auth_v1_register ( $1, $2, $3, $4, $5, $6, $7, $8 )"
 	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)
-	//                                                      1         2      3                        4             5            6                      7       8
-	rv, err := CallDatabaseJSONFunction(c, stmt, "ee.ee..", pp.Email, pp.Pw, aCfg.EncryptionPassword, pp.FirstName, pp.LastName, aCfg.UserdataPassword, secret, gCfg.AuthEmailToken)
+	//                                                       1         2      3                        4             5            6                      7       8
+	rv, err := CallDatabaseJSONFunction(c, stmt, "ee!ee!..", pp.Email, pp.Pw, aCfg.EncryptionPassword, pp.FirstName, pp.LastName, aCfg.UserdataPassword, secret, gCfg.AuthEmailToken)
 	if err != nil {
 		return
 	}
@@ -630,7 +630,7 @@ func authHandleRegister(c *gin.Context) {
 	err = json.Unmarshal([]byte(rv), &RegisterResp)
 	if RegisterResp.Status != "success" {
 		RegisterResp.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "ee!ee!!", SVar(RegisterResp), pp.Email, pp.Pw /*aCfg.EncryptionPassword,*/, pp.FirstName, pp.LastName /*, aCfg.UserdataPassword*/, secret)
+		log_enc.LogStoredProcError(c, stmt, "ee!ee!..", SVar(RegisterResp), pp.Email, pp.Pw /*aCfg.EncryptionPassword,*/, pp.FirstName, pp.LastName /*, aCfg.UserdataPassword*/, secret)
 		c.JSON(http.StatusBadRequest, LogJsonReturned(RegisterResp.StdErrorReturn))
 		return
 	}
@@ -3383,8 +3383,8 @@ type SQLUserIdPrivsType struct {
 
 // xyzzy8 - fingerprint
 func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
-	dbgo.Fprintf(logFilePtr, "    %(magenta)In GetAuthToken at:%(LF), aCfg.TokenHeaderVSCookie==%s\n", aCfg.TokenHeaderVSCookie)
-	dbgo.Fprintf(os.Stderr, "    %(magenta)In GetAuthToken at:%(LF), aCfg.TokenHeaderVSCookie==%s\n", aCfg.TokenHeaderVSCookie)
+	dbgo.Fprintf(logFilePtr, "    %(magenta)In GetAuthToken at:%(LF), aCfg.TokenHeaderVSCookie==%s%(reset)\n", aCfg.TokenHeaderVSCookie)
+	dbgo.Fprintf(os.Stderr, "    %(magenta)In GetAuthToken at:%(LF), aCfg.TokenHeaderVSCookie==%s%(reset)\n", aCfg.TokenHeaderVSCookie)
 
 	// -----------------------------------------------------------------------------------------------------------------------
 	// Look for the auth token in multiple places.
@@ -3527,7 +3527,7 @@ func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
 		err = pgxscan.Select(ctx, conn, &v2, stmt, AuthToken, aCfg.UserdataPassword) // __userdata_password__
 		dbgo.Fprintf(logFilePtr, "Yep - should be a user_id and a set of privs >%s<- at:%(LF) auth_token->%s<-\n", dbgo.SVarI(v2), AuthToken)
 		dbgo.Fprintf(os.Stderr, "Yep - should be a user_id and a set of privs >%s<- at:%(LF) auth_token->%s<-\n", dbgo.SVarI(v2), AuthToken)
-		dbgo.Fprintf(os.Stderr, "%(red)%(LF) Error:%s stmt ->%s<- data:%s %s\n", err, stmt, AuthToken, aCfg.UserdataPassword)
+		dbgo.Fprintf(os.Stderr, "%(yellow)%(LF) Error:%s stmt ->%s<- data:%s %s\n", err, stmt, AuthToken, aCfg.UserdataPassword)
 		if err != nil {
 			dbgo.Fprintf(os.Stderr, "%(red)%(LF) Error:%s stmt ->%s<- data:%s %s\n", err, stmt, AuthToken, aCfg.UserdataPassword)
 			log_enc.LogSQLError(c, stmt, err, "e", AuthToken, aCfg.UserdataPassword)

@@ -552,7 +552,8 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 
 		} else if HasOrderByList(c) { // xyzzy - TODO - should be a add-on to existing queries for order, not a different query -- this is an error
 
-			bindColData := []interface{}{id}
+			// bindColData := []interface{}{id}
+			bindColData := []interface{}{}
 			where := ""
 			if len(CrudData.UseRLS) > 0 {
 				addStmt := AppendWhereUseRLS(1, CrudData.UseRLS)
@@ -572,21 +573,36 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 				return
 			}
 			stmt := fmt.Sprintf("select %s from %q %s order by %s", GenProjected(CrudData.ProjectedCols), CrudData.TableName, where, orderBy)
-			dbgo.DbPrintf("HandleCRUD", "AT: %s stmt(Where Generated) [%s] data=%s\n", dbgo.LF(), stmt, dbgo.SVar(bindColData))
-			rows, err := SQLQueryW(c, stmt, bindColData)
-			defer func() {
-				if rows != nil && err == nil {
-					rows.Close()
+			dbgo.DbPrintf("HandleCRUD", "AT: %s stmt(Where Generated, With order by) [%s] data=%s\n", dbgo.LF(), stmt, dbgo.SVar(bindColData))
+			if len(bindColData) > 0 {
+				rows, err := SQLQueryW(c, stmt, bindColData)
+				defer func() {
+					if rows != nil && err == nil {
+						rows.Close()
+					}
+				}()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
+					fmt.Fprintf(logFilePtr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
+					c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
+					return
 				}
-			}()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
-				fmt.Fprintf(logFilePtr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
-				c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
-				return
+				data, _, _ = RowsToInterface(rows)
+			} else {
+				rows, err := SQLQueryW(c, stmt)
+				defer func() {
+					if rows != nil && err == nil {
+						rows.Close()
+					}
+				}()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
+					fmt.Fprintf(logFilePtr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
+					c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
+					return
+				}
+				data, _, _ = RowsToInterface(rows)
 			}
-			// OLD: data, _, _ = sizlib.RowsToInterface(rows)
-			data, _, _ = RowsToInterface(rows)
 
 		} else if CrudData.SelectRequiresWhere { // If true, then were must be specified - can not do a full-table below.
 			dbgo.DbPrintf("HandleCRUD", "AT: %s method [%s]\n", dbgo.LF(), c.Request.Method)
@@ -613,7 +629,17 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 
 			// page-ing should occure at this point!!			___page__ and page-size will be needed
 			stmt := fmt.Sprintf("select %s from %q %s", GenProjected(CrudData.ProjectedCols), CrudData.TableName, where)
-			dbgo.DbPrintf("HandleCRUD", "AT: %s stmt(Where Generated) [%s] data=%s\n", dbgo.LF(), stmt, dbgo.SVar(bindColData))
+			dbgo.DbPrintf("HandleCRUD", "AT: %s stmt(Where Generated, Original) [%s] data=%s\n", dbgo.LF(), stmt, dbgo.SVar(bindColData))
+
+			//			if HasOrderByList(c) {
+			//				orderBy, err := GenOrderBy(c, CrudData)
+			//				if err != nil {
+			//					return
+			//				}
+			//				stmt += fmt.Sprintf(" order by %ss", orderBy)
+			//			}
+
+			dbgo.DbPrintf("HandleCRUD", "AT: %s stmt(Where Generated, After Order By Added) [%s] data=%s\n", dbgo.LF(), stmt, dbgo.SVar(bindColData))
 			if where == "" {
 				rows, err := SQLQueryW(c, stmt)
 				defer func() {
