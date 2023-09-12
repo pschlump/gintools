@@ -113,7 +113,7 @@ ALTER TABLE t_key_value
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 drop table if exists q_qr_device_track;
 drop table if exists q_qr_manifest_version;
-alter table q_qr_manifest_version rename to q_qr_device_track;
+alter table if exists q_qr_manifest_version rename to q_qr_device_track;
 
 -- alter table q_qr_device_track add column if not exists   user_id			uuid					;
 -- alter table q_qr_device_track add column if not exists   etag_seen			text					;
@@ -149,7 +149,7 @@ CREATE TABLE if not exists q_qr_device_track (
 );
 comment on table q_qr_device_track is 'Valid vesion of id.json, and device tracking - Copyright (C) Philip Schlump, 2008-2023. -- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()';
 
-create index if not exists q_qr_device_track_p1 on q_qr_device_track using hash ( hash_seen );
+create index if not exists q_qr_device_track_p1 on q_qr_device_track using hash ( etag_seen );
 create index if not exists q_qr_device_track_p2 on q_qr_device_track ( created, user_id );
 create index if not exists q_qr_device_track_p4 on q_qr_device_track ( expires );
 create index if not exists q_qr_device_track_p5 on q_qr_device_track ( fingerprint_data );
@@ -655,7 +655,7 @@ m4_updTrig(q_qr_email_log)
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- email to be sent.
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-alter table q_qr_email_send add column if not exists error_info		text;
+alter table if exists q_qr_email_send add column if not exists error_info		text;
 CREATE TABLE if not exists q_qr_email_send (
 	  email_send_id	uuid DEFAULT uuid_generate_v4() not null primary key
 	, user_id			uuid					-- if available
@@ -1097,7 +1097,7 @@ CREATE SEQUENCE if not exists t_order_seq
 -- stmt := "insert into q_qr_uploaded_fiels ( id, original_file_name, content_type, size ) values ( $1, $2, $3, $4 )"
 -- alter table q_qr_uploaded_files  add image_confirmed	varchar(1) default 'n' not null check ( image_confirmed in ( 'y', 'n' ) );
 
-alter table q_qr_uploaded_files add column if not exists user_id				uuid;				-- UserId for the if login is used, may be null
+alter table if exists q_qr_uploaded_files add column if not exists user_id				uuid;				-- UserId for the if login is used, may be null
 
 -- drop table if exists q_qr_uploaded_files ;
 CREATE TABLE if not exists q_qr_uploaded_files (
@@ -1132,7 +1132,7 @@ create index if not exists q_qr_uploaded_files_p6 on q_qr_uploaded_files ( user_
 -- xyzzyUpload
 -- stmt = "insert into q_qr_uploaded_files ( id, original_file_name, content_type, size, file_hash, group_id, local_file_path, image_confirmed, url_path ) values ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )"
 -- stmt = "q_auth_v1_uploaded_files ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 )"
-drop FUNCTION q_auth_v1_uploaded_files ( p_id uuid, p_original_file_name varchar, p_content_type varchar, p_size varchar, p_file_hash varchar, p_group_id varchar, p_local_file_path varchar, p_image_confirmed varchar, p_url_path varchar, p_user_id varchar );
+drop FUNCTION if exists q_auth_v1_uploaded_files ( p_id uuid, p_original_file_name varchar, p_content_type varchar, p_size varchar, p_file_hash varchar, p_group_id varchar, p_local_file_path varchar, p_image_confirmed varchar, p_url_path varchar, p_user_id varchar );
 --                                                    1          2                             3                       4           5                    6                   7                          8                          9                   10
 CREATE OR REPLACE FUNCTION q_auth_v1_uploaded_files ( p_id uuid, p_original_file_name varchar, p_content_type varchar, p_size int, p_file_hash varchar, p_group_id varchar, p_local_file_path varchar, p_image_confirmed varchar, p_url_path varchar, p_user_id varchar ) RETURNS text
 AS $$
@@ -1377,8 +1377,8 @@ CREATE TRIGGER q_qr_saved_state_expire_trig
 
 -- alter table q_qr_users add column login_2fa_failures 		int default 10 not null;
 
-alter table q_qr_users add column if not exists role_name 		text;
-alter table q_qr_users add column if not exists org_name			text;
+alter table if exists q_qr_users add column if not exists role_name 		text;
+alter table if exists q_qr_users add column if not exists org_name			text;
 
 CREATE TABLE if not exists q_qr_users (
 	user_id 				uuid default uuid_generate_v4() not null primary key,
@@ -1456,8 +1456,8 @@ m4_updTrig(q_qr_users)
 -- xyzzy99 if n6 - 6 digit random returned by call
 -- SELECT random();
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-alter table q_qr_n6_email_verify add column if not exists updated 				timestamp; 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
-alter table q_qr_n6_email_verify add column if not exists created 				timestamp default current_timestamp not null 		;
+alter table if exists q_qr_n6_email_verify add column if not exists updated 				timestamp; 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
+alter table if exists q_qr_n6_email_verify add column if not exists created 				timestamp default current_timestamp not null 		;
 
 CREATE TABLE if not exists q_qr_n6_email_verify (
 	n6_token 				int not null,
@@ -1469,7 +1469,7 @@ CREATE TABLE if not exists q_qr_n6_email_verify (
 CREATE UNIQUE INDEX if not exists  q_qr_n6_email_verify_u1 on q_qr_n6_email_verify ( n6_token );
 DROP INDEX if exists q_qr_n6_email_verify_u2;
 CREATE INDEX if not exists  q_qr_n6_email_verify_p1 on q_qr_n6_email_verify ( email_verify_token );
-create index q_qr_n6_verify_p2 on ( created );	
+create index q_qr_n6_verify_p2 on q_qr_n6_email_verify ( created );	
 
 
 
@@ -2319,8 +2319,8 @@ $$ LANGUAGE plpgsql;
 -- alter table q_qr_token_registration  add is_one_time				varchar(1) default 'n' not null;
 -- alter table q_qr_token_registration  add email_note				text;
 
-alter table q_qr_token_registration add column if not exists admin_email 			text;
-alter table q_qr_token_registration add column if not exists application_url 		text;
+alter table if exists q_qr_token_registration add column if not exists admin_email 			text;
+alter table if exists q_qr_token_registration add column if not exists application_url 		text;
 
 CREATE TABLE if not exists q_qr_token_registration (
 	  token_registration_id 	uuid default uuid_generate_v4() not null primary key
@@ -2550,9 +2550,9 @@ CREATE TRIGGER q_qr_token_registration_hist_ins_trig
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- client table / token_registration
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-alter table q_qr_client add column if not exists client_email text;
-alter table q_qr_client add column if not exists designated_user_id uuid;
-alter table q_qr_client add column if not exists token_registration_id	uuid;
+alter table if exists q_qr_client add column if not exists client_email text;
+alter table if exists q_qr_client add column if not exists designated_user_id uuid;
+alter table if exists q_qr_client add column if not exists token_registration_id	uuid;
 CREATE TABLE if not exists q_qr_client (
 	  client_id 			uuid default uuid_generate_v4() not null primary key
 	, client_name			text not null

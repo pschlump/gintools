@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS q_qr_role_name_application_url (
 	updated 			timestamp,
 	created 			timestamp default current_timestamp not null
 );
-comment on table q_qr_role_name_application_url is 'Role Creation Token to Applicaiton URL - Copyright (C) Philip Schlump, LLC, 2022. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_role_name_application_url is 'Role Creation Token to Applicaiton URL - Copyright (C) Philip Schlump, LLC, 2022. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 create unique index if not exists q_qr_role_name_application_url_u1 on q_qr_role_name_application_url ( role_name );
 
@@ -56,7 +56,7 @@ create unique index if not exists q_qr_role_name_application_url_u1 on q_qr_role
 CREATE OR REPLACE FUNCTION q_qr_role_name_application_url_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -87,7 +87,7 @@ CREATE TABLE if not exists t_output (
 	, msg 		text
 	, created 	timestamp default current_timestamp not null
 );
-comment on table t_output is 'Temporary output for debuging - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table t_output is 'Temporary output for debuging - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 -- used for cleanup of table - Delete everything that is
 -- more than 1 hour old?
@@ -104,14 +104,14 @@ CREATE TABLE if not exists t_key_value (
 	updated 	timestamp, 									 						-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 	timestamp default current_timestamp not null 						-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table t_key_value is 'Key value store so we do not need redis running - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table t_key_value is 'Key value store so we do not need redis running - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 
 
 CREATE OR REPLACE FUNCTION t_key_value_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -156,7 +156,7 @@ ALTER TABLE t_key_value
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 drop table if exists q_qr_device_track;
 drop table if exists q_qr_manifest_version;
-alter table q_qr_manifest_version rename to q_qr_device_track;
+alter table if exists q_qr_manifest_version rename to q_qr_device_track;
 
 -- alter table q_qr_device_track add column if not exists   user_id			uuid					;
 -- alter table q_qr_device_track add column if not exists   etag_seen			text					;
@@ -190,9 +190,9 @@ CREATE TABLE if not exists q_qr_device_track (
 	, updated 			timestamp
 	, created 			timestamp default current_timestamp not null
 );
-comment on table q_qr_device_track is 'Valid vesion of id.json, and device tracking - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_device_track is 'Valid vesion of id.json, and device tracking - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
-create index if not exists q_qr_device_track_p1 on q_qr_device_track using hash ( hash_seen );
+create index if not exists q_qr_device_track_p1 on q_qr_device_track using hash ( etag_seen );
 create index if not exists q_qr_device_track_p2 on q_qr_device_track ( created, user_id );
 create index if not exists q_qr_device_track_p4 on q_qr_device_track ( expires );
 create index if not exists q_qr_device_track_p5 on q_qr_device_track ( fingerprint_data );
@@ -204,7 +204,7 @@ create index if not exists q_qr_device_track_p7 on q_qr_device_track ( fingerpri
 CREATE OR REPLACE FUNCTION q_qr_device_track_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -241,7 +241,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.expires := current_timestamp + interval '92 days';
 	RETURN NEW;
 END
@@ -273,14 +273,14 @@ CREATE TABLE if not exists q_qr_valid_xsrf_id (
 	, updated 			timestamp
 	, created 			timestamp default current_timestamp not null
 );
-comment on table q_qr_valid_xsrf_id is 'Valid xref_id values - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_valid_xsrf_id is 'Valid xref_id values - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 
 
 CREATE OR REPLACE FUNCTION q_qr_valid_xsrf_id_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -314,7 +314,7 @@ CREATE TABLE if not exists q_qr_308_redirect (
 	  id					uuid not null primary key		-- ID on URL - to validate
 	, valid_user_id			uuid			-- Valid  User that has successfuly loged in on this device.
 );
-comment on table q_qr_308_redirect is 'Valid login - unique ID - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_308_redirect is 'Valid login - unique ID - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 create index if not exists q_qr_308_rediret_p1 on q_qr_308_redirect ( valid_user_id );
 
@@ -327,7 +327,7 @@ create index if not exists q_qr_308_rediret_p1 on q_qr_308_redirect ( valid_user
 CREATE TABLE if not exists q_qr_valid_referer (
 	referer			text
 );
-comment on table q_qr_valid_referer is 'Valid referer headers - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_valid_referer is 'Valid referer headers - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 create unique index if not exists  q_qr_valid_referer_u1 on q_qr_valid_referer ( referer );
 
@@ -344,7 +344,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	select value into l_data from q_qr_config where name = p_name;
 	if not found then
 		l_data = '';
@@ -363,7 +363,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	select b_value into l_data from q_qr_config where name = p_name;
 	if not found then
 		l_data = false;
@@ -379,7 +379,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	select b_value into l_data from q_qr_config where name = p_name;
 	if not found then
 		l_data = p_dflt;
@@ -398,7 +398,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	select value::bigint into l_data from q_qr_config where name = p_name;
 	if not found then
 		l_data = p_dflt;
@@ -429,7 +429,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	if l_debug_on then
 		insert into t_output ( msg ) values ( 'function ->q_auth_v1_validate_fingerprint_data<- 001.tables.m4.sql 350' );
@@ -522,7 +522,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	if l_debug_on then
 		insert into t_output ( msg ) values ( 'function ->q_auth_v1_login_cleanup_fingerprint_data<- 001.tables.m4.sql 443' );
@@ -572,7 +572,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	if l_debug_on then
 		insert into t_output ( msg ) values ( 'function ->q_auth_v1_validate_xsrf_id<- 001.tables.m4.sql 493' );
@@ -631,7 +631,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	if l_debug_on then
 		insert into t_output ( msg ) values ( 'function ->q_auth_v1_xsrf_setup<- 001.tables.m4.sql 552' );
@@ -702,7 +702,7 @@ CREATE TABLE if not exists q_qr_s3_log (
 	, updated 			timestamp
 	, created 			timestamp default current_timestamp not null
 );
-comment on table q_qr_s3_log is 'log of files pushed to S3 - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_s3_log is 'log of files pushed to S3 - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 create index if not exists q_qr_s3_log_p1 on q_qr_s3_log ( group_id );
 create index if not exists q_qr_s3_log_p2 on q_qr_s3_log ( user_id );
@@ -713,7 +713,7 @@ create index if not exists q_qr_s3_log_p3 on q_qr_s3_log ( state );
 CREATE OR REPLACE FUNCTION q_qr_s3_log_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -750,7 +750,7 @@ CREATE TABLE if not exists q_qr_email_log (
 	, updated 			timestamp
 	, created 			timestamp default current_timestamp not null
 );
-comment on table q_qr_email_log is 'log of emails sent - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_email_log is 'log of emails sent - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 create index if not exists q_qr_email_log_p1 on q_qr_email_log ( state );
 create index if not exists q_qr_email_log_p2 on q_qr_email_log ( user_id );
@@ -760,7 +760,7 @@ create index if not exists q_qr_email_log_p2 on q_qr_email_log ( user_id );
 CREATE OR REPLACE FUNCTION q_qr_email_log_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -782,7 +782,7 @@ CREATE TRIGGER q_qr_email_log_trig
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- email to be sent.
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-alter table q_qr_email_send add column if not exists error_info		text;
+alter table if exists q_qr_email_send add column if not exists error_info		text;
 CREATE TABLE if not exists q_qr_email_send (
 	  email_send_id	uuid DEFAULT uuid_generate_v4() not null primary key
 	, user_id			uuid					-- if available
@@ -794,7 +794,7 @@ CREATE TABLE if not exists q_qr_email_send (
 	, updated 			timestamp
 	, created 			timestamp default current_timestamp not null
 );
-comment on table q_qr_email_send is 'log of emails sent - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_email_send is 'log of emails sent - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 create index if not exists q_qr_email_send_p1 on q_qr_email_send ( state );
 create index if not exists q_qr_email_send_p2 on q_qr_email_send ( user_id );
@@ -805,7 +805,7 @@ create index if not exists q_qr_email_send_p3 on q_qr_email_send ( state, create
 CREATE OR REPLACE FUNCTION q_qr_email_send_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -848,7 +848,7 @@ CREATE TABLE if not exists q_qr_validate_startup (
 	validation_value_hmac 				bytea not null,
 	validation_value_enc 				bytea not null
 );
-comment on table q_qr_validate_startup is 'Check database has correct encryption passwords (one row only)  - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_validate_startup is 'Check database has correct encryption passwords (one row only)  - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -864,7 +864,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	insert into t_output ( msg ) values ( 'function ->q_auth_v1_setup_startup_one_time<- 001.tables.m4.sql 721' );
 
@@ -918,7 +918,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 
 	l_data = 'ok';
 
@@ -980,7 +980,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -1074,7 +1074,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -1173,7 +1173,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -1245,7 +1245,7 @@ CREATE SEQUENCE if not exists t_order_seq
 -- stmt := "insert into q_qr_uploaded_fiels ( id, original_file_name, content_type, size ) values ( $1, $2, $3, $4 )"
 -- alter table q_qr_uploaded_files  add image_confirmed	varchar(1) default 'n' not null check ( image_confirmed in ( 'y', 'n' ) );
 
-alter table q_qr_uploaded_files add column if not exists user_id				uuid;				-- UserId for the if login is used, may be null
+alter table if exists q_qr_uploaded_files add column if not exists user_id				uuid;				-- UserId for the if login is used, may be null
 
 -- drop table if exists q_qr_uploaded_files ;
 CREATE TABLE if not exists q_qr_uploaded_files (
@@ -1262,7 +1262,7 @@ CREATE TABLE if not exists q_qr_uploaded_files (
     seq 				bigint DEFAULT nextval('t_order_seq'::regclass) NOT NULL,
 	user_id				uuid				-- UserId for the if login is used, may be null
 );
-comment on table q_qr_uploaded_files is 'files uploaded - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_uploaded_files is 'files uploaded - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 -- xyzzy - Add group_n_id		int					-- user specifed.
 -- xyzzy - add URL_path for getting file			-- URL for getting file.
@@ -1280,7 +1280,7 @@ create index if not exists q_qr_uploaded_files_p6 on q_qr_uploaded_files ( user_
 -- xyzzyUpload
 -- stmt = "insert into q_qr_uploaded_files ( id, original_file_name, content_type, size, file_hash, group_id, local_file_path, image_confirmed, url_path ) values ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )"
 -- stmt = "q_auth_v1_uploaded_files ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 )"
-drop FUNCTION q_auth_v1_uploaded_files ( p_id uuid, p_original_file_name varchar, p_content_type varchar, p_size varchar, p_file_hash varchar, p_group_id varchar, p_local_file_path varchar, p_image_confirmed varchar, p_url_path varchar, p_user_id varchar );
+drop FUNCTION if exists q_auth_v1_uploaded_files ( p_id uuid, p_original_file_name varchar, p_content_type varchar, p_size varchar, p_file_hash varchar, p_group_id varchar, p_local_file_path varchar, p_image_confirmed varchar, p_url_path varchar, p_user_id varchar );
 --                                                    1          2                             3                       4           5                    6                   7                          8                          9                   10
 CREATE OR REPLACE FUNCTION q_auth_v1_uploaded_files ( p_id uuid, p_original_file_name varchar, p_content_type varchar, p_size int, p_file_hash varchar, p_group_id varchar, p_local_file_path varchar, p_image_confirmed varchar, p_url_path varchar, p_user_id varchar ) RETURNS text
 AS $$
@@ -1295,7 +1295,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -1322,19 +1322,19 @@ BEGIN
 	end;
 
 
-	begin
+--	begin
 
 		insert into q_qr_uploaded_files ( id, original_file_name, content_type, size, file_hash, group_id, local_file_path, image_confirmed, url_path, user_id ) 
-			values ( p_id, p_original_file_name, l_content_type, l_size, p_file_hash, p_group_id, p_locap_file_path, p_image_confirmed, p_url_path, l_user_id ) 
+			values ( p_id, p_original_file_name, p_content_type, l_size, p_file_hash, p_group_id::uuid, p_local_file_path, p_image_confirmed, p_url_path, l_user_id ) 
 			;
 
-	exception
-		when others then
-
-			l_fail = true;
-			l_data = '{"status":"error","msg":"error on insert.","code":"2007","location":"001.tables.m4.sql 1187"}';
-
-	end;
+--	exception
+--		when others then
+--
+--			l_fail = true;
+--			l_data = '{"status":"error","msg":"error on insert.","code":"2007","location":"001.tables.m4.sql 1187"}';
+--
+--	end;
 
 	if not l_fail then
 
@@ -1401,14 +1401,14 @@ CREATE TABLE if not exists t_valid_cors_origin (
 	, updated 	timestamp
 	, created 	timestamp default current_timestamp not null
 );
-comment on table t_valid_cors_origin is 'valid CORS origins - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table t_valid_cors_origin is 'valid CORS origins - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 
 
 CREATE OR REPLACE FUNCTION t_valid_cors_origin_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -1454,7 +1454,7 @@ CREATE TABLE if not exists q_qr_code (
 	updated 			timestamp, 									 						-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 			timestamp default current_timestamp not null 						-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table q_qr_code is 'Creation/tracking of QR codes  - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_code is 'Creation/tracking of QR codes  - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 
 -- create index q_qr_code_h1 on q_qr_code using hash ( qrid10 );
@@ -1465,7 +1465,7 @@ create unique index if not exists  q_qr_code_h1 on q_qr_code ( qrid10 );
 CREATE OR REPLACE FUNCTION q_qr_code_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -1504,7 +1504,7 @@ CREATE TABLE if not exists q_qr_saved_state (
 	updated 			timestamp, 									 						-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 			timestamp default current_timestamp not null 						-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table q_qr_saved_state is 'table of saved user state - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_saved_state is 'table of saved user state - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 create index if not exists q_qr_saved_state_p1 on q_qr_saved_state ( expires );
 
@@ -1513,7 +1513,7 @@ create index if not exists q_qr_saved_state_p1 on q_qr_saved_state ( expires );
 CREATE OR REPLACE FUNCTION q_qr_saved_state_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -1538,7 +1538,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.expires := current_timestamp + interval '92 days';
 	RETURN NEW;
 END
@@ -1588,8 +1588,8 @@ CREATE TRIGGER q_qr_saved_state_expire_trig
 
 -- alter table q_qr_users add column login_2fa_failures 		int default 10 not null;
 
-alter table q_qr_users add column if not exists role_name 		text;
-alter table q_qr_users add column if not exists org_name			text;
+alter table if exists q_qr_users add column if not exists role_name 		text;
+alter table if exists q_qr_users add column if not exists org_name			text;
 
 CREATE TABLE if not exists q_qr_users (
 	user_id 				uuid default uuid_generate_v4() not null primary key,
@@ -1631,7 +1631,7 @@ CREATE TABLE if not exists q_qr_users (
 	updated 				timestamp, 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 				timestamp default current_timestamp not null 		-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table q_qr_users is 'Login authorization - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_users is 'Login authorization - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 CREATE UNIQUE INDEX if not exists  q_qr_users_u1 on q_qr_users ( email_hmac );
 
@@ -1663,7 +1663,7 @@ CREATE INDEX if not exists q_qr_users_enc_p8 on q_qr_users ( role_name );
 CREATE OR REPLACE FUNCTION q_qr_users_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -1688,8 +1688,8 @@ CREATE TRIGGER q_qr_users_trig
 -- xyzzy99 if n6 - 6 digit random returned by call
 -- SELECT random();
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-alter table q_qr_n6_email_verify add column if not exists updated 				timestamp; 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
-alter table q_qr_n6_email_verify add column if not exists created 				timestamp default current_timestamp not null 		;
+alter table if exists q_qr_n6_email_verify add column if not exists updated 				timestamp; 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
+alter table if exists q_qr_n6_email_verify add column if not exists created 				timestamp default current_timestamp not null 		;
 
 CREATE TABLE if not exists q_qr_n6_email_verify (
 	n6_token 				int not null,
@@ -1701,7 +1701,7 @@ CREATE TABLE if not exists q_qr_n6_email_verify (
 CREATE UNIQUE INDEX if not exists  q_qr_n6_email_verify_u1 on q_qr_n6_email_verify ( n6_token );
 DROP INDEX if exists q_qr_n6_email_verify_u2;
 CREATE INDEX if not exists  q_qr_n6_email_verify_p1 on q_qr_n6_email_verify ( email_verify_token );
-create index q_qr_n6_verify_p2 on ( created );	
+create index q_qr_n6_verify_p2 on q_qr_n6_email_verify ( created );	
 
 
 
@@ -1716,14 +1716,14 @@ CREATE TABLE if not exists q_qr_vapid_keys (
 	updated 				timestamp, 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 				timestamp default current_timestamp not null 		-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table q_qr_users is 'VAPID keys for user - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_users is 'VAPID keys for user - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 
 
 CREATE OR REPLACE FUNCTION q_qr_vapid_keys_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -1757,7 +1757,7 @@ CREATE TABLE if not exists q_qr_user_hierarchy (
 	user_id 				uuid not null,
 	parent_user_id			uuid
 );
-comment on table q_qr_user_hierarchy is 'user hererchy (admin->user, admin->client, cilent->client-user, etc) - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_user_hierarchy is 'user hererchy (admin->user, admin->client, cilent->client-user, etc) - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 CREATE INDEX if not exists q_qr_user_hierarchy_p1 on q_qr_user_hierarchy ( user_id );
 CREATE INDEX if not exists q_qr_user_hierarchy_p2 on q_qr_user_hierarchy ( parent_user_id );
@@ -1775,7 +1775,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 
  	select
 		    pgp_sym_decrypt(t1.email_enc, p_userdata_password)::text as email
@@ -1808,7 +1808,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 
 -- 	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_userdata_password );
 -- 	insert into t_output ( msg ) values ( '(other password/userdata_password)l_email_hmac='||l_email_hmac::text );
@@ -1849,7 +1849,7 @@ CREATE TABLE if not exists q_qr_user_config (
 	updated 				timestamp, 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 				timestamp default current_timestamp not null 		-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table q_qr_user_config is 'Per user conifiguraiton  - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_user_config is 'Per user conifiguraiton  - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 create index if not exists q_qr_user_config_p1 on q_qr_user_config ( user_id );
 create unique index if not exists  q_qr_user_config_u1 on q_qr_user_config ( user_id, name );
@@ -1880,7 +1880,7 @@ ALTER TABLE q_qr_user_config
 CREATE OR REPLACE FUNCTION q_qr_user_config_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -1916,7 +1916,7 @@ CREATE TABLE if not exists q_qr_user_config_default (
 	role_name 					text not null,		-- join to Q_QR_ROLE2
 	value						jsonb not null
 );
-comment on table q_qr_user_config_default is 'Per user conifiguraiton / default at registration based on role  - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_user_config_default is 'Per user conifiguraiton / default at registration based on role  - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 create unique index if not exists  q_qr_user_config_default_u1 on q_qr_user_config_default ( role_name );
 
@@ -1960,7 +1960,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 
 	RETURN QUERY
 		SELECT
@@ -1992,7 +1992,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 
 	-- l_data = encode(hmac(p_email, p_hmac_password, 'sha256'), 'base64');
 	l_data = hmac(p_email, p_hmac_password, 'sha256');
@@ -2037,7 +2037,7 @@ CREATE TABLE if not exists q_qr_auth_tokens (
 	api_encryption_key		text,
 	expires 				timestamp not null
 );
-comment on table q_qr_auth_tokens is 'Per user auth tokens - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_auth_tokens is 'Per user auth tokens - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 create unique index if not exists  q_qr_auth_tokens_u1 on q_qr_auth_tokens ( token );
 create index if not exists q_qr_auth_tokens_p1 on q_qr_auth_tokens ( user_id );
@@ -2060,7 +2060,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 
 	NEW.expires := current_timestamp + interval '31 days';
 	RETURN NEW;
@@ -2119,7 +2119,7 @@ CREATE TABLE if not exists q_qr_tmp_token (
 	token			 	uuid not null,
 	expires 			timestamp not null
 );
-comment on table q_qr_tmp_token is 'registration temporary tokens - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_tmp_token is 'registration temporary tokens - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 --	sip_x_value				text,
 --	sip_e_value				text,
@@ -2146,7 +2146,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 
 	if NEW.expires is null then
 		NEW.expires := current_timestamp + interval '20 minutes';
@@ -2196,7 +2196,7 @@ CREATE TABLE if not exists q_qr_auth_security_log (
 	location			text,
 	created 			timestamp default current_timestamp not null 						-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table q_qr_auth_security_log is 'Security event log - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_auth_security_log is 'Security event log - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 
 
@@ -2212,7 +2212,7 @@ CREATE TABLE if not exists q_qr_auth_log (
 	location			text,
 	created 			timestamp default current_timestamp not null 						-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table q_qr_auth_log is 'Authentication log - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_auth_log is 'Authentication log - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 
 
@@ -2237,7 +2237,7 @@ CREATE TABLE if not exists q_qr_one_time_password (
 	user_id					uuid not null,
 	otp_hmac				text
 );
-comment on table q_qr_one_time_password is 'Per user one time passwords - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_one_time_password is 'Per user one time passwords - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 create unique index if not exists  q_qr_one_time_password_u1 on q_qr_one_time_password ( user_id, otp_hmac );
 
@@ -2269,7 +2269,7 @@ CREATE TABLE if not exists q_qr_config (
 	updated 		timestamp, 									 						-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 		timestamp default current_timestamp not null 						-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table q_qr_config is 'Per site/application config - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_config is 'Per site/application config - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 create unique index if not exists  q_qr_config_u1 on q_qr_config ( name ) ;
 
@@ -2278,7 +2278,7 @@ create unique index if not exists  q_qr_config_u1 on q_qr_config ( name ) ;
 CREATE OR REPLACE FUNCTION q_qr_config_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -2317,7 +2317,7 @@ drop TABLE if exists q_qr_user_role ;
 --old-priv--	role_id 		uuid not null,
 --old-priv--	user_id 		uuid not null
 --old-priv--);
---old-priv--comment on table q_qr_user_role is 'user roles join - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+--old-priv--comment on table q_qr_user_role is 'user roles join - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 --old-priv--
 --old-priv--create unique index q_qr_user_role_u1 on q_qr_user_role ( role_id, user_id );
 --old-priv--create unique index q_qr_user_role_u2 on q_qr_user_role ( user_id, role_id );
@@ -2328,7 +2328,7 @@ drop TABLE if exists q_qr_user_role ;
 --old-priv--	, role_name 	text not null
 --old-priv--	, with_grant	varchar(1) default 'n'
 --old-priv--);
---old-priv--comment on table q_qr_role is 'user roles - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+--old-priv--comment on table q_qr_role is 'user roles - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 --old-priv--
 --old-priv--create unique index q_qr_role_u1 on q_qr_role ( role_name );
 --old-priv--
@@ -2338,7 +2338,7 @@ drop TABLE if exists q_qr_user_role ;
 --old-priv--	role_id 		uuid not null,
 --old-priv--	priv_id 		uuid not null
 --old-priv--);
---old-priv--comment on table q_qr_role_priv is 'roles priv join - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+--old-priv--comment on table q_qr_role_priv is 'roles priv join - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 --old-priv--
 --old-priv--create unique index q_qr_role_priv_u1 on q_qr_role_priv ( priv_id, role_id );
 --old-priv--create unique index q_qr_role_priv_u2 on q_qr_role_priv ( role_id, priv_id );
@@ -2349,7 +2349,7 @@ drop TABLE if exists q_qr_user_role ;
 --old-priv--	, priv_name 	text not null
 --old-priv--	, with_grant	varchar(1) default 'n'
 --old-priv--);
---old-priv--comment on table q_qr_priv is 'privs - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+--old-priv--comment on table q_qr_priv is 'privs - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 --old-priv--
 --old-priv--create unique index q_qr_priv_u1 on q_qr_priv ( priv_name );
 --old-priv--
@@ -2420,7 +2420,7 @@ CREATE TABLE if not exists q_qr_role2 (
 	, with_grant	varchar(1) default 'n' not null
 	, allowed		jsonb not null
 );
-comment on table q_qr_role2 is 'user roles - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_role2 is 'user roles - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 
 create unique index if not exists  q_qr_role2_u1 on q_qr_role2 ( role_name );
@@ -2496,7 +2496,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_data = false;
 			
 	select role_name
@@ -2537,7 +2537,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_data = '{"status":"failed"}';			-- no such privilage granted.
 			
 	select role_name
@@ -2574,7 +2574,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_data = '{"status":"failed"}';			-- no such privilage granted.
 			
 	select role_name
@@ -2614,8 +2614,8 @@ $$ LANGUAGE plpgsql;
 -- alter table q_qr_token_registration  add is_one_time				varchar(1) default 'n' not null;
 -- alter table q_qr_token_registration  add email_note				text;
 
-alter table q_qr_token_registration add column if not exists admin_email 			text;
-alter table q_qr_token_registration add column if not exists application_url 		text;
+alter table if exists q_qr_token_registration add column if not exists admin_email 			text;
+alter table if exists q_qr_token_registration add column if not exists application_url 		text;
 
 CREATE TABLE if not exists q_qr_token_registration (
 	  token_registration_id 	uuid default uuid_generate_v4() not null primary key
@@ -2629,7 +2629,7 @@ CREATE TABLE if not exists q_qr_token_registration (
 	, updated 					timestamp
 	, created 					timestamp default current_timestamp not null
 );
-comment on table q_qr_token_registration is 'Configured token based registration - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_token_registration is 'Configured token based registration - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 ALTER TABLE q_qr_token_registration
 	drop CONSTRAINT if exists q_qr_token_registration_fk1
@@ -2646,7 +2646,7 @@ ALTER TABLE q_qr_token_registration
 CREATE OR REPLACE FUNCTION q_qr_token_registration_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -2705,7 +2705,7 @@ CREATE TABLE if not exists q_qr_token_registration_hist (
 CREATE OR REPLACE FUNCTION q_qr_token_registration_hist_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	insert into q_qr_token_registration_hist (
 		  event
 		, token_registration_id
@@ -2752,7 +2752,7 @@ CREATE TRIGGER q_qr_token_registration_hist_upd_trig
 CREATE OR REPLACE FUNCTION q_qr_token_registration_hist_del() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	insert into q_qr_token_registration_hist (
 		  event
 		, token_registration_id
@@ -2799,7 +2799,7 @@ CREATE TRIGGER q_qr_token_registration_hist_del_trig
 CREATE OR REPLACE FUNCTION q_qr_token_registration_hist_ins() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	insert into q_qr_token_registration_hist (
 		  event
 		, token_registration_id
@@ -2866,9 +2866,9 @@ CREATE TRIGGER q_qr_token_registration_hist_ins_trig
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- client table / token_registration
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-alter table q_qr_client add column if not exists client_email text;
-alter table q_qr_client add column if not exists designated_user_id uuid;
-alter table q_qr_client add column if not exists token_registration_id	uuid;
+alter table if exists q_qr_client add column if not exists client_email text;
+alter table if exists q_qr_client add column if not exists designated_user_id uuid;
+alter table if exists q_qr_client add column if not exists token_registration_id	uuid;
 CREATE TABLE if not exists q_qr_client (
 	  client_id 			uuid default uuid_generate_v4() not null primary key
 	, client_name			text not null
@@ -2878,7 +2878,7 @@ CREATE TABLE if not exists q_qr_client (
 	, updated 				timestamp
 	, created 				timestamp default current_timestamp not null
 );
-comment on table q_qr_client is 'List of clients - Copyright (C) Philip Schlump, 2008-2023. -- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023';
+comment on table q_qr_client is 'List of clients - Copyright (C) Philip Schlump, 2008-2023. -- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023';
 
 create unique index if not exists  q_qr_client_u1 on q_qr_client ( client_name );
 
@@ -2887,7 +2887,7 @@ create unique index if not exists  q_qr_client_u1 on q_qr_client ( client_name )
 CREATE OR REPLACE FUNCTION q_qr_client_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -2940,7 +2940,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -3075,7 +3075,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -3182,7 +3182,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -3321,7 +3321,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -3436,7 +3436,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 	-- 
@@ -3526,7 +3526,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -3639,7 +3639,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -3780,7 +3780,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -3908,7 +3908,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -4209,7 +4209,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -4561,7 +4561,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -4858,7 +4858,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -5032,7 +5032,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -5277,7 +5277,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -5379,7 +5379,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 
 	delete from q_qr_auth_security_log where user_id = p_user_id;
 	delete from q_qr_auth_tokens where user_id = p_user_id;
@@ -5430,7 +5430,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023. 
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -5616,7 +5616,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -5707,7 +5707,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -5837,7 +5837,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 	l_is_new_device_login = 'n';
@@ -6375,7 +6375,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -6438,7 +6438,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -6525,7 +6525,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -6627,7 +6627,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
@@ -6839,7 +6839,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
@@ -7065,7 +7065,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -7225,7 +7225,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -7384,7 +7384,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -7452,7 +7452,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 
 	update q_qr_users as t1
 		set setup_complete_2fa = 'y'
@@ -7498,7 +7498,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -7687,7 +7687,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -7770,7 +7770,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 	l_require_2fa 			= 'y';
@@ -7836,7 +7836,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -8001,7 +8001,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -8089,7 +8089,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -8132,7 +8132,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -8176,7 +8176,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
     RETURN QUERY 
 		SELECT
 			  t1.user_id
@@ -8219,7 +8219,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: 4a5164f6fbf75f809da3763d2f84082ef0e6499b tag: v1.0.29 build_date: Mon Aug 14 10:31:39 MDT 2023
+	-- version: 591db06c944aa1afe49391c94c0a123d00d828e2 tag: v1.0.30 build_date: Tue Sep 12 12:15:26 MDT 2023
     RETURN QUERY 
 			select t1.user_id as "user_id", json_agg(t3.priv_name)::text as "privileges", coalesce(t1.client_id::text,'')::text as client_id
 				 , pgp_sym_decrypt(t1.email_enc, p_userdata_password)::text as email
