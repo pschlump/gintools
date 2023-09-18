@@ -1794,6 +1794,7 @@ func authHandleEmailHasBeenSetup(c *gin.Context) {
 	} else {
 		out.Msg = "Email *not* Setup"
 		out.EmailValidated = "n"
+		time.Sleep(1000 * time.Millisecond)
 	}
 	c.JSON(http.StatusOK, LogJsonReturned(out))
 
