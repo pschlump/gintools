@@ -126,7 +126,8 @@ var GinSetupTable = []GinLoginType{
 
 	{Method: "POST", Path: "/api/v1/auth/create-user-admin", Fx: authHandleRegister, UseLogin: PublicApiCall},                                    // TODO
 	{Method: "POST", Path: "/api/v1/auth/validate-2fa-token", Fx: authHandleValidate2faToken, UseLogin: PublicApiCall},                           // 2nd step 2fa - create auth-token / jwtToken Sent
-	{Method: "GET", Path: "/api/v1/auth/email-confirm", Fx: authHandlerEmailConfirm, UseLogin: PublicApiCall},                                    // token
+	{Method: "GET", Path: "/api/v1/auth/email-confirm", Fx: authHandlerEmailConfirm, UseLogin: PublicApiCall},                                    // Validate email token via GET link in email
+	{Method: "POST", Path: "/api/v1/auth/validate-email-confirm", Fx: authHandlerValidateEmailConfirm, UseLogin: PublicApiCall},                  // Validate email token via manual entered POST
 	{Method: "POST", Path: "/api/v1/auth/recover-password-01-setup", Fx: authHandleRecoverPassword01Setup, UseLogin: PublicApiCall},              //
 	{Method: "GET", Path: "/api/v1/auth/recover-password-01-setup", Fx: authHandleRecoverPassword01Setup, UseLogin: PublicApiCall},               //
 	{Method: "POST", Path: "/api/v1/auth/recover-password-02-fetch-info", Fx: authHandleRecoverPassword02FetchInfo, UseLogin: PublicApiCall},     //
@@ -574,6 +575,7 @@ type RegisterSuccess struct {
 	Otp         []string          `json:"otp,omitempty"`
 	TmpToken    string            `json:"tmp_token,omitempty"` // May be "" - used in 2fa part 1 / 2
 	Require2fa  string            `json:"require_2fa,omitempty"`
+	Email       string            `json:"email,omitempty"`
 }
 
 // authHandleRegister godoc
@@ -679,6 +681,7 @@ func authHandleRegister(c *gin.Context) {
 
 	var out RegisterSuccess
 	copier.Copy(&out, &RegisterResp)
+	out.Email = pp.Email
 	c.JSON(http.StatusOK, LogJsonReturned(out))
 }
 
@@ -961,10 +964,8 @@ type EmailConfirmSuccess struct {
 // @Schemes
 // @Description Call uses the provided token to confirm the users email.
 // @Tags auth
-// @Accept json,x-www-form-urlencoded
 // @Param   email     formData    string     true        "Email Address"
-// @Param   pw        formData    string     true        "Password"
-// @Param   again     formData    string     true        "Password Again"
+// @Param   email_verify_token     formData    string     true        "Password Again"
 // @Produce json
 // @Success 200 {object} jwt_auth.EmailConfirmSuccess
 // @Failure 400 {object} jwt_auth.StdErrorReturn
@@ -992,7 +993,7 @@ func authHandlerEmailConfirm(c *gin.Context) {
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvEmailConfirm))
 		// c.JSON(http.StatusBadRequest, LogJsonReturned(rvEmailConfirm.StdErrorReturn)) // 400
 		c.Writer.WriteHeader(http.StatusSeeOther) // 303
-		to := gCfg.BaseServerURL + gCfg.AuthConfirmEmailErrorURI + "/error?msg=" + url.QueryEscape(rvEmailConfirm.Msg)
+		to := gCfg.BaseServerURL + gCfg.AuthConfirmEmailErrorURI + "/error-token.html?msg=" + url.QueryEscape(rvEmailConfirm.Msg)
 		c.Writer.Header().Set("Location", to)
 		// , { path: '/regPt2/:email/:tmp_token',                name: 'regPt2',             component: RegPt2                     }
 		html := run_template.RunTemplate("./tmpl/location-error.html.tmpl", "location", map[string]interface{}{
@@ -1032,6 +1033,53 @@ func authHandlerEmailConfirm(c *gin.Context) {
 		//</body>
 		//</html>
 		//`, to, to, to)
+		return
+	}
+
+	var out EmailConfirmSuccess
+	copier.Copy(&out, &rvEmailConfirm)
+	c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
+
+}
+
+// authHandlerValidateEmailConfirm uses the token to lookup a user and confirms that the email that received the token is real.
+//
+// From: router.GET("/api/v1/auth/email-confirm", authHandlerEmailConfirm)
+
+// authHandleEmailConfirm godoc
+// @Summary Confirm the email from registration.
+// @Schemes
+// @Description Call uses the provided token to confirm the users email.
+// @Tags auth
+// @Accept json,x-www-form-urlencoded
+// @Param   email                  formData    string     true        "Email Address"
+// @Param   email_verify_token     formData    string     true        "Password Again"
+// @Produce json
+// @Success 200 {object} jwt_auth.EmailConfirmSuccess
+// @Failure 400 {object} jwt_auth.StdErrorReturn
+// @Failure 401 {object} jwt_auth.StdErrorReturn
+// @Failure 406 {object} jwt_auth.StdErrorReturn
+// @Failure 500 {object} jwt_auth.StdErrorReturn
+// @Router /api/v1/auth/email-confirm [post]
+func authHandlerValidateEmailConfirm(c *gin.Context) {
+	var err error
+	var pp ApiAuthEmailValidate
+	if err := BindFormOrJSON(c, &pp); err != nil {
+		return
+	}
+
+	rv, stmt, err := ConfirmEmailAccount(c, pp.EmailVerifyToken)
+	if err != nil {
+		return
+	}
+
+	dbgo.Fprintf(logFilePtr, "%(cyan)%(LF): confirm-email  rv=%s\n", rv)
+	var rvEmailConfirm RvEmailConfirm
+	err = json.Unmarshal([]byte(rv), &rvEmailConfirm)
+	if rvEmailConfirm.Status != "success" {
+		rvEmailConfirm.LogUUID = GenUUID()
+		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvEmailConfirm))
+		c.JSON(http.StatusNotAcceptable, LogJsonReturned(rvEmailConfirm.StdErrorReturn)) // 406
 		return
 	}
 
