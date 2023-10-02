@@ -8,8 +8,6 @@ package jwt_auth
 // xyzzy99 - AuthEmailToken           string `json:"auth_email_token" default:"uuid"`                                          // "uuid"|"n6" - if n6 then a 6 digit numer is used.
 
 // =======================================================================================
-// xyzzy3246 - logger
-// =======================================================================================
 
 // TODO - should allso allow use of x2fa_pin as an alternative to "password" - xyzzy988098
 // TODO -		em.SendEmail("email_address_changed_old_address",
@@ -631,6 +629,7 @@ func authHandleRegister(c *gin.Context) {
 	dbgo.Fprintf(logFilePtr, "%(yellow)%(LF): rv=%s\n", rv)
 	err = json.Unmarshal([]byte(rv), &RegisterResp)
 	if RegisterResp.Status != "success" {
+		time.Sleep(1500 * time.Millisecond)
 		RegisterResp.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "ee!ee!..", SVar(RegisterResp), pp.Email, pp.Pw /*aCfg.EncryptionPassword,*/, pp.FirstName, pp.LastName /*, aCfg.UserdataPassword*/, secret)
 		c.JSON(http.StatusBadRequest, LogJsonReturned(RegisterResp.StdErrorReturn))
@@ -3697,7 +3696,6 @@ func CreateJWTSignedCookieNoErr(DBAuthToken, email_addr string) (rv string, err 
 		}
 		if err != nil {
 			md.AddCounter("jwt_auth_misc_error", 1)
-			// xyzzy3246 - logger
 			if logger != nil {
 				fields := []zapcore.Field{
 					zap.String("message", "Error In Signing a Cookie as a JWT Token"),
@@ -4032,7 +4030,7 @@ func convertStringArrayToInterface(ss []string) (rv []interface{}) {
 	return
 }
 
-func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string, AdditionalData string) {
+func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun, AdditionalData string) {
 
 	// var SendTestEmailTemplateToRun = flag.String("send-test-email-template-to-run", "", "ONLY! run 1 ttemplate")
 	// jwt_auth.TestSendEmail ( *SendTestEmail, *SendTestEmailTemplateToRun )
@@ -4095,7 +4093,7 @@ func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string, AdditionalD
 			"application_name", gCfg.AuthApplicationName,
 			"realm", gCfg.AuthRealm,
 		)
-	} else if SendTestEmailTemplateToRun == "login_new_device" || SendTestEmailTemplateToRun == "" {
+	} else if SendTestEmailTemplateToRun == "login_new_device" {
 		em.SendEmail("login_new_device",
 			"username", Email,
 			"email", Email,
@@ -4108,7 +4106,7 @@ func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string, AdditionalD
 			"server", gCfg.BaseServerURL,
 			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
 		)
-	} else if SendTestEmailTemplateToRun == "password_changed" || SendTestEmailTemplateToRun == "" {
+	} else if SendTestEmailTemplateToRun == "password_changed" {
 		em.SendEmail("password_changed",
 			"username", Email,
 			"email", Email,
@@ -4121,7 +4119,7 @@ func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string, AdditionalD
 			"server", gCfg.BaseServerURL,
 			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
 		)
-	} else if SendTestEmailTemplateToRun == "recover_password" || SendTestEmailTemplateToRun == "" {
+	} else if SendTestEmailTemplateToRun == "recover_password" {
 		em.SendEmail("recover_password",
 			"username", Email,
 			"email", Email,
@@ -4135,7 +4133,7 @@ func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string, AdditionalD
 			"server", gCfg.BaseServerURL,
 			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
 		)
-	} else if SendTestEmailTemplateToRun == "password_updated" || SendTestEmailTemplateToRun == "" {
+	} else if SendTestEmailTemplateToRun == "password_updated" {
 		em.SendEmail("password_updated",
 			"username", Email,
 			"email", Email,
@@ -4148,7 +4146,7 @@ func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string, AdditionalD
 			"realm", gCfg.AuthRealm,
 			"server", gCfg.BaseServerURL,
 		)
-	} else if SendTestEmailTemplateToRun == "account_deleted" || SendTestEmailTemplateToRun == "" {
+	} else if SendTestEmailTemplateToRun == "account_deleted" {
 		em.SendEmail("account_deleted",
 			"username", Email,
 			"email", Email,
@@ -4161,7 +4159,7 @@ func TestSendEmail(SendTestEmail, SendTestEmailTemplateToRun string, AdditionalD
 			"server", gCfg.BaseServerURL,
 			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
 		)
-	} else if SendTestEmailTemplateToRun == "admin_password_changed" || SendTestEmailTemplateToRun == "" {
+	} else if SendTestEmailTemplateToRun == "admin_password_changed" {
 		em.SendEmail("admin_password_changed",
 			"username", Email,
 			"email", Email,

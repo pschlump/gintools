@@ -1,0 +1,135 @@
+package email
+
+// Copyright (C)_ Philip Schlump 2017.
+// This file is BSD 3 clause licensed.
+// See: LICENSE.bsd
+
+// ------------------------------------------------------------------------------
+// An auth key is required, but send a tests email with ./tgo_send_test_email.sh address@domain.com
+// Add this to "main.go" go enable this API.
+// ------------------------------------------------------------------------------
+//	router.POST("/api/v1/send-test-email", SendTestEmailHandler)
+
+import (
+	"net/http"
+	"os"
+
+	"github.com/gin-gonic/gin"
+	"github.com/pschlump/HashStrings"
+	"github.com/pschlump/dbgo"
+	"github.com/pschlump/gintools/jwt_auth"
+)
+
+// "github.com/pschlump/gintools/jwt_auth"
+
+// -------------------------------------------------------------------------------------------------------------------------
+// Send Test Email - Handler
+// -------------------------------------------------------------------------------------------------------------------------
+type SendTestEmailSuccess struct {
+	Status string `json:"status"`
+}
+
+// SendTestEmailHandler godoc
+// @Summary Send a Test Email
+// @Schemes
+// @Description Just generate and send a test email to validate the email process.
+// @Tags core
+// @Accept json,x-www-form-urlencoded
+// @Param   to        formData    string     true       "The destination of the email."
+// @Param   from      formData    string     true       "Validate email address where email is from."
+// @Param   subject   formData    string     true       "Subject of email."
+// @Param   body      formData    string     true       "Body of email."
+// @Param   auth_key  formData    string     true       "Secret HMAC = sha256(Auth_Key+Secret) value for using this interface."
+// @Param   tempalte  formData    string     false      "Default 'test_email', name of tempate"
+// @Produce json
+// @Success 200 {object} jwt_auth.LoginSuccess
+// @Failure 400 {object} jwt_auth.StdErrorReturn
+// @Failure 401 {object} jwt_auth.StdErrorReturn
+// @Failure 406 {object} jwt_auth.StdErrorReturn
+// @Failure 500 {object} jwt_auth.StdErrorReturn
+// @Router /api/v1/send-test-email [post]
+func SendTestEmailHandler(c *gin.Context) {
+
+	type ApiSendTestEmail struct {
+		To       string `json:"to"       form:"to"       binding:"required"`
+		From     string `json:"from"     form:"from"     binding:"required"`
+		Subject  string `json:"subject"  form:"subject"  binding:"required"`
+		Body     string `json:"body"     form:"body"     binding:"required"`
+		AuthKey  string `json:"auth_key" form:"auth_key" binding:"required"`
+		Template string `json:"template" form:"template"`
+	}
+
+	dbgo.DbFprintf("db.SendTestEmailHandler", os.Stderr, "%(cyan)In handler, SendTestEmailHandler, /api/v1/send-test-email, at %(LF)\n")
+	var pp ApiSendTestEmail
+	if err := jwt_auth.BindFormOrJSON(c, &pp); err != nil {
+		return
+	}
+	if pp.Template == "" {
+		pp.Template = "test_email"
+	}
+
+	dbgo.DbFprintf("db.SendTestEmailHandler", os.Stderr, "%(cyan)Input Data %sr at %(LF)\n", dbgo.SVarI(pp))
+	UserID, AuthToken := jwt_auth.GetAuthToken(c)
+
+	dbgo.DbFprintf("db.SendTestEmailHandler", os.Stderr, "%(cyan)Authenticaiton Info UserID=%s AuthToken=%s  at %(LF)\n", UserID, AuthToken)
+
+	if AuthToken == "" {
+
+		dbgo.DbFprintf("db.SendTestEmailHandler", os.Stderr, "%(red)email_send.SendTestEmailHandler -- Requires Login %(LF)\n")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"status":   "error",
+			"msg":      "Must be looged in to access set a this interface.",
+			"location": dbgo.LF(),
+		})
+		return
+
+	}
+
+	dbgo.DbFprintf("db.SendTestEmailHandler", os.Stderr, "%(cyan)Logged In Successful at %(LF)\n")
+
+	pw := os.Getenv("TEST_SEND_EMAIL_PASSWORD")
+	if pw == "" {
+		dbgo.DbFprintf("db.SendTestEmailHandler", os.Stderr, "%(red)email.SendTestEmailHandler -- Requires TEST_SEND_EMAIL_PASSWORD to be set %(LF)\n")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"status":   "error",
+			"msg":      "Must be have correct HMAC key/password.",
+			"location": dbgo.LF(),
+		})
+		return
+	}
+
+	// To Generate the HMAC auth key, See: ../gen-email-key or $tools/tools/gen-email-key
+	if HashStrings.HashStrings(pw+pp.AuthKey) == "2572640f43d8b184d14c2b7f0d255a752fd4c3d674dba969046d5c611d47b8d5" {
+
+		dbgo.DbFprintf("db.SendTestEmailHandler", os.Stderr, "%(red)email.SendTestEmailHandler -- Requires AuthKey to be valid %(LF) --\nSee ~/.secret/setup.sh or run generation tool ../gen-email-key/gen-email-key.go\n    ->%s<-\n    ->%s<-\n", pp.AuthKey, "2572640f43d8b184d14c2b7f0d255a752fd4c3d674dba969046d5c611d47b8d5")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"status":   "error",
+			"msg":      "Must be have correct HMAC key to access set the SendTestEmailHandler interface.",
+			"location": dbgo.LF(),
+		})
+		return
+
+	}
+
+	dbgo.DbFprintf("db.SendTestEmailHandler", os.Stderr, "%(green)Both authorized and logged in, have valid AuthKey value %(LF)\n")
+
+	em.SendEmail(pp.Template, // default: "test_email" - Email Template
+		"subject", pp.Subject,
+		"body", pp.Body,
+		"email", pp.To,
+		"user_id", UserID,
+		"server", gCfg.BaseServerURL,
+		"application_name", gCfg.AuthApplicationName,
+		"realm", gCfg.AuthRealm,
+	)
+
+	dbgo.DbFprintf("db.SendTestEmailHandler", os.Stderr, "%(green)At Bootom - Returning Data - Email Sent %(LF)\n")
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"msg":    "Test Email Sent",
+	})
+	return
+}
+
+/* vim: set noai ts=4 sw=4: */
