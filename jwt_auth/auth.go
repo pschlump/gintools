@@ -425,9 +425,13 @@ func authHandleLogin(c *gin.Context) {
 				rvStatus.Token = theJwtToken
 				c.Set("__jwt_token__", theJwtToken)
 			}
-			// xyzzy8 - fingerprint
 		}
 	}
+
+	// xyzzy8 - fingerprint / header hash
+	// {ReqVar: "__hash_of_headers__", ParamName: "p_hash_of_headers"},
+	hashOfHeaders := HeaderFingerprint(c)
+	c.Set("__hash_of_headers__", hashOfHeaders)
 
 	// send email if a login is from a new device. ??
 	if rvStatus.IsNewDeviceLogin == "y" {
