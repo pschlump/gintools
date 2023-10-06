@@ -205,6 +205,8 @@ func (em *GenericEmailSender) SendEmailMapdata(template_name string, mdata map[s
 	dbgo.Fprintf(em.emailLogFilePtr, "%(LF) --- AT TOP --- mdata=%s\n", dbgo.SVarI(mdata))
 
 	tfn := fmt.Sprintf("%s/%s.tmpl", em.gCfg.EmailTmplDir, template_name)
+	CurDir, _ := os.Getwd()
+	dbgo.Printf("%(LF) %(cyan) ---- template file = ->%s<- in dir ->%s<-\n", tfn, CurDir)
 	if !ReadConfig.Exists(tfn) {
 		fmt.Fprintf(os.Stderr, "#Email# Missing template file [%s]\n", tfn)
 		fmt.Fprintf(em.emailLogFilePtr, "#Email# Missing template file [%s]\n", tfn)

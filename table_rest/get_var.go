@@ -409,6 +409,15 @@ func ParseAllParams(c *gin.Context) (rv map[string]string, err error) {
 }
 
 func GetVar(name string, c *gin.Context) (found bool, value string) {
+	if len(name) > len("__$ENV$x") && name[0:len("__$ENV$")] == "__$ENV$" {
+		// fmt.Printf("lookup ->%s<-\n", name[len("__$ENV$"):len(name)-2])
+		env := os.Getenv(name[len("__$ENV$") : len(name)-2])
+		if env != "" {
+			return true, env
+			// fmt.Printf("Found name= ->%s<- : ->%s<-\n", name, env)
+			// return
+		}
+	}
 	_, found = c.Keys[name]
 	if !found {
 		value = c.Param(name)

@@ -1484,7 +1484,7 @@ CREATE TABLE if not exists q_qr_vapid_keys (
 	updated 				timestamp, 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 				timestamp default current_timestamp not null 		-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table q_qr_users is 'VAPID keys for user - Copyright (C) Philip Schlump, 2008-2023. -- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()';
+comment on table q_qr_vapid_keys is 'VAPID keys for user - Copyright (C) Philip Schlump, 2008-2023. -- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()';
 
 m4_updTrig(q_qr_vapid_keys)
 
@@ -1557,10 +1557,7 @@ BEGIN
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 
--- 	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_userdata_password );
--- 	insert into t_output ( msg ) values ( '(other password/userdata_password)l_email_hmac='||l_email_hmac::text );
 	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
--- 	insert into t_output ( msg ) values ( 'l_email_hmac='||l_email_hmac::text );
  	select
 		    user_id::text
 		into l_user_id
