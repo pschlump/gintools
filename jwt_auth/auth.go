@@ -430,7 +430,7 @@ func authHandleLogin(c *gin.Context) {
 
 	// xyzzy8 - fingerprint / header hash
 	// {ReqVar: "__hash_of_headers__", ParamName: "p_hash_of_headers"},
-	hashOfHeaders := HeaderFingerprint(c)
+	// hashOfHeaders := HeaderFingerprint(c)
 	c.Set("__hash_of_headers__", hashOfHeaders)
 
 	// send email if a login is from a new device. ??
