@@ -307,6 +307,7 @@ type LoginSuccess struct {
 	LastName   string            `json:"last_name,omitempty"`
 	AcctState  string            `json:"acct_state,omitempty"`
 	UserConfig map[string]string `json:"user_config,omitempty"`
+	Email      string            `json:"email,omitempty"`
 }
 
 // /api/register-user, send-data={"user":"alice","v":13136}
@@ -466,6 +467,7 @@ func authHandleLogin(c *gin.Context) {
 
 	var out LoginSuccess
 	copier.Copy(&out, &rvStatus)
+	out.Email = pp.Email
 	c.JSON(http.StatusOK, LogJsonReturned(out))
 }
 
