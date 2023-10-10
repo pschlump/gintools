@@ -4,6 +4,7 @@
 -- BSD Licensed.  See LICENSE.bsd file.
 
 -- xyzzyError100 - never true iff.
+-- xyzzy-Fix-Error-Message-to-be-clear
 
 -- FUNCTION q_auth_v1_login ( p_email varchar, p_pw varchar, p_am_i_known varchar, p_hmac_password varchar, p_userdata_password varchar, p_fingerprint varchar, p_sc_id varchar, p_hash_of_headers varchar, p_xsrf_id varchar ) RETURNS text
 
@@ -3230,8 +3231,9 @@ BEGIN
 		for update
 		;
 		if not found then
+			-- xyzzy-Fix-Error-Message-to-be-clear
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Invalid Username or Account not valid or email not validated, or password reset time window has expired.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+			l_data = '{"status":"error","msg":"Invalid Username or Account Not Valid or Email Not Validated, or Password Reset Time Window (1 hour) has expired.  Please resend the email and retry the process.","code":"m4_count()","location":"m4___file__ m4___line__"}';
 		end if;
 	end if;
 
