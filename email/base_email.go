@@ -139,7 +139,7 @@ func NewEmailSender(senderType string, gcfg *data.BaseConfigType, db map[string]
 func (em GenericEmailSender) LogError(rowID, msg string, err error) {
 	stmt := `
 		update q_qr_email_log 
-			set state = 'Error'
+			set state = 'Error',
 				error_msg = $2
 			where email_log_id = $1
 	`

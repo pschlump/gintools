@@ -3,7 +3,7 @@
 -- MIT Licensed.  See LICENSE.mit file.
 -- BSD Licensed.  See LICENSE.bsd file.
 
--- xyzzyUpload
+-- xyzzyError100 - never true iff.
 
 -- FUNCTION q_auth_v1_login ( p_email varchar, p_pw varchar, p_am_i_known varchar, p_hmac_password varchar, p_userdata_password varchar, p_fingerprint varchar, p_sc_id varchar, p_hash_of_headers varchar, p_xsrf_id varchar ) RETURNS text
 
@@ -3970,6 +3970,7 @@ BEGIN
 				where t1.role_name =  l_role_name
 			) as t0
 			;
+		-- xyzzyError100 - never true iff.
 		if not found then
 			if l_debug_on then
 				insert into t_output ( msg ) values ( 'Failed to get the privileges for the user' );
@@ -3981,6 +3982,7 @@ BEGIN
 		if l_debug_on then
 			insert into t_output ( msg ) values ( 'calculate l_privs ->'||coalesce(to_json(l_privs)::text,'---null---')||'<-');
 		end if;
+
 	end if;
 
 	if not l_fail then
@@ -4372,6 +4374,7 @@ BEGIN
 				where t1.role_name = p_specifed_role_name
 			) as t0
 			;
+		-- xyzzyError100 - never true iff.
 		if not found then
 			if l_debug_on then
 				insert into t_output ( msg ) values ( 'Failed to get the privileges for the user' );
@@ -4803,6 +4806,7 @@ BEGIN
 				where t1.role_name =  'role:user'
 			) as t0
 			;
+		-- xyzzyError100 - never true iff.
 		if not found then
 			if l_debug_on then
 				insert into t_output ( msg ) values ( 'Failed to get the privileges for the user' );
@@ -5883,6 +5887,7 @@ BEGIN
 			) as t0
 			;
 
+		-- xyzzyError100 - never true iff.
 		if not found then
 			if l_debug_on then
 				insert into t_output ( msg ) values ( 'Failed to get the privileges for the user' );
