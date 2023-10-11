@@ -762,59 +762,6 @@ $$ LANGUAGE plpgsql;
 
 
 
--- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION q_auth_v1_cleanup_old_data ( ) RETURNS text
-AS $$
-DECLARE
-	l_data					text;
-BEGIN
-	-- Copyright (C) Philip Schlump, 2008-2023.
-	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
-
-	l_data = 'ok';
-
-	-- won't work !!! tranactional error !!!
-	-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	delete from q_qr_one_time_password
-		where user_id in (
-			select user_id 
-			from q_qr_users
-			where email_verify_expire < current_timestamp - interval '30 days'
-			  and ( email_validated = 'n' or ( setup_complete_2fa = 'n'  and require_2fa = 'y' ) )
-		)
-		;
-	delete from q_qr_users
-		where email_verify_expire < current_timestamp - interval '30 days'
-		  and ( email_validated = 'n' or ( setup_complete_2fa = 'n'  and require_2fa = 'y' ) )
-		;
-
-	delete from t_output where created < current_timestamp - interval '1 hour' ;
-
-	delete from q_qr_auth_tokens where expires < current_timestamp ;
-	delete from q_qr_device_track where expires < current_timestamp ;
-	delete from q_qr_device_track where user_id is null and created < current_timestamp - interval '1 hour' ;
-	delete from q_qr_n6_email_verify where created < current_timestamp - interval '2 days' ;
-	delete from q_qr_saved_state where expires < current_timestamp ;
-	delete from q_qr_tmp_token where expires < current_timestamp ;
-
-	RETURN l_data;
-END;
-$$ LANGUAGE plpgsql;
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Function to check encryption passwords.  Return 'success' if the passwords are corect.
@@ -1380,6 +1327,7 @@ CREATE TRIGGER q_qr_saved_state_expire_trig
 
 alter table if exists q_qr_users add column if not exists role_name 		text;
 alter table if exists q_qr_users add column if not exists org_name			text;
+alter table if exists q_qr_users add column if not exists n6_flag					text default '' not null;
 
 CREATE TABLE if not exists q_qr_users (
 	user_id 				uuid default uuid_generate_v4() not null primary key,
@@ -1418,6 +1366,7 @@ CREATE TABLE if not exists q_qr_users (
 	x_user_config 			jsonb default '{}'::json not null,
 	role_name 				text not null,												
 	org_name				text,												-- Used for testing - name of the Admin that this user is tied to
+	n6_flag					text default '' not null,							-- used to mark if user was registered with n6 or n8 flag.
 	updated 				timestamp, 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 				timestamp default current_timestamp not null 		-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
@@ -1449,6 +1398,22 @@ CREATE INDEX if not exists q_qr_users_enc_u7 on q_qr_users ( client_id, email_hm
 CREATE INDEX if not exists q_qr_users_enc_p8 on q_qr_users ( role_name );
 
 m4_updTrig(q_qr_users)
+
+
+
+
+
+update q_qr_users set n6_flag = 'n6' where n6_flag is null or n6_flag = '';
+
+insert into q_qr_config ( name, value ) values
+	  ( 'n6.flag', 'n6' )
+On CONFLICT(name) DO NOTHING
+;
+
+
+
+
+
 
 
 
@@ -1491,6 +1456,59 @@ m4_updTrig(q_qr_vapid_keys)
 
 CREATE INDEX if not exists q_qr_vapid_keys_p1 on q_qr_vapid_keys using HASH ( public_key );
 CREATE INDEX if not exists q_qr_vapid_keys_p2 on q_qr_vapid_keys ( user_id, created );
+
+
+
+
+
+-- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION q_auth_v1_cleanup_old_data ( ) RETURNS text
+AS $$
+DECLARE
+	l_data					text;
+BEGIN
+	-- Copyright (C) Philip Schlump, 2008-2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+
+	l_data = 'ok';
+
+	-- won't work !!! tranactional error !!!
+	-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	delete from q_qr_one_time_password
+		where user_id in (
+			select user_id 
+			from q_qr_users
+			where email_verify_expire < current_timestamp - interval '30 days'
+			  and ( email_validated = 'n' or ( setup_complete_2fa = 'n'  and require_2fa = 'y' ) )
+		)
+		;
+	delete from q_qr_users
+		where email_verify_expire < current_timestamp - interval '30 days'
+		  and ( email_validated = 'n' or ( setup_complete_2fa = 'n'  and require_2fa = 'y' ) )
+		;
+
+	delete from t_output where created < current_timestamp - interval '1 hour' ;
+
+	delete from q_qr_auth_tokens where expires < current_timestamp ;
+	delete from q_qr_device_track where expires < current_timestamp ;
+	delete from q_qr_device_track where user_id is null and created < current_timestamp - interval '1 hour' ;
+	delete from q_qr_n6_email_verify where created < current_timestamp - interval '2 days' ;
+	delete from q_qr_saved_state where expires < current_timestamp ;
+	delete from q_qr_tmp_token where expires < current_timestamp ;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
+
+
+
 
 
 
@@ -2979,6 +2997,8 @@ DECLARE
 	v_cnt 					int;
 	l_user_id				uuid;
 	l_email_hmac			bytea;
+	l_n6_flag				text;
+	l_recovery_token_n6		text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -2987,10 +3007,11 @@ BEGIN
 	l_data = '{"status":"unknown"}';
 
 	l_recovery_token		= uuid_generate_v4();
+	l_recovery_token_n6		= l_recovery_token::text;
 
 
 	if not l_fail then
-		-- (fixed) xyzzy-Slow!! - better to do select count - and verify where before update.
+
 		l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
 		with user_row as (
 			select
@@ -3005,6 +3026,7 @@ BEGIN
 				, email_validated
 				, setup_complete_2fa
 				, require_2fa
+				, n6_flag
 			from q_qr_users as t1
 			where t1.email_hmac = l_email_hmac
 		)
@@ -3012,10 +3034,12 @@ BEGIN
 			  user_id
 		    , first_name
 		    , last_name
+			, n6_flag
 		into
 			  l_user_id
 			, l_first_name
 			, l_last_name
+			, l_n6_flag
 		from user_row
 		where parent_user_id is null
 		  and account_type = 'login'
@@ -3027,6 +3051,9 @@ BEGIN
 		;
 		if not found then
 
+			l_fail = true;
+			l_data = '{"status":"error","msg":"Account not valided or email not validated.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+
 			-- Select to get l_user_id for email.  If it is not found above then this may not be a fully setup user.
 			-- The l_user_id is used below in a delete to prevent marking of devices as having been seen.
 			select user_id
@@ -3035,13 +3062,18 @@ BEGIN
 				where t1.email_hmac = l_email_hmac
 				;
 
-			l_fail = true;
-			l_data = '{"status":"error","msg":"Invalid Username or Account not valid or email not validated","code":"m4_count()","location":"m4___file__ m4___line__"}';
+			if not found then
+				l_fail = true;
+				l_data = '{"status":"error","msg":"Invalid Username / Invalid account.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+			end if;
+
 		end if;
 	end if;
 
-	-- Delete all the id.json rows for this user - every marked device will need to 2fa after this request.
-	delete from q_qr_device_track where user_id = l_user_id;
+	if not l_fail then
+		-- Delete all the id.json rows for this user - every marked device will need to 2fa after this request.
+		delete from q_qr_device_track where user_id = l_user_id;
+	end if;
 
 	if not l_fail then
 		update q_qr_users as t1
@@ -3057,13 +3089,22 @@ BEGIN
 			l_data = '{"status":"error","msg":"Invalid Username or Account not valid or email not validated","code":"m4_count()","location":"m4___file__ m4___line__"}';
 			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Account not valid or email not validated', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 		end if;
+
+		if l_n6_flag = 'n6' or l_n6_flag = 'n8' then
+			l_recovery_token_n6 = q_auth_v1_n6_email_validate ( l_recovery_token, l_n6_flag );
+		else 
+			l_recovery_token_n6 = l_recovery_token;
+		end if;
+
 	end if;
 
 	if not l_fail then
 		l_data = '{"status":"success"'
-			||', "recovery_token":'   ||coalesce(to_json(l_recovery_token)::text,'""')
-			||', "first_name":'   ||coalesce(to_json(l_first_name)::text,'""')
-			||', "last_name":'   ||coalesce(to_json(l_last_name)::text,'""')
+			||', "recovery_token":'   	||coalesce(to_json(l_recovery_token)::text,'""')
+			||', "recovery_token_n6":'	||coalesce(to_json(l_recovery_token_n6)::text,'""')
+			||', "first_name":'   		||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   		||coalesce(to_json(l_last_name)::text,'""')
+			||', "n6_flag":'   			||coalesce(to_json(l_n6_flag)::text,'""')
 			||'}';
 	end if;
 
@@ -3184,12 +3225,25 @@ DECLARE
 	l_first_name			text;
 	l_last_name				text;
 	l_email_hmac			bytea;
+	l_n6_flag				text;
+	l_password_reset_token 	uuid;
+	l_recovery_token	 	uuid;
+	l_n6_token 				int;
+	l_debug_on 				bool;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
+	l_debug_on = q_get_config_bool ( 'debug' );
+
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->q_quth_v1_register<- m4___file__ m4___line__' );
+		insert into t_output ( msg ) values ( '  p_email ->'||coalesce(to_json(p_email)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_new_pw ->'||coalesce(to_json(p_new_pw)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_recovery_token ->'||coalesce(to_json(p_recovery_token)::text,'---null---')||'<-');
+	end if;
 
 	if not l_fail then
 		-- (fixed) xyzzy-Slow!! - better to do select count - and verify where before update.
@@ -3208,6 +3262,7 @@ BEGIN
 				, setup_complete_2fa
 				, parent_user_id
 				, require_2fa
+				, n6_flag
 			from q_qr_users as t0
 			where t0.email_hmac = l_email_hmac
 		)
@@ -3215,13 +3270,16 @@ BEGIN
 			  user_id
 		    , first_name
 		    , last_name
+			, password_reset_token
+			, n6_flag
 		into
 			  l_user_id
 			, l_first_name
 			, l_last_name
+			, l_password_reset_token 
+			, l_n6_flag
 		from user_row as t1
 		where password_reset_time > current_timestamp
-		  and password_reset_token = p_recovery_token::uuid
 		  and account_type = 'login'
 		  and ( start_date < current_timestamp or t1.start_date is null )
 		  and ( end_date > current_timestamp or t1.end_date is null )
@@ -3235,9 +3293,53 @@ BEGIN
 			l_fail = true;
 			l_data = '{"status":"error","msg":"Invalid Username or Account Not Valid or Email Not Validated, or Password Reset Time Window (1 hour) has expired.  Please resend the email and retry the process.","code":"m4_count()","location":"m4___file__ m4___line__"}';
 		end if;
+		begin
+			l_recovery_token = p_recovery_token::uuid;
+			l_n6_flag = '';	-- if we can convert to UUID then n6 is irrelevant
+		exception
+			when others then
+				l_n6_flag = 'n6';
+		end;
+		-- insert into t_output ( msg ) values ( '  l_recovery_token ->'||coalesce(to_json(l_recovery_token)::text,'---null---')||'<-');
+		-- insert into t_output ( msg ) values ( '  l_n6_flag ->'||coalesce(to_json(l_n6_flag)::text,'---null---')||'<-');
+		if l_n6_flag = 'n6' or l_n6_flag = 'n8' then
+			begin
+				l_n6_token = p_recovery_token::int;
+			exception
+				when others then
+					l_fail = true;
+					l_data = '{"status":"error","msg":"Incorrect data for token, should be a number.  Please resend the email and retry the process.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+			end;
+			-- insert into t_output ( msg ) values ( '  l_n6_token ->'||coalesce(to_json(l_n6_token)::text,'---null---')||'<-');
+			if not l_fail then 
+				select email_verify_token
+					into l_recovery_token
+					from q_qr_n6_email_verify
+					where n6_token = l_n6_token
+					;
+				if not found then
+					l_fail = true;
+					l_data = '{"status":"error","msg":"Invalid Password Reset Token.  Please resend the email and retry the process.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+				end if;
+				-- insert into t_output ( msg ) values ( '  l_recovery_token (2) ->'||coalesce(to_json(l_recovery_token)::text,'---null---')||'<-');
+			end if;
+		end if;
+		if not l_fail then 
+			-- insert into t_output ( msg ) values ( 'not fail, check to see if tokens match' );
+			-- insert into t_output ( msg ) values ( '  l_password_reset_token ->'||coalesce(to_json(l_password_reset_token)::text,'---null---')||'<-');
+			-- insert into t_output ( msg ) values ( '  l_recovery_token ->'||coalesce(to_json(l_recovery_token)::text,'---null---')||'<-');
+			if l_password_reset_token <> l_recovery_token then
+				l_fail = true;
+				l_data = '{"status":"error","msg":"Invalid Password Reset Token.  Please resend the email and retry the process.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+			end if;
+		end if;
 	end if;
 
+	-- insert into t_output ( msg ) values ( '  l_n6_flag ->'||coalesce(to_json(l_n6_flag)::text,'---null---')||'<-');
+	-- insert into t_output ( msg ) values ( '  l_fail ->'||coalesce(to_json(l_fail)::text,'---null---')||'<-');
+
 	if not l_fail then
+		insert into t_output ( msg ) values ( '  l_user_id ->'||coalesce(to_json(l_user_id)::text,'---null---')||'<-');
 		update q_qr_users as t1
 			set
 				  password_reset_token = null
@@ -3515,6 +3617,30 @@ BEGIN
 
 		end loop;
 
+	elsif p_flag = 'n8' then
+
+		l_done = false;
+
+		while not l_done loop
+
+			-- Generate random number
+			select (random()*100000000)::int
+				into l_ran;
+
+			select 'found'
+				into l_junk
+				from q_qr_n6_email_verify 
+				where n6_token = l_ran
+				;
+
+			if not found then 
+				insert into q_qr_n6_email_verify ( n6_token, email_verify_token ) values ( l_ran, p_email_verify_token );
+				l_done = true;
+				l_data = LPAD(l_ran::text, 8, '0');
+			end if;
+
+		end loop;
+
 	end if;
 	
 	RETURN l_data;
@@ -3699,6 +3825,7 @@ BEGIN
 			, x_user_config
 			, require_2fa 		
 			, role_name 
+			, n6_flag
 		) VALUES (
 		 	  q_auth_v1_hmac_encode ( p_email, p_hmac_password )
 		    , pgp_sym_encrypt(p_email, p_userdata_password)
@@ -3715,6 +3842,7 @@ BEGIN
 			, l_user_config
 			, l_require_2fa 	
 			, 'role:user'
+			, l_n6
 		) returning user_id into l_user_id  ;
 
 		if l_debug_on then
@@ -4336,7 +4464,7 @@ BEGIN
 	if not l_fail then
 		if not q_admin_HasPriv ( p_user_id, 'Admin: May Create Admin User' ) then
 			if l_debug_on then
-				insert into t_output ( msg ) values ( 'failed to find priv ''Admin: May Create Admin User'' ->'||p_user_id||'<-');
+				insert into t_output ( msg ) values ( 'Failed to find priv ''Admin: May Create Admin User'' ->'||p_user_id||'<-');
 			end if;
 			l_fail = true;
 			l_data = '{"status":"error","msg":"Account lacks ''Admin: May Create Admin User'' privilege","code":"m4_count()","location":"m4___file__ m4___line__"}';
@@ -4353,7 +4481,7 @@ BEGIN
 			;
 		if not found then
 			if l_debug_on then
-				insert into t_output ( msg ) values ( 'failed to find role ->'||p_specified_role_priv||'<-');
+				insert into t_output ( msg ) values ( 'Failed to find role ->'||p_specified_role_priv||'<-');
 			end if;
 			l_fail = true;
 			l_data = '{"status":"error","msg":"No Such Role:'''||p_speified_role_name||''' ","code":"m4_count()","location":"m4___file__ m4___line__"}';
@@ -5756,7 +5884,7 @@ BEGIN
 	if not l_fail then
 		if not q_admin_HasPriv ( l_user_id, 'May Login' ) then
 			if l_debug_on then
-				insert into t_output ( msg ) values ( 'failed to find priv ''May Login'' ->'||l_user_id||'<-');
+				insert into t_output ( msg ) values ( 'Failed to find priv ''May Login'' ->'||l_user_id||'<-');
 			end if;
 			l_fail = true;
 			l_data = '{"status":"error","msg":"Account lacks ''May Login'' privilege","code":"m4_count()","location":"m4___file__ m4___line__"}';
@@ -6934,7 +7062,7 @@ BEGIN
 		-- 	n6_token 				int not null,
 		-- 	email_verify_token		uuid not null
 
-		if p_n6_flag = 'n6' then
+		if p_n6_flag = 'n6' or p_n6_flag = 'n8' then
 			select email_verify_token::text
 				into l_email_verify_token
 				from q_qr_n6_email_verify
@@ -6998,7 +7126,7 @@ BEGIN
 	end if;
 
 	if not l_fail then
-		if p_n6_flag = 'n6' then
+		if p_n6_flag = 'n6' or p_n6_flag = 'n8' then
 			delete from q_qr_n6_email_verify
 				where n6_token = l_n6_token
 				;

@@ -1303,9 +1303,11 @@ func authHandleChangePassword(c *gin.Context) {
 // DB Reutrn Data
 type RvRecoverPassword01Setup struct {
 	StdErrorReturn
-	RecoveryToken string `json:"recovery_token,omitempty"`
-	FirstName     string `json:"first_name,omitempty"`
-	LastName      string `json:"last_name,omitempty"`
+	RecoveryToken   string `json:"recovery_token,omitempty"`
+	RecoveryTokenN6 string `json:"recovery_token_n6,omitempty"`
+	FirstName       string `json:"first_name,omitempty"`
+	LastName        string `json:"last_name,omitempty"`
+	N6Flag          string `json:"n6_flag,omitempty"`
 }
 
 // Input for api endpoint
@@ -1385,6 +1387,7 @@ func authHandleRecoverPassword01Setup(c *gin.Context) {
 		"email_url_encoded", url.QueryEscape(pp.Email),
 		"reset_password_uri_enc", gCfg_AuthPasswordRecoveryURI, // xyzzy - should change & to &and;
 		"token", rvStatus.RecoveryToken,
+		"token_n6", rvStatus.RecoveryTokenN6,
 		"first_name", rvStatus.FirstName,
 		"last_name", rvStatus.LastName,
 		"real_name", rvStatus.FirstName+" "+rvStatus.LastName,
