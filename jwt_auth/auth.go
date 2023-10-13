@@ -3147,7 +3147,7 @@ type RvResendEmailRegisterType struct {
 // Input for api endpoint
 type ApiAuthResendEmailRegister struct {
 	Email    string `json:"email"      form:"email"       binding:"required,email"` // yes
-	TmpToken string `json:"tmp_token"  form:"tmp_token"   binding:"required"`       // yes	-- used to validate resend of email?
+	TmpToken string `json:"tmp_token"  form:"tmp_token"`
 }
 
 // Output returned
@@ -3164,6 +3164,8 @@ type ResendEmailRegisterSuccess struct {
 // @Schemes
 // @Description A call to this will use the email and the tmp_token to resend the registration email.
 // @Tags auth
+// @Param   email     	  formData    string     true        "Email Address"
+// @Param   tmp_token     formData    string     false       "Tmp Token From Registration (optional)"
 // @Accept json,x-www-form-urlencoded
 // @Produce json
 // @Success 200 {object} jwt_auth.ReturnStatusSuccess

@@ -4116,7 +4116,6 @@ BEGIN
 	end if;
 
 	if not l_fail then
-		-- create table if not exists q_qr_user_config_default (
 		select value
 			into l_user_config
 			from q_qr_user_config_default 
@@ -4519,7 +4518,6 @@ BEGIN
 	end if;
 
 	if not l_fail then
-		-- create table if not exists q_qr_user_config_default (
 		select value
 			into l_user_config
 			from q_qr_user_config_default 
@@ -4699,7 +4697,9 @@ BEGIN
 
 
 
-	l_tmp_token := p_tmp_token::uuid;
+	if p_tmp_token <> '' then
+		l_tmp_token := p_tmp_token::uuid;
+	end if;
 
 	-- Lookup User / Validate Password
 	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
@@ -4724,7 +4724,6 @@ BEGIN
 
 	if not l_fail then
 
-
 		-- if email_verify_token is null then a login has occured on the account.
 		-- this means that you should no long be able to get a new email.
 		select t1.email_verify_token
@@ -4732,13 +4731,13 @@ BEGIN
 			from q_qr_users as t1
 			where t1.user_id = l_user_id
 			  and t1.email_verify_token is not null
-			  and exists (
-				select 'found'
-					from q_qr_tmp_token as t2
-					where t2.user_id = t1.user_id
-					  and t2.token = l_tmp_token
-				)
 			;
+			--  and exists (
+			--	select 'found'
+			--		from q_qr_tmp_token as t2
+			--		where t2.user_id = t1.user_id
+			--		  and t2.token = l_tmp_token
+			--	)
 
 		if not found then
 			l_fail = true;
