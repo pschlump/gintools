@@ -9,9 +9,12 @@ package email
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/pschlump/HashStrings"
 	"github.com/pschlump/ReadConfig"
 	"github.com/pschlump/dbgo"
 	"github.com/pschlump/filelib"
@@ -23,12 +26,15 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// "github.com/pschlump/gintools/jwt_auth"
+
 type EmailSender interface {
 	SendEmailViaVendor(rowID, fromName, fromAddress, subject, toName, toAddress, textBody, htmlBody string) (err error)
 	SendEmail(template_name string, param ...interface{}) (err error)
 	SendEmailMapdata(template_name string, mdata map[string]interface{}) (err error)
 	LogError(rowID, msg string, err error)
 	LogSuccess(rowID string)
+	SetupHandlerApi(router *gin.Engine, urlPath, key string)
 }
 
 type EmailSenderImplementation interface {
@@ -478,6 +484,79 @@ func (em GenericEmailSender) SqlRunStmt(stmt string, encPat string, data ...inte
 	}
 
 	return nil, nil
+}
+
+// SetupHandlerApi will create a handler at the specified URL path to "kick" the timed sender
+func (em *GenericEmailSender) SetupHandlerApi(router *gin.Engine, urlPath, AuthKey string) {
+	router.POST(urlPath, func(c *gin.Context) {
+
+		type ApiSendTestEmail struct {
+			AuthKey string `json:"auth_key" form:"auth_key" binding:"required"`
+		}
+
+		dbgo.Fprintf(os.Stderr, "%(cyan)In handler, Kicker for Email, %s, at %(LF)\n", urlPath)
+		var pp ApiSendTestEmail
+		if err := BindFormOrJSON(c, &pp); err != nil {
+			return
+		}
+
+		pw := os.Getenv("TEST_SEND_EMAIL_PASSWORD")
+		if pw == "" {
+			dbgo.DbFprintf("db.SendTestEmailHandler", os.Stderr, "%(red)email.SendTestEmailHandler -- Requires TEST_SEND_EMAIL_PASSWORD to be set %(LF)\n")
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"status":   "error",
+				"msg":      "Must be have correct HMAC key/password.",
+				"location": dbgo.LF(),
+			})
+			return
+		}
+
+		// To Generate the HMAC auth key, See: ../gen-email-key or $tools/tools/gen-email-key
+		// dbgo.Fprintf(os.Stderr, "%(cyan)AT:%(LF) -- %(red)checking auth of key%(cyan) -- ->%s<- || ->%s<- hash to ->%s<- should match ->%s<-\n", pw, pp.AuthKey, HashStrings.HashStrings(pw+pp.AuthKey), "2572640f43d8b184d14c2b7f0d255a752fd4c3d674dba969046d5c611d47b8d5")
+
+		if HashStrings.HashStrings(pw+pp.AuthKey) != "2572640f43d8b184d14c2b7f0d255a752fd4c3d674dba969046d5c611d47b8d5" {
+
+			dbgo.DbFprintf("db.SendTestEmailHandler", os.Stderr, "%(red)email.SendTestEmailHandler -- Requires AuthKey to be valid %(LF) --\nSee ~/.secret/setup.sh or run generation tool ../gen-email-key/gen-email-key.go\n    ->%s<-\n    ->%s<-\n", pp.AuthKey, "2572640f43d8b184d14c2b7f0d255a752fd4c3d674dba969046d5c611d47b8d5")
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"status":   "error",
+				"msg":      "Must be have correct HMAC key to access set the SendTestEmailHandler interface.",
+				"location": dbgo.LF(),
+			})
+			return
+
+		}
+
+		em.ch <- "kick"
+
+		c.JSON(http.StatusOK /*200*/, gin.H{"status": "success"})
+
+	})
+
+	/*
+		router.POST("/api/v1/status", func(c *gin.Context) {
+			c.JSON(http.StatusOK / * 200 * /, gin.H{
+				"status": "success",
+				"msg":    "Hello Silly World!",
+			})
+		})
+	*/
+}
+
+func BindFormOrJSON(c *gin.Context, bindTo interface{}) (err error) {
+
+	if err = c.ShouldBind(bindTo); err != nil {
+		dbgo.Printf("%(red)In BindFormOrJSON at:%(LF) err=%s\n", err)
+		// dbgo.Fprintf(logFilePtr, "%(red)In BindFormOrJSON at:%(LF) err=%s\n", err)
+		c.JSON(http.StatusNotAcceptable, gin.H{ // 406
+			"status": "error",
+			"msg":    fmt.Sprintf("Error: %s", err),
+		})
+		return
+	}
+
+	dbgo.Printf("%(cyan)Parameters: %s at %s\n", dbgo.SVarI(bindTo), dbgo.LF(2))
+	// 	dbgo.Fprintf(logFilePtr, "%(cyan)Parameters: %s at %s\n", dbgo.SVarI(bindTo), dbgo.LF(2))
+	return
 }
 
 /* vim: set noai ts=4 sw=4: */

@@ -655,6 +655,8 @@ m4_updTrig(q_qr_email_log)
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- email to be sent.
+--
+-- email_data is in JSON format as text and is a hash of named value pairs that matches with the template_name's requried values.
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 alter table if exists q_qr_email_send add column if not exists error_info		text;
 CREATE TABLE if not exists q_qr_email_send (

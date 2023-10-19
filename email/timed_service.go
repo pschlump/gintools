@@ -90,14 +90,16 @@ func (em *GenericEmailSender) TemplateAndSend() {
 	`
 
 	type ClientDataType struct {
-		EmailSendId  string `json:"email_send_id" data:"email_send_id"`
-		UserId       string `json:"user_id" data:"user_id"`
-		State        string `json:"state" data:"state"`
-		TemplateName string `json:"template_name" data:"template_name"`
-		EmailData    string `json:"email_data" data:"email_data"`
+		EmailSendId  *string `json:"email_send_id" data:"email_send_id"`
+		UserId       *string `json:"user_id" data:"user_id"`
+		State        *string `json:"state" data:"state"`
+		TemplateName *string `json:"template_name" data:"template_name"`
+		EmailData    *string `json:"email_data" data:"email_data"`
 	}
 
-	dbgo.Fprintf(em.emailLogFilePtr, "Running %s at:%(LF)\n", stmt)
+	if em.DbFlag["email.timed.sql"] {
+		dbgo.Fprintf(em.emailLogFilePtr, "Running %s at:%(LF)\n", stmt)
+	}
 
 	var v2 []ClientDataType
 	start := time.Now()
@@ -107,31 +109,62 @@ func (em *GenericEmailSender) TemplateAndSend() {
 		dbgo.Fprintf(em.emailLogFilePtr, "Error: %s duration %s stmt %s at:%(LF)\n", err, elapsed, stmt)
 		return
 	}
-	for _, vv := range v2 {
-		mdata := make(map[string]interface{})
-		err := json.Unmarshal([]byte(vv.EmailData), &mdata)
-		if err != nil {
-			dbgo.Fprintf(em.emailLogFilePtr, "Error Parsing JSON data: %s data %s rowid %s at:%(LF)\n", err, vv.EmailData, vv.EmailSendId)
-			continue
-		}
 
-		err = em.SendEmailMapdata(vv.TemplateName, mdata)
+	if em.DbFlag["email.timed.sql"] {
+		dbgo.Fprintf(em.emailLogFilePtr, "Data at:%(LF) %s\n", dbgo.SVarI(v2))
+	}
+
+	for _, vv := range v2 {
+		dbgo.Fprintf(em.emailLogFilePtr, "at:%(LF)\n")
+		mdata := make(map[string]interface{})
+		var err error
+		if vv.EmailData != nil {
+			err = json.Unmarshal([]byte(*vv.EmailData), &mdata)
+			if err != nil {
+				dbgo.Fprintf(em.emailLogFilePtr, "at:%(LF)\n")
+				dbgo.Fprintf(em.emailLogFilePtr, "Error Parsing JSON data: %s data %s rowid %s at:%(LF)\n", err, *vv.EmailData, *vv.EmailSendId)
+
+				stmt = `update q_qr_email_send set state = 'error', error_info = $2 where email_send_id = $1`
+				_, err := em.SqlRunStmt(stmt, "..", vv.EmailSendId, fmt.Sprintf("%s", err))
+				if err != nil {
+					dbgo.Fprintf(em.emailLogFilePtr, "at:%(LF)\n")
+					dbgo.Fprintf(em.emailLogFilePtr, "Error: %s duration %s stmt %s rowid %s at:%(LF)\n", err, elapsed, stmt, *vv.EmailSendId)
+					continue
+				}
+				dbgo.Fprintf(em.emailLogFilePtr, "at:%(LF)\n")
+				continue
+			}
+		}
+		dbgo.Fprintf(em.emailLogFilePtr, "at:%(LF), ================================ important! raw ->%s<- mdata=%s\n", *vv.EmailData, dbgo.SVarI(mdata))
+
+		if vv.TemplateName != nil {
+			err = em.SendEmailMapdata(*vv.TemplateName, mdata)
+		} else {
+			x := "error_letter_generation.tmpl"
+			vv.TemplateName = &x
+		}
 		if err != nil {
+			dbgo.Fprintf(em.emailLogFilePtr, "at:%(LF)\n")
 			dbgo.Fprintf(em.emailLogFilePtr, "Error Sending Email: %s data %s rowid %s at:%(LF)\n", err, vv.EmailData, vv.EmailSendId)
 			stmt = `update q_qr_email_send set state = 'error', error_info = $2 where email_send_id = $1`
 			_, err := em.SqlRunStmt(stmt, "..", vv.EmailSendId, fmt.Sprintf("%s", err))
 			if err != nil {
+				dbgo.Fprintf(em.emailLogFilePtr, "at:%(LF)\n")
 				dbgo.Fprintf(em.emailLogFilePtr, "Error: %s duration %s stmt %s rowid %s at:%(LF)\n", err, elapsed, stmt, vv.EmailSendId)
 				continue
 			}
+			dbgo.Fprintf(em.emailLogFilePtr, "at:%(LF)\n")
 			continue
 		}
+
+		dbgo.Fprintf(em.emailLogFilePtr, "at:%(LF)\n")
 
 		stmt = `update q_qr_email_send set state = 'sent' where email_send_id = $1`
 		_, err = em.SqlRunStmt(stmt, "..", vv.EmailSendId)
 		if err != nil {
 			dbgo.Fprintf(em.emailLogFilePtr, "Error: %s duration %s stmt %s rowid %s at:%(LF)\n", err, elapsed, stmt, vv.EmailSendId)
 		}
+		dbgo.Fprintf(em.emailLogFilePtr, "at:%(LF)\n")
 	}
 }
 
