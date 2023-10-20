@@ -35,6 +35,7 @@ type EmailSender interface {
 	LogError(rowID, msg string, err error)
 	LogSuccess(rowID string)
 	SetupHandlerApi(router *gin.Engine, urlPath, key string)
+	ResetLogFile(newFp *os.File)
 }
 
 type EmailSenderImplementation interface {
@@ -128,6 +129,10 @@ func NewEmailSender(senderType string, gcfg *data.BaseConfigType, db map[string]
 	}
 
 	return &xv
+}
+
+func (em *GenericEmailSender) ResetLogFile(newFp *os.File) {
+	em.emailLogFilePtr = newFp
 }
 
 // -------------------------------------------------------------------------------------------------------------------------

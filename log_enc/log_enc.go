@@ -163,4 +163,8 @@ func EncryptTextIndexable(key, xiv, text []byte) ([]byte, error) {
 	return ciphertext, nil
 }
 
+func ResetLogFile(newFp *os.File) {
+	logFilePtr = newFp
+}
+
 var db8 bool = false

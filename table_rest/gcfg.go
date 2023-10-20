@@ -5,6 +5,8 @@ package table_rest
 // BSD Licensed.  See LICENSE.bsd file.
 
 import (
+	"os"
+
 	"github.com/pschlump/gintools/data"
 )
 
@@ -18,6 +20,10 @@ func SetupCRUD(gcfg *data.BaseConfigType, acfg *data.AppConfig, ucfg *data.Uploa
 	gCfg = gcfg
 	aCfg = acfg
 	uCfg = ucfg
+}
+
+func ResetLogFile(newFp *os.File) {
+	logFilePtr = newFp
 }
 
 /* vim: set noai ts=4 sw=4: */

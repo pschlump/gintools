@@ -236,3 +236,9 @@ func GetS3FileFromS3(s *session.Session, to, bucket, s3fn string) (err error) {
 	return
 
 }
+
+func ResetLogFile(newFp *os.File) {
+	logFilePtr = newFp
+}
+
+/* vim: set noai ts=4 sw=4: */

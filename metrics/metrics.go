@@ -382,4 +382,8 @@ func appStatusHandler() gin.HandlerFunc {
 }
 */
 
+func ResetLogFile(newFp *os.File) {
+	logFilePtr = newFp
+}
+
 /* vim: set noai ts=4 sw=4: */

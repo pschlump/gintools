@@ -339,11 +339,12 @@ func GenThumbnail(fns []string, width, height, owidth, oheight int, to string) e
 }
 
 // GetImageDimension returns width, height of an immage - .png, .jpg, .gif
-//	- not working on .svg
-//	- not returning errors
+//   - not working on .svg
+//   - not returning errors
 //
 // Example:
-//		h, w = GetHWFromImage ( ffile_name );
+//
+//	h, w = GetHWFromImage ( ffile_name );
 func GetImageDimension(imagePath string) (width int, height int) {
 	file, err := os.Open(imagePath)
 	if err != nil {
@@ -358,6 +359,10 @@ func GetImageDimension(imagePath string) (width int, height int) {
 		return
 	}
 	return image.Width, image.Height
+}
+
+func ResetLogFile(newFp *os.File) {
+	logFilePtr = newFp
 }
 
 /* vim: set noai ts=4 sw=4: */
