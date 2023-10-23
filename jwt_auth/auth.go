@@ -1014,18 +1014,40 @@ func authHandlerEmailConfirm(c *gin.Context) {
 	// handle redirect.
 	if pp.RedirectTo == "yes" {
 		c.Writer.WriteHeader(http.StatusSeeOther) // 303
-		to := gCfg.BaseServerURL + gCfg.AuthConfirmEmailURI + "/" + ZadditionalEscape(url.QueryEscape(rvEmailConfirm.Email)) + "/" + url.QueryEscape(rvEmailConfirm.TmpToken)
+		// JOIN is appropriate for RESTful positioal paramters but can be had with template.
+		//
+		// old...
+		// var to string
+		// if strings.HasPrefix(gCfg.AuthConfirmEmailURI, "http://") || strings.HasPrefix(gCfg.AuthConfirmEmailURI, "https://") {
+		// to, err = url.JoinPath(gCfg.AuthConfirmEmailURI, UrlEscapePeriod(url.QueryEscape(rvEmailConfirm.Email)), url.QueryEscape(rvEmailConfirm.TmpToken))
+		// } else {
+		// 	to, err = url.JoinPath(gCfg.BaseServerURL, gCfg.AuthConfirmEmailURI, UrlEscapePeriod(url.QueryEscape(rvEmailConfirm.Email)), url.QueryEscape(rvEmailConfirm.TmpToken))
+		// }
+		// if err != nil {
+		// 	dbgo.Fprintf(logFilePtr, "Redirect To: ->%s<-\n An error occured in joining the path: %s at:%(LF)\n", to, err)
+		// 	dbgo.Fprintf(os.Stderr, "%(red)Redirect To: ->%s<-\n An error occured in joining the path: %s at:%(LF)\n", to, err)
+		// 	to = gCfg.BaseServerURL
+		// }
+		// new...
+		to := filelib.Qt(gCfg.AuthConfirmEmailURI, map[string]string{
+			"base_server_url": gCfg.BaseServerURL,
+			"email_addr":      UrlEscapePeriod(url.QueryEscape(rvEmailConfirm.Email)),
+			"tmp_token":       url.QueryEscape(rvEmailConfirm.TmpToken),
+		})
 		c.Writer.Header().Set("Location", to)
-		dbgo.Fprintf(logFilePtr, "\n\n%(cyan)------------------------------------------------------------------------------------------------------------\n%(magenta)| Redirect To: ->%s<-\n%(cyan)------------------------------------------------------------------------------------------------------------\n\n", to)
-		dbgo.Fprintf(os.Stderr, "\n\n%(cyan)------------------------------------------------------------------------------------------------------------\n%(magenta)| Redirect To: ->%s<-\n%(cyan)------------------------------------------------------------------------------------------------------------\n\n", to)
-		// , { path: '/regPt2/:email/:tmp_token',                name: 'regPt2',             component: RegPt2                     }
+		dbgo.Fprintf(logFilePtr, "\n\n------------------------------------------------------------------------------------------------------------\n| Redirect To: ->%s<-\n------------------------------------------------------------------------------------------------------------\n\n", to)
+		dbgo.Fprintf(os.Stdout, "\n\n%(cyan)------------------------------------------------------------------------------------------------------------\n%(magenta)| Redirect To: ->%s<-\n%(cyan)------------------------------------------------------------------------------------------------------------\n\n", to)
+		// Generate the webpage incase Redirect is not followed.  This will attempt to do a client rediret
+		// using window.location.  If EcmaScript is disabled then there will be a page with a link to click.
 		html := run_template.RunTemplate("./tmpl/location.html.tmpl", "location", map[string]interface{}{
 			"destination": to,
 			"email":       rvEmailConfirm.Email,
 			"tmp_token":   rvEmailConfirm.TmpToken,
 		})
-		dbgo.Printf("Redirect/location.html: ->%(yellow)%s%(reset)<-\n", html)
+		// Dump page to Log File
+		dbgo.Fprintf(logFilePtr, "Redirect/location.html: ->%(yellow)%s%(reset)<-\n", html)
 		fmt.Fprintf(c.Writer, html)
+		// Page should look like...
 		//<html>
 		//<script>
 		//window.location = "%s";
@@ -1094,7 +1116,7 @@ func authHandlerValidateEmailConfirm(c *gin.Context) {
 
 }
 
-func ZadditionalEscape(s string) (rv string) {
+func UrlEscapePeriod(s string) (rv string) {
 	rv = strings.Replace(s, ".", "%2e", -1)
 	return
 }
@@ -1363,8 +1385,7 @@ func authHandleRecoverPassword01Setup(c *gin.Context) {
 	gCfg_BaseServerURL := gCfg.BaseServerURL
 	gCfg_AuthPasswordRecoveryURI := gCfg.AuthPasswordRecoveryURI
 	template_name := "recover_password"
-	if strings.HasPrefix(gCfg.AuthPasswordRecoveryURI, "http://") ||
-		strings.HasPrefix(gCfg.AuthPasswordRecoveryURI, "https://") {
+	if strings.HasPrefix(gCfg.AuthPasswordRecoveryURI, "http://") || strings.HasPrefix(gCfg.AuthPasswordRecoveryURI, "https://") {
 		template_name = "recover_password_tmpl"
 		gCfg_BaseServerURL = ""
 		dbgo.Fprintf(os.Stderr, "%(LF)%(cyan)Has 'http' or 'https'\n")
@@ -4499,6 +4520,17 @@ no_auth:
 	c.JSON(http.StatusUnauthorized, LogJsonReturned(out))
 	return
 
+}
+
+func UrlJoinPath(t string, s ...string) (rv string) {
+	var err error
+	rv, err = url.JoinPath(t, s...)
+	if err != nil {
+		dbgo.Fprintf(logFilePtr, "URL Join Error : ->%s<-\n An error occured in joining the path: %s at:%s\n", t, err, dbgo.LF(-2))
+		dbgo.Fprintf(os.Stderr, "%(red)URL Join Error : ->%s<-\n An error occured in joining the path: %s at:%s\n", t, err, dbgo.LF(-2))
+		rv = gCfg.BaseServerURL
+	}
+	return
 }
 
 /* vim: set noai ts=4 sw=4: */
