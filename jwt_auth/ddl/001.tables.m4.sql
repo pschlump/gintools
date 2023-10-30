@@ -2229,15 +2229,6 @@ BEGIN
 		;
 	if found then
 
-		--if exists (
-		--		 select 'found'
-		--		 from q_qr_user_to_priv
-		--		 where user_id = p_user_id
-		--		   and priv_name = p_priv_needed
-		--	 ) then
-		--	 l_data = true;
-		--end if;
-
 		select allowed ? p_priv_needed
 			into l_data
 			from q_qr_role2
@@ -3241,7 +3232,7 @@ BEGIN
 	l_debug_on = q_get_config_bool ( 'debug' );
 
 	if l_debug_on then
-		insert into t_output ( msg ) values ( 'function ->q_quth_v1_register<- m4___file__ m4___line__' );
+		insert into t_output ( msg ) values ( 'function ->q_quth_v1_recover_password_03_set_password<- m4___file__ m4___line__' );
 		insert into t_output ( msg ) values ( '  p_email ->'||coalesce(to_json(p_email)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_new_pw ->'||coalesce(to_json(p_new_pw)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_recovery_token ->'||coalesce(to_json(p_recovery_token)::text,'---null---')||'<-');

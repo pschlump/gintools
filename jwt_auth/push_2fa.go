@@ -30,7 +30,7 @@ import (
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/push-2fa-code-to-email [post]
 func authHandle2faCodeToEmail(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF)\n")
+	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
@@ -52,7 +52,7 @@ func authHandle2faCodeToEmail(c *gin.Context) {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/pust-2fa-client-app-confirm [post]
 func authHandle2faClientAppConfirm(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF)\n")
+	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
 }
 
 /* vim: set noai ts=4 sw=4: */

@@ -32,6 +32,23 @@ func SetupLogEnc(gcfg *data.BaseConfigType, acfg *data.AppConfig, log *os.File) 
 	aCfg = acfg
 }
 
+func EncryptLogItem(vv interface{}) string {
+	if aCfg.UseLogEncryption == "no" {
+		return fmt.Sprintf("%s", vv)
+	}
+	fx := func(vi interface{}) string {
+		if aCfg.UseLogEncryption == "dev-dummy" {
+			return (fmt.Sprintf("---Encrypted---%s---End---", vi))
+		} else if aCfg.UseLogEncryption == "b64-dummy" {
+			return (fmt.Sprintf("---Encrypted---%s---End---", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s", vi)))))
+		} else if aCfg.UseLogEncryption == "yes" {
+			return (fmt.Sprintf("---Encrypted---%s---End---", EncryptTextToB64([]byte(aCfg.LogEncryptionPassword), []byte(fmt.Sprintf("%s", vi)))))
+		}
+		return fmt.Sprintf("%s", vi)
+	}
+	return fx(vv)
+}
+
 func EncryptLogData(pat string, vars ...interface{}) string {
 	if aCfg.UseLogEncryption == "no" {
 		return dbgo.SVar(vars)

@@ -107,7 +107,7 @@ gen:
 		if e0 != nil {
 			dbgo.Fprintf(os.Stderr, "%(cyan)In Handler at %(LF), err:%s\n", e0)
 		}
-		dbgo.Fprintf(logFilePtr, "%(cyan)%(LF): rv=%s\n", rv)
+		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
 	}
 	h := c.Writer.Header()
 	h.Set("Content-Type", "image/gif")
@@ -383,7 +383,7 @@ gen:
 		if e0 != nil {
 			dbgo.Fprintf(os.Stderr, "%(cyan)In Handler at %(LF), err:%s\n", e0)
 		}
-		dbgo.Fprintf(logFilePtr, "%(cyan)%(LF): rv=%s\n", rv)
+		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
 	}
 	h := c.Writer.Header()
 	h.Set("Content-Type", "application/json")

@@ -42,12 +42,12 @@ func UrlShortCreateHandler(c *gin.Context) {
 
 	// create or replace function q_qr_url_short_create ( p_destination_url varchar, p_should_proxy varchar, p_headers varchar, p_params varchar, p_method varchar, p_hmac_password varchar, p_userdata_password varchar )
 	stmt := "q_qr_url_short_create ( $1, $2, $3, $4, $5, $6, $7 )"
-	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)
+	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	rv, err := CallDatabaseJSONFunction(c, stmt, ".!!", pp.DestinationURL, pp.ShouldProxy, dbgo.SVar(pp.Headers), dbgo.SVar(pp.Params), pp.Method, aCfg.EncryptionPassword, aCfg.UserdataPassword)
 	if err != nil {
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(cyan)%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
 
 	var rvStatus RvUrlShortCreateReturned
 	err = json.Unmarshal([]byte(rv), &rvStatus)
@@ -87,12 +87,12 @@ func UrlShortHandler(c *gin.Context) {
 	// stmt := "q_qr_url_short_redirect ( $1, $2, $3 )"
 	// create or replace function q_qr_url_short_redirect ( p_email varchar, p_hmac_password varchar, p_userdata_password varchar )
 	stmt := "q_qr_url_short_redirect ( $1, $2, $3 )"
-	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)
+	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	rv, err := CallDatabaseJSONFunction(c, stmt, ".!!", pp.Id, aCfg.EncryptionPassword, aCfg.UserdataPassword)
 	if err != nil {
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(cyan)%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
 
 	var rvStatus RvUrlShortReturned
 	err = json.Unmarshal([]byte(rv), &rvStatus)

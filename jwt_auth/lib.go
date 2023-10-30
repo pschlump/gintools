@@ -171,7 +171,7 @@ func GetUserId(c *gin.Context) (UserId string, err error) {
 	if li == "y" {
 		s := c.GetString("__user_id__")
 		if s == "" {
-			dbgo.Fprintf(logFilePtr, "%(red)%(LF): - Failed to get UserID\n")
+			dbgo.Fprintf(logFilePtr, "%(LF): - Failed to get UserID\n")
 			err = fmt.Errorf("Not Logged In/Failed to get UserID\n")
 			return
 		}

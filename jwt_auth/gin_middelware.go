@@ -88,7 +88,7 @@ func CookieHeaderAuthMiddleware(ginSetupTable []GinLoginType) gin.HandlerFunc {
 		if x == nil { // Assume that if we do not find it we need to login. ((TODO - bad assumption))
 			IsLoggedIn(c)
 			//if !IsLoggedIn(c) {
-			//	dbgo.Fprintf(logFilePtr, "%(red)In handler at %(LF) - Not Authorized 401\n")
+			//	dbgo.Fprintf(logFilePtr, "In handler at %(LF) - Not Authorized 401\n")
 			//	respondWithError(c, http.StatusUnauthorized, "Not Authorized") // 401
 			//	return
 			//}
@@ -98,7 +98,7 @@ func CookieHeaderAuthMiddleware(ginSetupTable []GinLoginType) gin.HandlerFunc {
 		switch x.UseLogin {
 		case LoginRequired:
 			if !IsLoggedIn(c) {
-				dbgo.Fprintf(logFilePtr, "%(red)In handler at %(LF) - Not Authorized 401\n")
+				dbgo.Fprintf(logFilePtr, "In handler at %(LF) - Not Authorized 401\n")
 				respondWithError(c, http.StatusUnauthorized, "Not Authorized") // 401
 				//c.JSON(http.StatusUnauthorized, gin.H{ // 401
 				//	"status": "error",

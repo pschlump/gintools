@@ -17,29 +17,33 @@ import (
 
 /*
 	jwt_auth.SetupNewInstall()
+
 if err := jwt_auth.ValidatePasswords(); err != nil {
-
-
-
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 create table if not exists q_qr_validate_startup (
+
 	once_id								int unique primary key, -- only one row in table ever, no generation of PKs.
 	validation_value_hmac 				bytea not null,
 	validation_value_enc 				bytea not null
-);
 
+);
 
 --
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 create or replace function q_auth_v1_setup_startup_one_time ( p_hmac_password varchar, p_userdata_password varchar )
+
 	returns text
 	as $$
+
 DECLARE
+
 	l_data					text;
 	l_fail					bool;
+
 BEGIN
+
 	-- Copyright (C) Philip Schlump, 2008-2021.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
@@ -69,24 +73,27 @@ BEGIN
 	end if;
 
 	RETURN l_data;
+
 END;
 $$ LANGUAGE plpgsql;
-
-
-
 
 --
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 create or replace function q_auth_v1_validate_startup_passwords ( p_hmac_password varchar, p_userdata_password varchar )
+
 	returns text
 	as $$
+
 DECLARE
+
 	l_data					text;
 	l_fail					bool;
 	l_debug_on 				bool;
 	l_id					uuid;
 	l_junk					text;
+
 BEGIN
+
 	l_debug_on = q_get_config_bool ( 'debug' );
 
 	-- Copyright (C) Philip Schlump, 2008-2021.
@@ -126,9 +133,9 @@ BEGIN
 	end if;
 
 	RETURN l_data;
+
 END;
 $$ LANGUAGE plpgsql;
-
 
 delete from q_qr_validate_startup ;
 
@@ -136,7 +143,6 @@ select q_auth_v1_setup_startup_one_time ( 'bob', 'bob' );
 select q_auth_v1_validate_startup_passwords ( 'bb', 'ob' );
 
 delete from q_qr_validate_startup ;
-
 */
 type SQLStatusType struct {
 	Status  string `json:"status"`
@@ -152,13 +158,13 @@ func SetupNewInstall() (err error) {
 	var resp SQLStatusType
 
 	stmt := "q_auth_v1_setup_startup_one_time ( $1, $2 )"
-	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)
+	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	rv, e0 := CallDatabaseJSONFunction(nil, stmt, "..", aCfg.EncryptionPassword, aCfg.UserdataPassword)
 	if e0 != nil {
 		err = e0
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(yellow)%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
 	err = json.Unmarshal([]byte(rv), &resp)
 	if resp.Status != "success" {
 		resp.LogUUID = GenUUID()
@@ -177,14 +183,14 @@ func ValidatePasswords() (err error) {
 	var resp SQLStatusType
 
 	stmt := "q_auth_v1_validate_startup_passwords ( $1, $2 )"
-	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)
+	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	dbgo.Fprintf(os.Stderr, "%(cyan)In handler at %(LF): %s\n", stmt)
 	rv, e0 := CallDatabaseJSONFunction(nil, stmt, "..", aCfg.EncryptionPassword, aCfg.UserdataPassword)
 	if e0 != nil {
 		err = e0
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(yellow)%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
 	err = json.Unmarshal([]byte(rv), &resp)
 	dbgo.Printf("%(red)%s\n", dbgo.SVarI(resp))
 	if resp.Status != "success" {

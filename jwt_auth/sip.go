@@ -63,13 +63,13 @@ func authHandleSipRegister(c *gin.Context) {
 	//                                                     1                2                    3                        4                     5                    6                            7
 	// create or replace function q_auth_v1_sip_register ( p_email varchar, p_validator varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar )
 	stmt := "q_auth_v1_sip_register ( $1, $2, $3, $4, $5, $6, $7 )"
-	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)
+	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	//                                                      1            2          3                        4             5            6                      7
 	rv, err := CallDatabaseJSONFunction(c, stmt, "ee.ee..", pp.Email, pp.Validator, aCfg.EncryptionPassword, pp.FirstName, pp.LastName, aCfg.UserdataPassword, secret)
 	if err != nil {
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(yellow)%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
 	var RegisterResp RvRegisterType
 	err = json.Unmarshal([]byte(rv), &RegisterResp)
 	if RegisterResp.Status != "success" {

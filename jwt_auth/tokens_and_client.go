@@ -83,7 +83,7 @@ type CreateRegistrationStuccess struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/create-registration-token [post]
 func authHandleCreateRegistrationToken(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF)\n")
+	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
 	var pp ApiCreateRegistrationToken
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
@@ -126,13 +126,13 @@ func authHandleCreateRegistrationToken(c *gin.Context) {
 	//                                              1                      2                    3                    4                     5               6                      7                        8
 	// function q_admin_create_token_registration ( p_description varchar, p_client_id varchar, p_role_name varchar, p_email_note varchar, p_user_id uuid, p_admin_email varchar, p_application_url varchar, p_hmac_password varchar, p_userdata_password varchar )
 	stmt := "q_admin_create_token_registration ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )"
-	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)
+	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	//                                                      1               2            3            4             5       6              7                   7                        8
 	rv, err := CallDatabaseJSONFunction(c, stmt, "ee.ee..", pp.Description, pp.ClientId, pp.RoleName, pp.EmailNote, UserId, pp.AdminEmail, gCfg.BaseServerURL, aCfg.EncryptionPassword, aCfg.UserdataPassword)
 	if err != nil {
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(yellow)%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
 	err = json.Unmarshal([]byte(rv), &DBGetUserDataResp)
 	if DBGetUserDataResp.Status != "success" {
 		DBGetUserDataResp.LogUUID = GenUUID()
@@ -186,7 +186,7 @@ type CreateClientSuccess2 struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/create-client [post]
 func authHandleCreateClient(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF)\n")
+	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
 	var pp ApiCreateClient
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
@@ -212,13 +212,13 @@ func authHandleCreateClient(c *gin.Context) {
 	//                                  1                      2                      3                    4                     5               6                        7
 	// function q_admin_create_client ( p_client_name varchar, p_description varchar, p_role_name varchar, p_email_addr varchar, p_user_id uuid, p_hmac_password varchar, p_userdata_password varchar )
 	stmt := "q_admin_create_client ( $1, $2, $3, $4, $5, $6, $7 )"
-	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)
+	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	//                                                      1              2               3            4         5       6                        7
 	rv, err := CallDatabaseJSONFunction(c, stmt, "ee.ee..", pp.ClientName, pp.Description, pp.RoleName, pp.Email, UserId, aCfg.EncryptionPassword, aCfg.UserdataPassword)
 	if err != nil {
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(yellow)%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
 	err = json.Unmarshal([]byte(rv), &DBGetUserDataResp)
 	if DBGetUserDataResp.Status != "success" {
 		DBGetUserDataResp.LogUUID = GenUUID()
@@ -265,7 +265,7 @@ type CreateClientSuccess struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/get-registration-token [post]
 func authHandleGetRegistrationToken(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF)\n")
+	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
 	var pp ApiGetRegistrationToken
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
@@ -291,13 +291,13 @@ func authHandleGetRegistrationToken(c *gin.Context) {
 	//                                            1               2                        3
 	// function q_admin_get_registration_token (  p_user_id uuid, p_hmac_password varchar, p_userdata_password varchar )
 	stmt := "q_admin_get_registration_token ( $1, $2, $3 )"
-	dbgo.Fprintf(logFilePtr, "%(cyan)In handler at %(LF): %s\n", stmt)
+	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	//                                                      1       2                        3
 	rv, err := CallDatabaseJSONFunction(c, stmt, "ee.ee..", UserId, aCfg.EncryptionPassword, aCfg.UserdataPassword)
 	if err != nil {
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(yellow)%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
 	err = json.Unmarshal([]byte(rv), &DBData)
 	if DBData.Status != "success" {
 		DBData.LogUUID = GenUUID()

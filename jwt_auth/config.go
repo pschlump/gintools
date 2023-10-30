@@ -52,12 +52,12 @@ func SetupConnectToJwtAuth(xctx context.Context, xconn *pgxpool.Pool, gcfg *data
 
 	if conn == nil {
 		dbgo.Fprintf(os.Stderr, "!!!! %(red)in SetupConnectToDb -- conn is nil\n")
-		dbgo.Fprintf(logFilePtr, "!!!!%(red)in SetupConnectToDb -- conn is nil\n")
+		dbgo.Fprintf(logFilePtr, "!!!!in SetupConnectToDb -- conn is nil\n")
 		os.Exit(1)
 	}
 	if em == nil {
 		dbgo.Fprintf(os.Stderr, "!!!! %(red)in SetupConnectToDb -- em is nil\n")
-		dbgo.Fprintf(logFilePtr, "!!!!%(red)in SetupConnectToDb -- em is nil\n")
+		dbgo.Fprintf(logFilePtr, "!!!!in SetupConnectToDb -- em is nil\n")
 		os.Exit(1)
 	}
 	dbgo.Fprintf(os.Stderr, "!!!! %(green)in SetupConnectToDb -- conn is good !!!!!\n")
