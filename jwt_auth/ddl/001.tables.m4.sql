@@ -8057,7 +8057,7 @@ BEGIN
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 	l_fail = false;
-	l_dkata = '{"status":"unknown"}';
+	l_data = '{"status":"unknown"}';
 
 	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
 	with user_row as (
