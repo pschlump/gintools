@@ -3649,8 +3649,11 @@ $$ LANGUAGE plpgsql;
 --		select q_auth_v1_register ( 'bob41@client.com','abcdefghij','my long secret password','Mr','Bob Bob','user info password','SQLGRLVK47BGDJWK' );
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 DROP FUNCTION if exists q_auth_v1_register ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar ) ;
+drop FUNCTION if exists q_auth_v1_register ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar, p_n6_flag varchar ) ;
 
-CREATE OR REPLACE FUNCTION q_auth_v1_register ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar, p_n6_flag varchar ) RETURNS text
+
+
+CREATE OR REPLACE FUNCTION q_auth_v1_register ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar, p_n6_flag varchar, p_agree_eula varchar, p_agree_tos varchar ) RETURNS text
 AS $$
 DECLARE
 	l_data					text;
@@ -3715,6 +3718,8 @@ BEGIN
 		insert into t_output ( msg ) values ( '  l_require_2fa ->'||coalesce(to_json(l_require_2fa)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_n6_flag ->'||coalesce(to_json(p_n6_flag)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  l_n6 ->'||coalesce(to_json(l_n6)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_agree_tos ->'||coalesce(to_json(p_agree_tos)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_agree_eula ->'||coalesce(to_json(p_agree_eula)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  ' );
 	end if;
 
@@ -3758,18 +3763,6 @@ BEGIN
 		end if;
 
 	end if;
-
-
-
-
-
-	-- If user has hever logged in and is attempting to register the user again - then delete old user - must have same email.
-	-- PERFORM * FROM foo WHERE x = 'abc' AND y = 'xyz';
-	-- IF FOUND THEN
-	-- 	....
-	-- END IF;
-	-- , login_success = login_success + 1
-
 
 
 	-- Cleanup any users that have expired tokens.
@@ -3842,11 +3835,16 @@ BEGIN
 			insert into t_output ( msg ) values ( '  l_user_id ->'||coalesce(to_json(l_user_id)::text,'---null---')||'<-');
 		end if;
 
-		--old--insert into q_qr_user_role ( user_id, role_id )
-		--old--	select l_user_id, t1.role_id
-		--old--	from q_qr_role as t1
-		--old--	where t1.role_name =  'role:user'
-		--old--	;
+		if p_agree_tos is not null then
+			if p_agree_tos != '' then
+				insert into q_qr_user_config ( user_id, name, value ) values ( l_user_id, 'agree_tos', p_agree_tos );
+			end if;
+		end if;
+		if p_agree_eula is not null then
+			if p_agree_eula != '' then
+				insert into q_qr_user_config ( user_id, name, value ) values ( l_user_id, 'agree_eula', p_agree_eula );
+			end if;
+		end if;
 
 		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:m4___file__ Line No:m4___line__');
 
@@ -8040,3 +8038,59 @@ LANGUAGE 'plpgsql';
 
 -- select * from  q_qr_validate_user_auth_token ( '65d26cf9-575a-42e7-971c-77eda313d145'::uuid, '4Ti5G3HmJsw+gbDbMKKVs4tnRUU=');
 -- explain analyze select * from  q_qr_validate_user_auth_token ( '65d26cf9-575a-42e7-971c-77eda313d145'::uuid, '4Ti5G3HmJsw+gbDbMKKVs4tnRUU=');
+
+
+--	//                                   1                2                        3
+--	// FUNCTION q_auth_v1_requires_2fa ( p_email varchar, p_hmac_password varchar, p_userdata_password varchar )
+--	stmt := "q_auth_v1_requires_2fa ( $1, $2, $3 )"
+--                                                  1                2                        3
+CREATE OR REPLACE FUNCTION q_auth_v1_requires_2fa ( p_email varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+AS $$
+DECLARE
+	l_data				text;
+	l_fail				bool;
+	l_user_id			uuid;
+	l_require_2fa		text;
+	l_email_hmac		bytea;
+BEGIN
+	-- Copyright (C) Philip Schlump, 2008-2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+	l_fail = false;
+	l_dkata = '{"status":"unknown"}';
+
+	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
+	with user_row as (
+		select
+			  user_id
+			, require_2fa
+		from q_qr_users as t1
+		where t1.email_hmac = l_email_hmac
+	)
+	select
+		  user_id
+		, require_2fa
+	into
+		  l_user_id
+		, l_require_2fa
+	from user_row
+	;
+
+	if not found then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"Invalid Email/Username Not Found","code":"m4_count()","location":"m4___file__ m4___line__"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Email/Username Not Found', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+	end if;
+
+	if not l_fail then
+		l_data = '{"status":"success"'
+			||', "user_id":'  			||coalesce(to_json(l_user_id)::text,'""')
+			||', "require_2fa":' 	  ||coalesce(to_json(l_require_2fa)::text,'""')
+			||'}';
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
+

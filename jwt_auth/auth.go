@@ -142,6 +142,8 @@ var GinSetupTable = []GinLoginType{
 	{Method: "GET", Path: "/api/v1/auth/setup.js", Fx: authHandlerGetXsrfIdFile, UseLogin: PublicApiCall},                                        //
 	{Method: "GET", Path: "/api/v1/auth/setup", Fx: authHandlerGetXsrfIdFileJSON, UseLogin: PublicApiCall},                                       //
 	{Method: "POST", Path: "/api/v1/auth/generate-qr-for-secret", Fx: authHandleGenerateQRForSecret, UseLogin: PublicApiCall},                    //
+	{Method: "GET", Path: "/api/v1/auth/requires-2fa", Fx: authHandlerRequires2fa, UseLogin: PublicApiCall},                                      // reutrn y/n if 2fa is used  for htis account
+	{Method: "POST", Path: "/api/v1/auth/requires-2fa", Fx: authHandlerRequires2fa, UseLogin: PublicApiCall},                                     // reutrn y/n if 2fa is used  for htis account
 
 	{Method: "GET", Path: "/api/v1/auth/logout", Fx: authHandleLogout, UseLogin: LoginOptional},  // just logout - destroy auth-token
 	{Method: "POST", Path: "/api/v1/auth/logout", Fx: authHandleLogout, UseLogin: LoginOptional}, // just logout - destroy auth-token
@@ -577,6 +579,8 @@ type ApiAuthRegister struct {
 	FirstName string `json:"first_name" form:"first_name"  binding:"required"`
 	LastName  string `json:"last_name"  form:"last_name"   binding:"required"`
 	Pw        string `json:"password"   form:"password"    binding:"required"`
+	AgreeTOS  string `json:"agree_tos" form:"agree_tos"`
+	AgreeEULA string `json:"agree_eula" form:"agree_eula"`
 }
 
 // Output returned
@@ -601,6 +605,8 @@ type RegisterSuccess struct {
 // @Param   pw          formData    string     true        "Password"
 // @Param   first_name  formData    string     true        "First Name"
 // @Param   last_name   formData    string     true        "Last Name"
+// @Param   agree_tos   formData    string     false       "Aggree To Terms of Service"
+// @Param   agree_eula  formData    string     false       "Aggree To Terms of EULA"
 // @Produce json
 // @Success 200 {object} jwt_auth.RegisterSuccess
 // @Failure 400 {object} jwt_auth.StdErrorReturn
@@ -614,6 +620,16 @@ func authHandleRegister(c *gin.Context) {
 	var RegisterResp RvRegisterType
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
+	}
+	if pp.AgreeTOS == "on" {
+		pp.AgreeTOS = "y"
+	} else {
+		pp.AgreeTOS = "n"
+	}
+	if pp.AgreeEULA == "on" {
+		pp.AgreeEULA = "y"
+	} else {
+		pp.AgreeEULA = "n"
 	}
 
 	if IsXDBOn("authHandleRegister:error01") {
@@ -632,12 +648,12 @@ func authHandleRegister(c *gin.Context) {
 	// xyzzy99 if n6 - 6 digit random returned by call
 	// SELECT random();
 
-	//                      1             2             3                        4                     5                    6                            7                    8
-	// q_auth_v1_register ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar, p_n6_flag varchar ) RETURNS text
-	stmt := "q_auth_v1_register ( $1, $2, $3, $4, $5, $6, $7, $8 )"
+	//                      1             2             3                        4                     5                    6                            7                    8                  9                     10
+	// q_auth_v1_register ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar, p_n6_flag varchar, p_agree_eula varchar, p_agree_tos varchar )
+	stmt := "q_auth_v1_register ( $1, $2, $3, $4, $5, $6, $7, $8, $8, $10 )"
 	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
-	//                                                       1         2      3                        4             5            6                      7       8
-	rv, err := CallDatabaseJSONFunction(c, stmt, "ee!ee!..", pp.Email, pp.Pw, aCfg.EncryptionPassword, pp.FirstName, pp.LastName, aCfg.UserdataPassword, secret, gCfg.AuthEmailToken)
+	//                                                       1         2      3                        4             5            6                      7       8                    9             10
+	rv, err := CallDatabaseJSONFunction(c, stmt, "ee!ee!..", pp.Email, pp.Pw, aCfg.EncryptionPassword, pp.FirstName, pp.LastName, aCfg.UserdataPassword, secret, gCfg.AuthEmailToken, pp.AgreeEULA, pp.AgreeTOS)
 	if err != nil {
 		return
 	}
@@ -4564,5 +4580,90 @@ XXxx
 
 		fi
 */
+
+// -------------------------------------------------------------------------------------------------------------------------
+
+// DB Reutrn Data
+type RvRequires2faType struct {
+	StdErrorReturn
+	Require2fa string `json:"require_2fa,omitempty"`
+}
+
+// Input for login
+type ApiAuthRequires2fa struct {
+	Email string `json:"email"      form:"email"       binding:"required,email"`
+}
+
+// Output returned
+type Requires2faSuccess struct {
+	Status     string `json:"status"`
+	Require2fa string `json:"require_2fa,omitempty"`
+}
+
+// authHandleLogin will validate a user's username and password using the stored procedure `q_auth_v1_login` - if the user is
+// validated then create a JWT token and send it back to the client as a secure cookie.   Send a "is-logged-in" regular
+// cookie.
+// func authHandleLogin(c *gin.Context, config interface{}) (err error) {
+
+// {Method: "GET", Path: "/api/v1/auth/requires-2fa", Fx: authHandler2faRequired, UseLogin: PublicApiCall},                                      // reutrn y/n if 2fa is used  for htis account
+
+// authHandleLogin godoc
+// @Summary Login a user - Part 1 before 2FA
+// @Schemes
+// @Description Call checks a users email/password and returns informaiton on part 2 validation.
+// @Tags auth
+// @Accept json,x-www-form-urlencoded
+// @Param   email        formData    string     true        "Email Address"
+// @Produce json
+// @Success 200 {object} jwt_auth.Requires2faSuccess
+// @Failure 400 {object} jwt_auth.StdErrorReturn
+// @Failure 401 {object} jwt_auth.StdErrorReturn
+// @Failure 406 {object} jwt_auth.StdErrorReturn
+// @Failure 500 {object} jwt_auth.StdErrorReturn
+// @Router /api/v1/auth/login [post]
+func authHandlerRequires2fa(c *gin.Context) {
+	var err error
+	var pp ApiAuthRequires2fa
+	if err := BindFormOrJSON(c, &pp); err != nil {
+		return
+	}
+
+	time.Sleep(5000 * time.Millisecond) // Slow down to prevent searching for valid email
+
+	//                                   1                2                        3
+	// FUNCTION q_auth_v1_requires_2fa ( p_email varchar, p_hmac_password varchar, p_userdata_password varchar )
+	stmt := "q_auth_v1_requires_2fa ( $1, $2, $3 )"
+	dbgo.Fprintf(logFilePtr, "In handler at %(LF) stmt: %s\n", stmt)
+	//                                                 1          2                        3
+	rv, err := CallDatabaseJSONFunction(c, stmt, ".!!", pp.Email, aCfg.EncryptionPassword, aCfg.UserdataPassword)
+	if err != nil {
+		return
+	}
+	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+
+	var rvStatus RvRequires2faType
+	err = json.Unmarshal([]byte(rv), &rvStatus)
+	if rvStatus.Status != "success" {
+		rvStatus.LogUUID = GenUUID()
+
+		if logger != nil {
+			fields := []zapcore.Field{
+				zap.String("message", "Stored Procedure (q_auth_v1_requires_2fa) error return"),
+				zap.String("go_location", dbgo.LF()),
+			}
+			fields = AppendStructToZapLog(fields, rvStatus)
+			logger.Error("failed-to-failed-to-report-2fa-status", fields...)
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+		} else {
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+		}
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(rvStatus.StdErrorReturn)) // 401
+		return
+	}
+
+	var out Requires2faSuccess
+	copier.Copy(&out, &rvStatus)
+	c.JSON(http.StatusOK, LogJsonReturned(out))
+}
 
 /* vim: set noai ts=4 sw=4: */
