@@ -3649,10 +3649,10 @@ $$ LANGUAGE plpgsql;
 --		select q_auth_v1_register ( 'bob41@client.com','abcdefghij','my long secret password','Mr','Bob Bob','user info password','SQLGRLVK47BGDJWK' );
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 DROP FUNCTION if exists q_auth_v1_register ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar ) ;
-drop FUNCTION if exists q_auth_v1_register ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar, p_n6_flag varchar ) ;
+DROP FUNCTION if exists q_auth_v1_register ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar, p_n6_flag varchar ) ;
 
 
-
+--                                              1                2             3                        4                     5                    6                            7                 8                  9                     10
 CREATE OR REPLACE FUNCTION q_auth_v1_register ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar, p_n6_flag varchar, p_agree_eula varchar, p_agree_tos varchar ) RETURNS text
 AS $$
 DECLARE

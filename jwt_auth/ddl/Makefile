@@ -79,3 +79,10 @@ deploy_test02: all
 new_db:
 	psql --dbname=qr0 <setup.sql >out1.lst 2>&1
 	psql --dbname=qr0 <001.test.sql >out1.lst 2>&1
+
+deploy_sql:
+	scp 000.setup.sql 001.tables.sql 002.test.sql  \
+		deploy_app.sh ./deploy_db_app.sh \
+		philip@peach.com:/home/philip/tmp
+
+

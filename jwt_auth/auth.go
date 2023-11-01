@@ -644,13 +644,9 @@ func authHandleRegister(c *gin.Context) {
 
 	secret := GenerateSecret()
 
-	// xyzzy99 - add 8th param -- {Method: "GET", Path: "/api/v1/auth/email-confirm", Fx: authHandlerEmailConfirm, UseLogin: PublicApiCall},                                    // token
-	// xyzzy99 if n6 - 6 digit random returned by call
-	// SELECT random();
-
 	//                      1             2             3                        4                     5                    6                            7                    8                  9                     10
 	// q_auth_v1_register ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar, p_n6_flag varchar, p_agree_eula varchar, p_agree_tos varchar )
-	stmt := "q_auth_v1_register ( $1, $2, $3, $4, $5, $6, $7, $8, $8, $10 )"
+	stmt := "q_auth_v1_register ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 )"
 	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	//                                                       1         2      3                        4             5            6                      7       8                    9             10
 	rv, err := CallDatabaseJSONFunction(c, stmt, "ee!ee!..", pp.Email, pp.Pw, aCfg.EncryptionPassword, pp.FirstName, pp.LastName, aCfg.UserdataPassword, secret, gCfg.AuthEmailToken, pp.AgreeEULA, pp.AgreeTOS)
@@ -662,7 +658,7 @@ func authHandleRegister(c *gin.Context) {
 	if RegisterResp.Status != "success" {
 		time.Sleep(1500 * time.Millisecond)
 		RegisterResp.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "ee!ee!..", SVar(RegisterResp), pp.Email, pp.Pw /*aCfg.EncryptionPassword,*/, pp.FirstName, pp.LastName /*, aCfg.UserdataPassword*/, secret)
+		log_enc.LogStoredProcError(c, stmt, "ee!ee!..ee", SVar(RegisterResp), pp.Email, pp.Pw /*aCfg.EncryptionPassword,*/, pp.FirstName, pp.LastName /*, aCfg.UserdataPassword*/, secret, gCfg.AuthEmailToken, pp.AgreeEULA, pp.AgreeTOS)
 		c.JSON(http.StatusBadRequest, LogJsonReturned(RegisterResp.StdErrorReturn))
 		return
 	}
@@ -1445,6 +1441,13 @@ func authHandleRecoverPassword01Setup(c *gin.Context) {
 
 	time.Sleep(500 * time.Millisecond)
 
+	// Cookies Reset
+	SetCookie("X-Authentication", "", c) // Will be a secure http cookie on TLS.
+	if gCfg.ReleaseMode == "dev" {
+		SetCookie("X-Authentication-User", "", c)
+	}
+	SetInsecureCookie("X-Is-Logged-In", "no", c) // To let the JS code know that it is logged in.
+
 	out := ReturnSuccess{Status: "success"}
 	c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
 
@@ -1697,6 +1700,13 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 		"realm", gCfg.AuthRealm,
 		"server", gCfg.BaseServerURL,
 	)
+
+	// Cookies Reset
+	SetCookie("X-Authentication", "", c) // Will be a secure http cookie on TLS.
+	if gCfg.ReleaseMode == "dev" {
+		SetCookie("X-Authentication-User", "", c)
+	}
+	SetInsecureCookie("X-Is-Logged-In", "no", c) // To let the JS code know that it is logged in.
 
 	var out RecoverPassword03SetPasswordSuccess
 	copier.Copy(&out, &rvStatus)
