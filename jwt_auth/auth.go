@@ -98,6 +98,11 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+type RvStatus struct {
+	StdErrorReturn
+	// Status string `json:"status" db:"status"`
+}
+
 type GinLoginType struct {
 	Path     string
 	Method   string
