@@ -118,6 +118,7 @@ type BaseConfigType struct {
 	RedisConnectHost string `json:"redis_host" default:"$ENV$REDIS_HOST"`
 	RedisConnectAuth string `json:"redis_auth" default:"$ENV$REDIS_AUTH"`
 	RedisConnectPort string `json:"redis_port" default:"6379"`
+	RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
 
 	TickerSeconds int `json:"ticker_seconds" default:"30"` // Time Ticker Seconds
 

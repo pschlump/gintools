@@ -3897,6 +3897,9 @@ BEGIN
 		l_tmp_token = uuid_generate_v4();
 		insert into q_qr_tmp_token ( user_id, token, expires ) values ( l_user_id, l_tmp_token, current_timestamp + interval '1 day' );
 
+-- xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
+-- may need to create an auth_token and save it at this point also.
+
 		l_data = '{"status":"success"'
 			||', "user_id":' 			||coalesce(to_json(l_user_id)::text,'""')
 			||', "email_verify_token":' ||coalesce(to_json(l_email_verify_token)::text,'""')
@@ -6059,6 +6062,9 @@ BEGIN
 			;
 		l_tmp_token = uuid_generate_v4();
 		insert into q_qr_tmp_token ( user_id, token ) values ( l_user_id, l_tmp_token );
+		if l_debug_on then
+			insert into t_output ( msg ) values ( ' l_tmp_token ->'||coalesce(to_json(l_tmp_token)::text,'---null---')||'<-');
+		end if;
 		if l_require_2fa = 'y' then
 			l_auth_token = NULL;
 			insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'Login - Part 1 Success: '||l_tmp_token::text, 'File:m4___file__ Line No:m4___line__');
@@ -7021,6 +7027,7 @@ DECLARE
 	l_email_verify_token	text;
 	l_require_2fa			text;
 	l_n6_token				int;
+	l_auth_token			text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -7160,6 +7167,8 @@ BEGIN
 		l_data = '{"status":"success"'
 			||', "email":'   	||coalesce(to_json(l_email)::text,'""')
 			||', "tmp_token":'  ||coalesce(to_json(l_tmp_token)::text,'""')
+			||', "auth_token":'	||coalesce(to_json(l_auth_token)::text,'""')
+			||', "user_id":'	||coalesce(to_json(l_user_id)::text,'""')
 			||'}';
 	end if;
 
@@ -7732,7 +7741,7 @@ BEGIN
 
 	if not l_fail then
 		-- Insert into log that email changed.
-		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Email Addres Changed.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Email Address Changed.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 	end if;
 
 	if not l_fail then
@@ -8085,7 +8094,7 @@ BEGIN
 	if not l_fail then
 		l_data = '{"status":"success"'
 			||', "user_id":'  			||coalesce(to_json(l_user_id)::text,'""')
-			||', "require_2fa":' 	  ||coalesce(to_json(l_require_2fa)::text,'""')
+			||', "require_2fa":' 	  	||coalesce(to_json(l_require_2fa)::text,'""')
 			||'}';
 	end if;
 
@@ -8094,3 +8103,153 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+
+
+
+CREATE OR REPLACE FUNCTION q_auth_v1_get_user_info ( p_user_id uuid, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+AS $$
+DECLARE
+	l_data					text;
+	l_fail					bool;
+	l_first_name	 		text;
+	l_last_name		 		text;
+	l_email			 		text;
+BEGIN
+	-- Copyright (C) Philip Schlump, 2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	select 
+			  pgp_sym_decrypt(t2.email_enc, p_userdata_password)::text as email
+			, pgp_sym_decrypt(t2.first_name_enc, p_userdata_password)::text as first_name
+			, pgp_sym_decrypt(t2.last_name_enc, p_userdata_password)::text as last_name
+		into l_email, l_first_name, l_last_name
+		from q_qr_users as t2
+		where t2.user_id = p_user_id
+		;
+
+	if not found then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"Invalid User ID","code":"m4_count()","location":"m4___file__ m4___line__"}';
+	end if;
+
+	if not l_fail then
+		l_data = '{"status":"success"'
+			||', "email":' 	 				||coalesce(to_json(l_email)::text,'""')
+			||', "first_name":'  			||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   			||coalesce(to_json(l_last_name)::text,'""')
+			||'}';
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- --------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- //	1. Change Name 			/api/v1/auth/change-name
+-- //	2. Change Email Address	/api/v1/auth/change-email-addrss, .../can-chagne-email -> success/failed
+-- 		// xyzzy770000 TODO --------------------------- change account info
+-- // xyzzy770000 TODO --------------------------- change account info -- all info update by admin...
+-- //		- stored proc needs to be implemented
+-- //		- admin page
+-- 
+-- 		// create or replace function xyzzy ( p_un varchar, p_pw varchar, p_hmac_password varchar )
+-- // UserId, first_name, last_name, PW, PW
+-- 		stmt := "q_auth_v1_change_account_info ( $1, $2, $3, $4, $5 )"
+--                                  1               2                     3                    4                        5
+-- q_auth_v1_change_account_info (  p_user_id uuid, p_first_name varchar, p_last_name varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+-- Update users name.
+-- --------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION q_auth_v1_change_account_info ( p_user_id uuid, p_first_name varchar, p_last_name varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+AS $$
+DECLARE
+	l_data					text;
+	l_fail					bool;
+	l_user_id				uuid;
+	l_secret_2fa 			varchar(20);
+	v_cnt 					int;
+BEGIN
+	-- Copyright (C) Philip Schlump, 2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	update q_qr_users
+		set 
+			  first_name_enc = pgp_sym_encrypt(p_first_name,p_userdata_password)
+			, first_name_hmac = q_auth_v1_hmac_encode ( lower(p_first_name), p_hmac_password )
+			, last_name_enc = pgp_sym_encrypt(p_last_name,p_userdata_password)
+			, last_name_hmac = q_auth_v1_hmac_encode ( lower(p_last_name), p_hmac_password )
+		where user_id = p_user_id
+		;
+	
+	-- check # of rows.
+	GET DIAGNOSTICS v_cnt = ROW_COUNT;
+	if v_cnt != 1 then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"Invalid Account","code":"m4_count()","location":"m4___file__ m4___line__"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Account', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+	end if;
+
+	if not l_fail then
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Name Changed.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+	end if;
+
+	if not l_fail then
+		l_data = '{"status":"success"'
+			||', "first_name":'  			||coalesce(to_json(p_first_name)::text,'""')
+			||', "last_name":'   			||coalesce(to_json(p_last_name)::text,'""')
+			||'}';
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- --------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--                              1                2                    3               4                        5
+-- q_auth_v1_can_change_email ( p_email varchar, p_new_email varchar, p_user_id uuid, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+-- checks to se if p_new_email is already used.  If so then error.
+-- --------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+-- vim: set noai ts=4 sw=4: 

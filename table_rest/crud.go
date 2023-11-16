@@ -4,6 +4,8 @@ package table_rest
 // MIT Licensed.  See LICENSE.mit file.
 // BSD Licensed.  See LICENSE.bsd file.
 
+// xyzzy00000 - error check
+
 // xyzzy - for user_id = "__user_id__" - func FoundCol(c *gin.Context, WhereCols []string, UseRLS []RLSColumns) (cols []string, colsData []interface{}, found bool) {
 // 		make change to this to pull back the "__user_id__" data?
 
@@ -197,6 +199,8 @@ func RunPreFunctions(c *gin.Context, SPData CrudBaseConfig) (err error) {
 			if status == ErrorFail {
 				err = e0
 				fmt.Fprintf(logFilePtr, "Error 406: %s %s\n", err, dbgo.LF())
+				SetJSONHeaders(c)
+				fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", "Pre Processing call non-success status", dbgo.LF())
 				c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 				return
 			}
@@ -225,6 +229,8 @@ func RunPostFunctions(c *gin.Context, SPData CrudBaseConfig, inData string) (out
 			} else if status == ErrorFail {
 				err = e1
 				fmt.Fprintf(logFilePtr, "Error 406: %s %s\n", err, dbgo.LF())
+				SetJSONHeaders(c)
+				fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", "Post Processing call non-success status", dbgo.LF())
 				c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 				return
 			}
@@ -262,6 +268,8 @@ func HandleStoredProcedureConfig(c *gin.Context, SPData *CrudStoredProcConfig) {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error fetching return data from %s ->%s<- error %s at %s\n", SPData.StoredProcedureName, stmt, err, dbgo.LF())
 			fmt.Fprintf(logFilePtr, "Error fetching return data from %s ->%s<- error %s at %s\n", SPData.StoredProcedureName, stmt, err, dbgo.LF())
+			SetJSONHeaders(c)
+			fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", err, dbgo.LF())
 			c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 			e0 := fmt.Sprintf("Error fetching return data from %s ->%s<- error %s", SPData.StoredProcedureName, stmt, err)
 			fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"location":%q}`, e0, dbgo.LF())
@@ -271,6 +279,8 @@ func HandleStoredProcedureConfig(c *gin.Context, SPData *CrudStoredProcConfig) {
 		err = json.Unmarshal([]byte(rawData), &getStatus)
 		if err != nil {
 			fmt.Fprintf(logFilePtr, "Error 406: %s %s\n", err, dbgo.LF())
+			SetJSONHeaders(c)
+			fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", err, dbgo.LF())
 			c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 			e0 := fmt.Sprintf("Error parsing return data ->%s<-form %s ->%s<- error %s", SPData.StoredProcedureName, stmt, rawData, err)
 			fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"location":%q}`, e0, dbgo.LF())
@@ -290,6 +300,7 @@ func HandleStoredProcedureConfig(c *gin.Context, SPData *CrudStoredProcConfig) {
 			}
 			fmt.Fprintf(logFilePtr, "Error data ->%s<-form %s ->%s<- error %s at %s\n", SPData.StoredProcedureName, stmt, rawData, err, dbgo.LF())
 			e0 := fmt.Sprintf("Error data ->%s<-form %s ->%s<- error %s", SPData.StoredProcedureName, stmt, rawData, err)
+			SetJSONHeaders(c)
 			fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"location":%q}`, e0, dbgo.LF())
 			return
 		}
@@ -303,6 +314,8 @@ func HandleStoredProcedureConfig(c *gin.Context, SPData *CrudStoredProcConfig) {
 		return
 	default:
 		dbgo.DbPrintf("HandleCRUD.SP", "AT: %s method [%s]\n", dbgo.LF(), c.Request.Method)
+		SetJSONHeaders(c)
+		fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"location":%q}`, "Invalid Method", dbgo.LF())
 		c.Writer.WriteHeader(http.StatusMethodNotAllowed) // 405
 		return
 	}
@@ -337,6 +350,8 @@ func HandleQueryConfig(c *gin.Context, QueryData *CrudQueryConfig) {
 
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error updating data from %s ->%s<- error %s at %s\n", QueryData.QueryString, stmt, err, dbgo.LF())
+				fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", err, dbgo.LF())
+				SetJSONHeaders(c)
 				c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 				return
 			}
@@ -357,6 +372,8 @@ func HandleQueryConfig(c *gin.Context, QueryData *CrudQueryConfig) {
 
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error updating data from %s ->%s<- error %s at %s\n", QueryData.QueryString, stmt, err, dbgo.LF())
+				SetJSONHeaders(c)
+				fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", err, dbgo.LF())
 				c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 				return
 			}
@@ -419,6 +436,9 @@ func HandleQueryConfig(c *gin.Context, QueryData *CrudQueryConfig) {
 
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error fetching return data from %s ->%s<- error %s at %s\n", QueryData.QueryString, stmt, err, dbgo.LF())
+				// xyzzy00000 - error check
+				fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", err, dbgo.LF())
+				SetJSONHeaders(c)
 				c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 				return
 			}
@@ -437,6 +457,8 @@ func HandleQueryConfig(c *gin.Context, QueryData *CrudQueryConfig) {
 
 	default:
 		dbgo.DbPrintf("HandleCRUD.Query", "AT: %s method [%s]\n", dbgo.LF(), c.Request.Method)
+		SetJSONHeaders(c)
+		fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"location":%q}`, "Invalid Method", dbgo.LF())
 		c.Writer.WriteHeader(http.StatusMethodNotAllowed) // 405
 		return
 	}
@@ -473,6 +495,8 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 	}
 
 	if !InArray(method, CrudData.MethodsAllowed) {
+		SetJSONHeaders(c)
+		fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"location":%q}`, "Invalid Method", dbgo.LF())
 		c.Writer.WriteHeader(http.StatusMethodNotAllowed) // 405
 		return
 	}
@@ -515,6 +539,8 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 			}()
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
+				SetJSONHeaders(c)
+				fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", err, dbgo.LF())
 				c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 				return
 			}
@@ -543,6 +569,7 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
 				fmt.Fprintf(logFilePtr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
+				fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", err, dbgo.LF())
 				c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 				return
 			}
@@ -584,6 +611,8 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
 					fmt.Fprintf(logFilePtr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
+					SetJSONHeaders(c)
+					fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", err, dbgo.LF())
 					c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 					return
 				}
@@ -598,6 +627,8 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
 					fmt.Fprintf(logFilePtr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
+					SetJSONHeaders(c)
+					fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", err, dbgo.LF())
 					c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 					return
 				}
@@ -606,6 +637,8 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 
 		} else if CrudData.SelectRequiresWhere { // If true, then were must be specified - can not do a full-table below.
 			dbgo.DbPrintf("HandleCRUD", "AT: %s method [%s]\n", dbgo.LF(), c.Request.Method)
+			SetJSONHeaders(c)
+			fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"location":%q}`, "Select Requries a 'where' Clause", dbgo.LF())
 			c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 			return
 
@@ -650,6 +683,8 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
 					fmt.Fprintf(logFilePtr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
+					SetJSONHeaders(c)
+					fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", err, dbgo.LF())
 					c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 					return
 				}
@@ -664,6 +699,8 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
 					fmt.Fprintf(logFilePtr, "Error fetching from %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
+					SetJSONHeaders(c)
+					fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", err, dbgo.LF())
 					c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 					return
 				}
@@ -773,8 +810,9 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 		} else {
 			err := fmt.Errorf("Error occured on %s error %s at %s\n", CrudData.TableName, err, dbgo.LF())
 			fmt.Fprintf(logFilePtr, "%s", err)
-			c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
+			SetJSONHeaders(c)
 			fmt.Fprintf(c.Writer, `{"status":"error":"msg":%q,"location":%q}`, err, dbgo.LF())
+			c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 		}
 		return
 
@@ -806,7 +844,6 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 			// xyzzy5 - TODO - Must have error text returned. -- this is a general error - all error returns must have a message.
 			SetJSONHeaders(c)
 			fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"location":%q}`, "Error inserting data.", dbgo.LF())
-			// xyzzy - end
 			c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 			return
 		}
@@ -841,6 +878,8 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error updating %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
 			fmt.Fprintf(logFilePtr, "Error updating %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
+			SetJSONHeaders(c)
+			fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", err, dbgo.LF())
 			c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 			return
 		}
@@ -868,6 +907,8 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error deleting from %s stmt ->%s<- id ->%s<- error %s at %s\n", CrudData.TableName, stmt, id, err, dbgo.LF())
 				fmt.Fprintf(logFilePtr, "Error updating %s ->%s<- error %s at %s\n", CrudData.TableName, stmt, err, dbgo.LF())
+				SetJSONHeaders(c)
+				fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", err, dbgo.LF())
 				c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 				return
 			}
@@ -875,6 +916,8 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 			fmt.Fprintf(logFilePtr, "%sAT AT:%s nr=%d%s\n", dbgo.ColorCyan, dbgo.LF(), nr, dbgo.ColorReset)
 		} else {
 			fmt.Fprintf(logFilePtr, "DELETE %s - missking primary key info (%s) at:%s\n", c.Request.RequestURI, "id", dbgo.LF())
+			SetJSONHeaders(c)
+			fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"location":%q}`, "Missing key field (probably primary key)", dbgo.LF())
 			c.Writer.WriteHeader(http.StatusBadRequest) // 400
 			return
 		}
@@ -889,6 +932,8 @@ func HandleCRUDPerTableRequests(c *gin.Context, CrudData *CrudConfig) {
 	default:
 		dbgo.DbPrintf("HandleCrudConfig", "  AT: %s\n", dbgo.LF())
 		dbgo.DbPrintf("HandleCRUD", "AT: %s method [%s]\n", dbgo.LF(), c.Request.Method)
+		SetJSONHeaders(c)
+		fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"location":%q}`, "Invalid Method", dbgo.LF())
 		c.Writer.WriteHeader(http.StatusMethodNotAllowed) // 405
 		return
 	}
@@ -924,6 +969,8 @@ func GenOrderBy(c *gin.Context, CrudData *CrudConfig) (rv string, err error) {
 	for ii, col := range ParsedCols {
 		if !InArray(col, CrudData.OrderByCols) {
 			fmt.Fprintf(logFilePtr, "ORDER BY %s - invalid column (%s) must be one of (%s) at:%s\n", c.Request.RequestURI, col, CrudData.OrderByCols, dbgo.LF())
+			SetJSONHeaders(c)
+			fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", err, dbgo.LF())
 			c.Writer.WriteHeader(http.StatusBadRequest) // 400
 			err = fmt.Errorf("Invalid Order By Column %s, must be one of %s", col, CrudData.OrderByCols)
 			return
@@ -1081,6 +1128,8 @@ func GetQueryNames(c *gin.Context, potentialCols []ParamListItem, StoredProcdure
 			err = fmt.Errorf("Missing %s in call to %s - endpoint %s", colName, StoredProcdureName, URIPath)
 			fmt.Fprintf(os.Stderr, "Error %s", err)
 			fmt.Fprintf(logFilePtr, "Error 500: %s, %s\n", err, dbgo.LF())
+			fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"location":%q}`, fmt.Sprintf("Database Error: required name(%s) in query is missing", col.Required), dbgo.LF())
+			SetJSONHeaders(c)
 			c.Writer.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
@@ -1136,6 +1185,8 @@ func GetStoredProcNames(c *gin.Context, potentialCols []ParamListItem, StoredPro
 			err = fmt.Errorf("Missing %s in call to %s - endpoint %s", colName, StoredProcdureName, URIPath)
 			fmt.Fprintf(os.Stderr, "Error %s", err)
 			fmt.Fprintf(logFilePtr, "Error 500: %s %s\n", err, dbgo.LF())
+			SetJSONHeaders(c)
+			fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", fmt.Sprintf("Missing reqired column (%s)", col.Required), dbgo.LF())
 			c.Writer.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
@@ -1289,6 +1340,8 @@ func GetUpdateNames(c *gin.Context, potentialCols []string, pkCol string, colTyp
 		err = fmt.Errorf("PK (%s) not included in udpate", pkCol)
 		fmt.Fprintf(os.Stderr, "Error %s", err)
 		fmt.Fprintf(logFilePtr, "Error %s", err)
+		SetJSONHeaders(c)
+		fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", fmt.Sprintf("Missing reqired column (%s)", pkCol), dbgo.LF())
 		c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 		return
 	}
@@ -1318,6 +1371,8 @@ func GetUpdateNames(c *gin.Context, potentialCols []string, pkCol string, colTyp
 		err = fmt.Errorf("No columns updated")
 		fmt.Fprintf(os.Stderr, "Error %s", err)
 		fmt.Fprintf(logFilePtr, "Error: %s %s\n", err, dbgo.LF())
+		SetJSONHeaders(c)
+		fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", fmt.Sprintf("Invalid number of columns, should be 1, found %d", nc), dbgo.LF())
 		c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 		return
 	}
@@ -1348,6 +1403,8 @@ func GetDeleteNames(c *gin.Context, potentialCols []string, pkCol string, colTyp
 		err = fmt.Errorf("PK (%s) not included in delete", pkCol)
 		fmt.Fprintf(os.Stderr, "Error %s", err)
 		fmt.Fprintf(logFilePtr, "Error %s", err)
+		SetJSONHeaders(c)
+		fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", fmt.Sprintf("Missing reqired column (%s)", pkCol), dbgo.LF())
 		c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
 		return
 	}

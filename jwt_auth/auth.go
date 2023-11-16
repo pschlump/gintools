@@ -4,6 +4,18 @@ package jwt_auth
 // MIT Licensed.  See LICENSE.mit file.
 // BSD Licensed.  See LICENSE.bsd file.
 
+// xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
+
+//	1. Change Name 			/api/v1/auth/change-name
+//	2. Change Email Address	/api/v1/auth/change-email-addrss, .../can-chagne-email -> success/failed
+// xyzzy770000 TODO --------------------------- change account info
+// xyzzy770000 TODO --------------------------- change account info -- all info update by admin...
+//		- stored proc needs to be implemented
+//		- admin page
+// xyzzy551 - Change Email NOT Tested
+
+// =======================================================================================
+
 // xyzzy8 - fingerprint
 // xyzzy99 - AuthEmailToken           string `json:"auth_email_token" default:"uuid"`                                          // "uuid"|"n6" - if n6 then a 6 digit numer is used.
 
@@ -39,18 +51,12 @@ package jwt_auth
 // Notes
 // =======================================================================================
 
-// xyzzy551 - Change Email NOT Tested
-
 // xyzzy443 - send email about this -- all done except end points that are not yet used.
 //		- get sendgrid account updated
 //		- validate actual email
 //		- put in each email
 //		- pwa not installedj0
 // 		xyzzy448 - test for un/pw and token registration of acocunt, test of login, test of parent account deleted.
-
-// xyzzy770000 TODO --------------------------- change account info -- all info update by admin...
-//		- stored proc needs to be implemented
-//		- admin page
 
 // xyzzy-Expire
 //		Return token expiration date/time to user so can do intelligent refresh.
@@ -442,6 +448,11 @@ func authHandleLogin(c *gin.Context) {
 				rvStatus.Token = theJwtToken
 				c.Set("__jwt_token__", theJwtToken)
 			}
+		}
+
+		// xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
+		if gCfg.RedisUsePubSub == "yes" {
+			RedisBrodcast(rvStatus.AuthToken, fmt.Sprintf(`{"cmd":"/auth/login","auth_token":%q,"user_id":%q}`, rvStatus.AuthToken, rvStatus.UserId))
 		}
 	}
 
@@ -970,6 +981,8 @@ type RvEmailConfirm struct {
 	Email     string `json:"email,omitempty"`
 	TmpToken  string `json:"tmp_token,omitempty"` // May be "" - used in 2fa part 1 / 2
 	AcctState string `json:"acct_state,omitempty"`
+	AuthToken string `json:"auth_token,omitempty"`
+	UserId    string `json:"user_id,omitempty"`
 }
 
 // Input for api endpoint
@@ -1034,6 +1047,12 @@ func authHandlerEmailConfirm(c *gin.Context) {
 		}) // email, tmp_token
 		dbgo.Printf("Redirect/location-error.html: ->%(yellow)%s%(reset)<-\n", html)
 		fmt.Fprintf(c.Writer, html)
+
+		// xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
+		if gCfg.RedisUsePubSub == "yes" {
+			RedisBrodcast(rvEmailConfirm.AuthToken, fmt.Sprintf(`{"cmd":"/auth/email-confirm","auth_token":%q,"user_id":%q}`, rvEmailConfirm.AuthToken, rvEmailConfirm.UserId))
+		}
+
 		return
 	}
 
@@ -1736,7 +1755,7 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 // @Router /api/v1/auth/logout [post]
 func authHandleLogout(c *gin.Context) {
 	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
-	var AuthToken string
+	var UserId, AuthToken string
 	var pp ApiEmailOptional
 	if err := BindFormOrJSONOptional(c, &pp); err != nil {
 		goto done
@@ -1744,7 +1763,7 @@ func authHandleLogout(c *gin.Context) {
 	if pp.Email == "" {
 		goto done
 	}
-	_, AuthToken = GetAuthToken(c)
+	UserId, AuthToken = GetAuthToken(c)
 	if AuthToken == "" {
 		time.Sleep(1500 * time.Millisecond)
 		goto done
@@ -1775,6 +1794,12 @@ func authHandleLogout(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, LogJsonReturned(rvStatus)) // 400
 			return
 		}
+
+		// xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
+		if gCfg.RedisUsePubSub == "yes" {
+			RedisBrodcast(AuthToken, fmt.Sprintf(`{"cmd":"/auth/logout","auth_token":%q,"user_id":%q}`, AuthToken, UserId))
+		}
+
 		dbgo.Fprintf(os.Stderr, "%(cyan)In Handler at %(LF)\n")
 	}
 
@@ -2263,6 +2288,8 @@ func authHandleValidate2faToken(c *gin.Context) {
 	// ----------------------------------------------------------------------------------------------
 
 	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+
+	// xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
 
 	// rv, stmt, err := ConfirmEmailAccount(c, pp.EmailVerifyToken)
 	// create or replace function q_auth_v1_validate_2fa_token ( p_un varchar, p_2fa_secret varchar, p_hmac_password varchar )
@@ -2775,6 +2802,11 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 
 // -------------------------------------------------------------------------------------------------------------------------
 // router.POST("/api/v1/auth/change-account-info", LoginRequiredClosure(authHandleChangeAccountInfo))     //
+type ApiAuthChangeAccountInfo struct {
+	FirstName string `json:"first_name" form:"first_name"   binding:"required"`
+	LastName  string `json:"last_name"  form:"last_name"    binding:"required"`
+	X2FaPin   string `json:"x2fa_pin"   form:"x2fa_pin"  `
+}
 
 // authHandleChangeAccountInfo godoc
 // @Summary Chagne information tied to account.
@@ -2791,48 +2823,42 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 // @Router /api/v1/auth/change-account-info [post]
 func authHandleChangeAccountInfo(c *gin.Context) {
 	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
-	var pp ApiEmail // TODO - data - add password to confirm
+	var pp ApiAuthChangeAccountInfo
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
-	_, AuthToken := GetAuthToken(c)
 
-	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
+	UserId, AuthToken := GetAuthToken(c)
 
-		DumpParamsToLog("After Auth - Top", c)
-
-		// xyzzy770000 TODO --------------------------- change account info
-		// create or replace function xyzzy ( p_un varchar, p_pw varchar, p_hmac_password varchar )
-		stmt := "q_auth_v1_xyzzy ( $1, $2, $3 )"
-		rv, e0 := CallDatabaseJSONFunction(c, stmt, "e!.", pp.Email, AuthToken, aCfg.EncryptionPassword)
-		if e0 != nil {
-			return
-		}
-
-		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
-		// var rvStatus RvStatusType
-		var rvStatus StdErrorReturn
-		err := json.Unmarshal([]byte(rv), &rvStatus)
-		if err != nil || rvStatus.Status != "success" {
-			rvStatus.LogUUID = GenUUID()
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-			c.JSON(http.StatusBadRequest, LogJsonReturned(rvStatus)) // 400
-			return
-		}
-
-		out := ReturnSuccess{Status: "success"}
-		c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
-		return
-	} else {
+	if AuthToken == "" { // if user is logged in then logout - else - just ignore.
 		time.Sleep(1500 * time.Millisecond)
+		out := StdErrorReturn{
+			Status:   "error",
+			Msg:      "401 not authorized",
+			Location: dbgo.LF(),
+		}
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(out))
+		return
 	}
 
-	out := StdErrorReturn{
-		Status:   "error",
-		Msg:      "401 not authorized",
-		Location: dbgo.LF(),
+	DumpParamsToLog("After Auth - Top of Update Accoutn Info (first name, last-name)", c)
+
+	// xyzzy770000 TODO --------------------------- change account info
+
+	var rvStatus StdErrorReturn
+	// UserId, first_name, last_name, PW, PW
+	//                                          1               2                     3                    4                        5
+	// FUNCTION q_auth_v1_change_account_info ( p_user_id uuid, p_first_name varchar, p_last_name varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+	stmt := "q_auth_v1_change_account_info ( $1, $2, $3, $4, $5 )"
+	//                                                        1       2             3            4                        5
+	e0 := CallDatabaseFunction(c, &rvStatus, stmt, "e!.", UserId, pp.FirstName, pp.LastName, aCfg.EncryptionPassword, aCfg.UserdataPassword)
+	if e0 != nil {
+		return
 	}
-	c.JSON(http.StatusUnauthorized, LogJsonReturned(out))
+
+	out := ReturnSuccess{Status: "success"}
+	c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
+	return
 
 }
 
@@ -3807,6 +3833,8 @@ func GenerateSecret() string {
 //	ConfirmEmailAccount uses the token to lookup a user and confirms that the email that received the token is real.
 func ConfirmEmailAccount(c *gin.Context, EmailVerifyToken string) (rv, stmt string, err error) {
 
+	// xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
+
 	//                          1                             2                        3                            4
 	// q_auth_v1_email_verify ( p_email_verify_token varchar, p_hmac_password varchar, p_userdata_password varchar, p_n6_flag varchar ) RETURNS text
 	stmt = "q_auth_v1_email_verify ( $1, $2, $3, $4 )"
@@ -3903,16 +3931,12 @@ func CallDatabaseJSONFunction(c *gin.Context, fCall string, encPat string, data 
 	elapsed := time.Since(start) // elapsed time.Duration
 	if err != nil {
 		if elapsed > (1 * time.Millisecond) {
-			dbgo.Fprintf(os.Stderr, "    %(red)Error on select stmt ->%s<- data %s %(red)elapsed:%s%(reset) at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
+			dbgo.Fprintf(os.Stderr, "    %(red)Error on select stmt ->%s<- data %s %(red)elapsed:%s%(reset) at:%s %s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1), dbgo.LF(-2))
 		} else {
-			dbgo.Fprintf(os.Stderr, "    %(red)Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
+			dbgo.Fprintf(os.Stderr, "    %(red)Error on select stmt ->%s<- data %s elapsed:%s at:%s %s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1), dbgo.LF(-2))
 		}
 		dbgo.Fprintf(logFilePtr, "    Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
-		//if c == nil {
-		//	dbgo.Fprintf(os.Stderr, "Error: %s stmt %s at %(LF)\n", stmt, err)
-		//} else {
 		log_enc.LogSQLError(c, stmt, err, encPat, data...)
-		//}
 		return "", fmt.Errorf("Sql error")
 	}
 	if len(v2) > 0 {
@@ -4679,6 +4703,9 @@ func authHandlerRequires2fa(c *gin.Context) {
 	var out Requires2faSuccess
 	copier.Copy(&out, &rvStatus)
 	c.JSON(http.StatusOK, LogJsonReturned(out))
+}
+
+func RedisBrodcast(AuthToken string, data string) {
 }
 
 /* vim: set noai ts=4 sw=4: */
