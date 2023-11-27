@@ -78,10 +78,8 @@ func QrGroupRequestHandler(c *gin.Context) {
 */
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -4081,23 +4079,28 @@ func ConvPrivs2(Privileges []string) (rv string, mr map[string]bool) {
 }
 
 /* should make this middlware! */
+/* From: https://techwasti.com/log-requests-and-responses-in-go-gin */
 func peekAtBody(c *gin.Context) {
 
-	dbgo.Fprintf(os.Stderr, "\n\n%(magenta)Request\n===============================================================================================================%(reset)\n%(yellow)Headers\n")
-	for name, values := range c.Request.Header {
-		// Loop over all values for the name.
-		for _, value := range values {
-			dbgo.Printf("%(yellow)\t%s ->%s<-\n", name, value)
-		}
-	}
+	// dbgo.Fprintf(os.Stderr, "\n\n%(magenta)Request\n===============================================================================================================%(reset)\n%(yellow)Headers\n")
+	//
+	//	for name, values := range c.Request.Header {
+	//		// Loop over all values for the name.
+	//		for _, value := range values {
+	//			dbgo.Printf("%(yellow)\t%s ->%s<-\n", name, value)
+	//		}
+	//	}
+	//
+	// body, err := io.ReadAll(c.Request.Body)
+	//
+	//	if err != nil {
+	//		dbgo.Fprintf(os.Stderr, "%(red)request body pee resulted in error: %s\n", err)
+	//	} else {
+	//
+	//		dbgo.Fprintf(os.Stderr, "%(yellow)request body ->%s<-\n", body)
+	//		c.Request.Body = io.NopCloser(bytes.NewReader(body))
+	//	}
 
-	body, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		dbgo.Fprintf(os.Stderr, "%(red)request body pee resulted in error: %s\n", err)
-	} else {
-		dbgo.Fprintf(os.Stderr, "%(yellow)request body ->%s<-\n", body)
-		c.Request.Body = io.NopCloser(bytes.NewReader(body))
-	}
 }
 
 func BindFormOrJSON(c *gin.Context, bindTo interface{}) (err error) {
