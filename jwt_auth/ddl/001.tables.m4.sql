@@ -90,14 +90,21 @@ m4_updTrig(t_key_value)
 create index if not exists t_key_value_h1 on t_key_value using hash ( key );
 create unique index if not exists t_key_value_u1 on t_key_value ( key );
 
-ALTER TABLE t_key_value
-	drop CONSTRAINT if exists t_key_value_uniq1
-	;
 
-ALTER TABLE t_key_value
-	ADD CONSTRAINT t_key_value_uniq1
-	UNIQUE ( key )
-	;
+DO $$
+BEGIN
+	BEGIN
+		-- ALTER TABLE t_key_value drop CONSTRAINT if exists t_key_value_uniq1 ;
+		ALTER TABLE t_key_value
+			ADD CONSTRAINT t_key_value_uniq1
+			UNIQUE ( key )
+			;
+	EXCEPTION
+		WHEN duplicate_table THEN	-- postgres raises duplicate_table at surprising times. Ex.: for UNIQUE constraints.
+		WHEN duplicate_object THEN
+			RAISE NOTICE 'Table constraint t_key_value already exists';
+	END;
+END $$;
 
 
 
@@ -214,7 +221,7 @@ comment on table q_qr_valid_xsrf_id is 'Valid xref_id values - Copyright (C) Phi
 
 m4_updTrig(q_qr_valid_xsrf_id)
 
-create index q_qr_valid_xsrf_id_h1 on q_qr_valid_xsrf_id using hash ( xsrf_id );
+create index if not exists q_qr_valid_xsrf_id_h1 on q_qr_valid_xsrf_id using hash ( xsrf_id );
 
 
 
@@ -1437,7 +1444,7 @@ CREATE TABLE if not exists q_qr_n6_email_verify (
 CREATE UNIQUE INDEX if not exists  q_qr_n6_email_verify_u1 on q_qr_n6_email_verify ( n6_token );
 DROP INDEX if exists q_qr_n6_email_verify_u2;
 CREATE INDEX if not exists  q_qr_n6_email_verify_p1 on q_qr_n6_email_verify ( email_verify_token );
-create index q_qr_n6_verify_p2 on q_qr_n6_email_verify ( created );	
+create index if not exists q_qr_n6_verify_p2 on q_qr_n6_email_verify ( created );	
 
 
 
@@ -1619,26 +1626,38 @@ comment on table q_qr_user_config is 'Per user conifiguraiton  - Copyright (C) P
 create index if not exists q_qr_user_config_p1 on q_qr_user_config ( user_id );
 create unique index if not exists  q_qr_user_config_u1 on q_qr_user_config ( user_id, name );
 
-ALTER TABLE q_qr_user_config
-	drop CONSTRAINT if exists q_qr_user_config_fk1
-	;
-
-ALTER TABLE q_qr_user_config
-	ADD CONSTRAINT q_qr_user_config_fk1
-	FOREIGN KEY (user_id)
-	REFERENCES q_qr_users (user_id)
-;
-
-ALTER TABLE q_qr_user_config
-	drop CONSTRAINT if exists q_qr_user_config_u1
-	;
-
-ALTER TABLE q_qr_user_config
-	ADD CONSTRAINT q_qr_user_config_u1
-	UNIQUE USING INDEX q_qr_user_config_u1
-;
 
 
+DO $$
+BEGIN
+	BEGIN
+		-- ALTER TABLE q_qr_user_config drop CONSTRAINT if exists q_qr_user_config_fk1 ;
+		ALTER TABLE q_qr_user_config
+			ADD CONSTRAINT q_qr_user_config_fk1
+			FOREIGN KEY (user_id)
+			REFERENCES q_qr_users (user_id)
+		;
+	EXCEPTION
+		WHEN duplicate_table THEN	-- postgres raises duplicate_table at surprising times. Ex.: for UNIQUE constraints.
+		WHEN duplicate_object THEN
+			RAISE NOTICE 'Table constraint q_qr_user_config already exists';
+	END;
+END $$;
+
+DO $$
+BEGIN
+	BEGIN
+		-- ALTER TABLE q_qr_user_config drop CONSTRAINT if exists q_qr_user_config_u1 ;
+		ALTER TABLE q_qr_user_config
+			ADD CONSTRAINT q_qr_user_config_u1
+			UNIQUE USING INDEX q_qr_user_config_u1
+		;
+	EXCEPTION
+		WHEN duplicate_table THEN	-- postgres raises duplicate_table at surprising times. Ex.: for UNIQUE constraints.
+		WHEN duplicate_object THEN
+			RAISE NOTICE 'Table constraint q_qr_user_config already exists';
+	END;
+END $$;
 
 m4_updTrig(q_qr_user_config)
 
@@ -1664,15 +1683,20 @@ comment on table q_qr_user_config_default is 'Per user conifiguraiton / default 
 
 create unique index if not exists  q_qr_user_config_default_u1 on q_qr_user_config_default ( role_name );
 
-ALTER TABLE q_qr_user_config_default
-	drop CONSTRAINT if exists q_qr_user_config_defauilt__role_name_uniq1
-	;
-
-ALTER TABLE q_qr_user_config_default
-	ADD CONSTRAINT q_qr_user_config_defauilt__role_name_uniq1
-	UNIQUE ( role_name )
-	;
-
+DO $$
+BEGIN
+	BEGIN
+		-- ALTER TABLE q_qr_user_config_default drop CONSTRAINT if exists q_qr_user_config_defauilt__role_name_uniq1 ;
+		ALTER TABLE q_qr_user_config_default
+			ADD CONSTRAINT q_qr_user_config_defauilt__role_name_uniq1
+			UNIQUE ( role_name )
+			;
+	EXCEPTION
+		WHEN duplicate_table THEN	-- postgres raises duplicate_table at surprising times. Ex.: for UNIQUE constraints.
+		WHEN duplicate_object THEN
+			RAISE NOTICE 'Table constraint q_qr_user_config_default already exists';
+	END;
+END $$;
 
 
 -- update q_qr_users set x_user_config = '{"display-mode":"light","show-upload-button":"hide" }'::jsonb ;
@@ -1788,15 +1812,22 @@ create index if not exists q_qr_auth_tokens_p1 on q_qr_auth_tokens ( user_id );
 create index if not exists q_qr_auth_tokens_p2 on q_qr_auth_tokens ( expires );
 create index if not exists q_qr_auth_tokens_p3 on q_qr_auth_tokens ( api_encryption_key	) where  api_encryption_key is not null ;
 
-ALTER TABLE  q_qr_auth_tokens
-	drop CONSTRAINT if exists  q_qr_auth_tokens_fk1
-	;
+DO $$
+BEGIN
+	BEGIN
+		-- ALTER TABLE  q_qr_auth_tokens drop CONSTRAINT if exists  q_qr_auth_tokens_fk1 ;
+		ALTER TABLE q_qr_auth_tokens
+			ADD CONSTRAINT q_qr_auth_tokens_fk1
+			FOREIGN KEY (user_id)
+			REFERENCES q_qr_users (user_id)
+		;
+	EXCEPTION
+		WHEN duplicate_table THEN	-- postgres raises duplicate_table at surprising times. Ex.: for UNIQUE constraints.
+		WHEN duplicate_object THEN
+			RAISE NOTICE 'Table constraint q_qr_auth_tokens already exists';
+	END;
+END $$;
 
-ALTER TABLE q_qr_auth_tokens
-	ADD CONSTRAINT q_qr_auth_tokens_fk1
-	FOREIGN KEY (user_id)
-	REFERENCES q_qr_users (user_id)
-;
 
 
 CREATE OR REPLACE FUNCTION q_qr_auth_token_expires() RETURNS trigger 
@@ -1874,15 +1905,22 @@ create unique index if not exists  q_qr_tmp_token_u1 on q_qr_tmp_token ( token )
 create index if not exists q_qr_tmp_token_p1 on q_qr_tmp_token ( user_id );
 create index if not exists q_qr_tmp_token_p2 on q_qr_tmp_token ( expires );
 
-ALTER TABLE q_qr_tmp_token
-	drop CONSTRAINT if exists q_qr_tmp_token_fk1
-	;
+DO $$
+BEGIN
+	BEGIN
+		-- ALTER TABLE q_qr_tmp_token drop CONSTRAINT if exists q_qr_tmp_token_fk1 ;
+		ALTER TABLE q_qr_tmp_token
+			ADD CONSTRAINT q_qr_tmp_token_fk1
+			FOREIGN KEY (user_id)
+			REFERENCES q_qr_users (user_id)
+		;
+	EXCEPTION
+		WHEN duplicate_table THEN	-- postgres raises duplicate_table at surprising times. Ex.: for UNIQUE constraints.
+		WHEN duplicate_object THEN
+			RAISE NOTICE 'Table constraint q_qr_tmp_token already exists';
+	END;
+END $$;
 
-ALTER TABLE q_qr_tmp_token
-	ADD CONSTRAINT q_qr_tmp_token_fk1
-	FOREIGN KEY (user_id)
-	REFERENCES q_qr_users (user_id)
-;
 
 
 CREATE OR REPLACE FUNCTION q_qr_tmp_token_expires() RETURNS trigger 
@@ -1985,15 +2023,22 @@ comment on table q_qr_one_time_password is 'Per user one time passwords - Copyri
 
 create unique index if not exists  q_qr_one_time_password_u1 on q_qr_one_time_password ( user_id, otp_hmac );
 
-ALTER TABLE  q_qr_one_time_password
-	drop CONSTRAINT if exists q_qr_one_time_password_fk1
-	;
+DO $$
+BEGIN
+	BEGIN
+		-- ALTER TABLE  q_qr_one_time_password drop CONSTRAINT if exists q_qr_one_time_password_fk1 ;
+		ALTER TABLE q_qr_one_time_password
+			ADD CONSTRAINT q_qr_one_time_password_fk1
+			FOREIGN KEY (user_id)
+			REFERENCES q_qr_users (user_id)
+		;
+	EXCEPTION
+		WHEN duplicate_table THEN	-- postgres raises duplicate_table at surprising times. Ex.: for UNIQUE constraints.
+		WHEN duplicate_object THEN
+			RAISE NOTICE 'Table constraint q_qr_one_time_password already exists';
+	END;
+END $$;
 
-ALTER TABLE q_qr_one_time_password
-	ADD CONSTRAINT q_qr_one_time_password_fk1
-	FOREIGN KEY (user_id)
-	REFERENCES q_qr_users (user_id)
-;
 
 
 
@@ -2148,13 +2193,23 @@ comment on table q_qr_role2 is 'user roles - Copyright (C) Philip Schlump, 2008-
 
 create unique index if not exists  q_qr_role2_u1 on q_qr_role2 ( role_name );
 
--- ALTER TABLE q_qr_role2 DROP CONSTRAINT IF EXISTS q_qr_role2_u1 CASCADE;
-ALTER TABLE q_qr_role2 DROP CONSTRAINT IF EXISTS q_qr_role2_u1 ;
+DO $$
+BEGIN
+	BEGIN
+		-- ALTER TABLE q_qr_role2 DROP CONSTRAINT IF EXISTS q_qr_role2_u1 ;
+		ALTER TABLE q_qr_role2
+			ADD CONSTRAINT q_qr_role2_u1
+			UNIQUE USING INDEX q_qr_role2_u1
+		;
+	EXCEPTION
+		WHEN duplicate_table THEN	-- postgres raises duplicate_table at surprising times. Ex.: for UNIQUE constraints.
+		WHEN duplicate_object THEN
+			RAISE NOTICE 'Table constraint q_qr_role2 already exists.';
+		WHEN others THEN
+			RAISE NOTICE 'Table constraint q_qr_role2 already exists.';
+	END;
+END $$;
 
-ALTER TABLE q_qr_role2
-	ADD CONSTRAINT q_qr_role2_u1
-	UNIQUE USING INDEX q_qr_role2_u1
-;
 
 drop view if exists q_qr_user_to_priv;
 
@@ -2345,15 +2400,22 @@ CREATE TABLE if not exists q_qr_token_registration (
 );
 comment on table q_qr_token_registration is 'Configured token based registration - Copyright (C) Philip Schlump, 2008-2023. -- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()';
 
-ALTER TABLE q_qr_token_registration
-	drop CONSTRAINT if exists q_qr_token_registration_fk1
-	;
+DO $$
+BEGIN
+	BEGIN
+		-- ALTER TABLE q_qr_token_registration drop CONSTRAINT if exists q_qr_token_registration_fk1 ;
+		ALTER TABLE q_qr_token_registration
+			ADD CONSTRAINT q_qr_token_registration_fk1
+			FOREIGN KEY (role_name)
+			REFERENCES q_qr_role2(role_name)
+			;
+	EXCEPTION
+		WHEN duplicate_table THEN	-- postgres raises duplicate_table at surprising times. Ex.: for UNIQUE constraints.
+		WHEN duplicate_object THEN
+			RAISE NOTICE 'Table constraint q_qr_token_registration already exists';
+	END;
+END $$;
 
-ALTER TABLE q_qr_token_registration
-	ADD CONSTRAINT q_qr_token_registration_fk1
-	FOREIGN KEY (role_name)
-	REFERENCES q_qr_role2(role_name)
-	;
 
 m4_updTrig(q_qr_token_registration)
 
@@ -8251,5 +8313,13 @@ $$ LANGUAGE plpgsql;
 
 
 
+
+--psql:001.tables.sql:2504: ERROR:  index "q_qr_role2_u1" is already associated with a constraint
+--LINE 2:    ADD CONSTRAINT q_qr_role2_u1
+--               ^
+--QUERY:  ALTER TABLE q_qr_role2
+--			ADD CONSTRAINT q_qr_role2_u1
+--			UNIQUE USING INDEX q_qr_role2_u1
+--CONTEXT:  PL/pgSQL function inline_code_block line 5 at SQL statement
 
 -- vim: set noai ts=4 sw=4: 
