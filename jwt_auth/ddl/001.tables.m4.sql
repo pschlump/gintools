@@ -1656,6 +1656,8 @@ BEGIN
 		WHEN duplicate_table THEN	-- postgres raises duplicate_table at surprising times. Ex.: for UNIQUE constraints.
 		WHEN duplicate_object THEN
 			RAISE NOTICE 'Table constraint q_qr_user_config already exists';
+		WHEN others THEN
+			RAISE NOTICE 'Table constraint q_qr_user_config already exists';
 	END;
 END $$;
 
