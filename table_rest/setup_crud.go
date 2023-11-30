@@ -70,7 +70,7 @@ func InitTableREST(router *gin.Engine) {
 							return
 						}
 
-						DumpParamsToLog("before/auth", c)
+						// DumpParamsToLog("before/auth", c)
 
 						privs := xsp.AuthPrivs
 						if method == "GET" && len(xsp.SelectAuthPrivs) > 0 {
@@ -82,7 +82,7 @@ func InitTableREST(router *gin.Engine) {
 						} else if method == "DELETE" && len(xsp.DeleteAuthPrivs) > 0 {
 							privs = xsp.DeleteAuthPrivs
 						}
-						dbgo.Fprintf(os.Stderr, "%(magenta)%(LF) privs=%+v\n", xsp.AuthPrivs)
+						// dbgo.Fprintf(os.Stderr, "%(magenta)%(LF) privs=%+v\n", xsp.AuthPrivs)
 						if len(privs) > 0 {
 							// err = ValidatePrivs(c, privs, &(xsp.CrudBaseConfig))
 							err = ValidatePrivs2(c, privs)
@@ -93,7 +93,7 @@ func InitTableREST(router *gin.Engine) {
 							dbgo.Printf("%(yellow)No privs to check - skipped: at:%(LF)\n")
 						}
 
-						dbgo.Printf("%(green)Privilege Check Passed: %s at:%(LF)\n", err)
+						// dbgo.Printf("%(green)Privilege Check Passed: %s at:%(LF)\n", err)
 
 					} else if xsp.APIKey != "" {
 
@@ -106,7 +106,7 @@ func InitTableREST(router *gin.Engine) {
 							})
 							return
 						}
-						dbgo.Printf("%(green)Is Authenticated via key: %s at:%(LF)\n", err)
+						// dbgo.Printf("%(green)Is Authenticated via key: %s at:%(LF)\n", err)
 
 					} else {
 						dbgo.Printf("%(green)No login requried jwt_auth false: %s at:%(LF)\n", err)
@@ -124,7 +124,7 @@ func InitTableREST(router *gin.Engine) {
 					} else if len(xsp.InputList) > 0 {
 						pname, err = ValidateInputParameters(c, xsp.InputList)
 					} else {
-						dbgo.Printf("%(yellow)Validation of paramters skipped - no validaiton specified in handle.go: at:%(LF)\n")
+						// dbgo.Printf("%(yellow)Validation of paramters skipped - no validaiton specified in handle.go: at:%(LF)\n")
 					}
 
 					if err != nil {
@@ -183,7 +183,7 @@ func InitTableREST(router *gin.Engine) {
 						return
 					}
 
-					DumpParamsToLog("before", c)
+					// DumpParamsToLog("before", c)
 
 					privs := xsp.AuthPrivs
 					if len(xsp.CallAuthPrivs) > 0 {
@@ -215,7 +215,7 @@ func InitTableREST(router *gin.Engine) {
 
 				} else {
 					dbgo.Printf("%(green)No login requried jwt_auth false: %s at:%(LF)\n", err)
-					DumpParamsToLog("before/not-authenticated request", c)
+					// DumpParamsToLog("before/not-authenticated request", c)
 				}
 
 				if method == "GET" && len(xsp.GET_InputList) > 0 {
@@ -255,13 +255,13 @@ func InitTableREST(router *gin.Engine) {
 				method := MethodReplace(c)
 				InjectGlobalValues(c)
 
-				dbgo.Printf("AT:%(LF) -- %(cyan) dump params before auth check \n")
-				DumpParamsToLog("before", c)
+				// dbgo.Printf("AT:%(LF) -- %(cyan) dump params before auth check \n")
+				// DumpParamsToLog("before", c)
 
-				// xyzzy - Check Loigin Stuff
-				dbgo.Printf("AT:%(LF) -- %(cyan) just before check of JWTKey = %v\n", xsp.JWTKey)
+				// Check Loigin Stuff
+				// dbgo.Printf("AT:%(LF) -- %(cyan) just before check of JWTKey = %v\n", xsp.JWTKey)
 				if xsp.JWTKey {
-					dbgo.Printf("AT:%(LF) -- %(cyan) must be true - auth required\n")
+					// dbgo.Printf("AT:%(LF) -- %(cyan) must be true - auth required\n")
 					if !jwt_auth.IsLoggedIn(c) {
 						dbgo.Printf("%(red)Authetication Failed: %s at:%(LF)\n", err)
 						c.JSON(http.StatusUnauthorized, gin.H{ // 401
@@ -270,9 +270,9 @@ func InitTableREST(router *gin.Engine) {
 						})
 						return
 					}
-					dbgo.Printf("AT:%(LF) -- %(cyan) dump params after auth check \n")
+					// dbgo.Printf("AT:%(LF) -- %(cyan) dump params after auth check \n")
 
-					DumpParamsToLog("before", c)
+					// DumpParamsToLog("before", c)
 
 					privs := xsp.AuthPrivs
 					if method == "GET" && len(xsp.SelectAuthPrivs) > 0 {
@@ -284,12 +284,12 @@ func InitTableREST(router *gin.Engine) {
 						if err != nil {
 							return
 						}
-					} else {
-						dbgo.Printf("%(yellow)No privs to check - skipped: at:%(LF)\n")
+						//} else {
+						//	dbgo.Printf("%(yellow)No privs to check - skipped: at:%(LF)\n")
 					}
 
-					dbgo.Printf("%(green)Is Logged In: %s at:%(LF)\n", err)
-					DumpParamsToLog("after login", c)
+					// dbgo.Printf("%(green)Is Logged In: %s at:%(LF)\n", err)
+					// DumpParamsToLog("after login", c)
 
 				} else if xsp.APIKey != "" {
 
@@ -307,7 +307,7 @@ func InitTableREST(router *gin.Engine) {
 				} else {
 
 					dbgo.Printf("%(green)No login requried jwt_auth false: %s at:%(LF)\n", err)
-					DumpParamsToLog("before/not-authenticated request", c)
+					// DumpParamsToLog("before/not-authenticated request", c)
 
 				}
 
@@ -379,7 +379,7 @@ func ValidatePrivs2(c *gin.Context, RequiredAuthPrivs []string) error {
 	for _, needPriv := range RequiredAuthPrivs {
 		// lookup privs in list - if user has theses then - if missing - return nil
 		if gotIt, ok := hasPriv[needPriv]; ok && gotIt {
-			dbgo.Printf("%(cyan) at:%(LF) - user has %s\n", needPriv)
+			// dbgo.Printf("%(cyan) at:%(LF) - user has %s\n", needPriv)
 		} else {
 			err := fmt.Errorf("Missing Required Privilege ->%s<-", needPriv)
 			dbgo.Fprintf(os.Stderr, "\n\n%(red) at:%(LF) - user missing privilege ->%s<- -- early exit, returning Error:%s\n\n", needPriv, err)
@@ -389,7 +389,7 @@ func ValidatePrivs2(c *gin.Context, RequiredAuthPrivs []string) error {
 		}
 	}
 
-	dbgo.Fprintf(os.Stderr, "%(cyan) at:%(LF) - login not required - privilege passed\n")
+	// dbgo.Fprintf(os.Stderr, "%(cyan) at:%(LF) - login not required - privilege passed\n")
 	dbgo.Fprintf(logFilePtr, "{\"msg\":\"at:%(LF) - login not required - privilege passed\"}\n")
 	return nil // All privilege tests passed, return success
 }

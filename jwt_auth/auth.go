@@ -3585,7 +3585,7 @@ func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
 	} else {
 
 		dbgo.Fprintf(logFilePtr, "    In GetAuthToken has is true at:%(LF)\n")
-		dbgo.Fprintf(os.Stderr, "    %(magenta)In GetAuthToken has is true at:%(LF)\n")
+		dbgo.Fprintf(os.Stderr, "    %(magenta)In GetAuthToken has is true at:%(LF)%(reset)\n")
 
 		// Parse and Validate the JWT Berrer
 		// Extract the auth_token
@@ -3601,7 +3601,7 @@ func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
 
 		// func VerifyToken(rawToken []byte, alg string, keyData []byte) (token *jwt.Token, err error) {
 		// token, err := jwtlib.VerifyToken([]byte(token), gCfg.AuthJWTKeyType, gCfg.AuthJWTPublic )
-		dbgo.Fprintf(os.Stderr, "%(green)== Authentication == New Section ======================================== at: %(LF)\n")
+		// dbgo.Fprintf(os.Stderr, "%(green)== Authentication == New Section ======================================== at: %(LF)\n")
 
 		var tkn *jwt.Token
 		if len(gCfg.AuthJWTKey) == 0 && jwtlib.IsHs(gCfg.AuthJWTKeyType) {
@@ -3629,20 +3629,20 @@ func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
 		// type MapClaims map[string]interface{}
 		cc, ok := tkn.Claims.(jwt.MapClaims)
 		if ok {
-			dbgo.Fprintf(os.Stderr, "%(green)== Mapped the claims to jwt.MapClaims\n")
+			// dbgo.Fprintf(os.Stderr, "%(green)== Mapped the claims to jwt.MapClaims\n")
 			AuthToken, ok = cc["auth_token"].(string)
 			if !ok {
 				AuthToken = ""
 				dbgo.Fprintf(os.Stderr, "%(red)== Failed! Mapped [auth_token] to string\n")
-			} else {
-				dbgo.Fprintf(os.Stderr, "%(green)== Mapped [auth_token] to string\n")
+				// } else {
+				// 	dbgo.Fprintf(os.Stderr, "%(green)== Mapped [auth_token] to string\n")
 			}
 		} else {
 			dbgo.Fprintf(os.Stderr, "%(red)== Failed! Mapped the claims to jwt.MapClaims\n")
 		}
 
-		dbgo.Fprintf(logFilePtr, "X-Authentication - AuthToken ->%s<- %(LF)\n", AuthToken)
-		dbgo.Fprintf(os.Stderr, "X-Authentication - Have an auth_token - %(green)AuthToken ->%s<-%(reset) %(LF)\n", AuthToken)
+		dbgo.Fprintf(logFilePtr, "X-Authentication - AuthToken = ->%s<- %(LF) --", AuthToken)
+		dbgo.Fprintf(os.Stderr, "X-Authentication - Have an auth_token - %(green)AuthToken = ->%s<-%(reset) %(LF) --", AuthToken)
 
 		// xyzzy-q_qr_role2
 		// xyzzy8 - fingerprint - add to query - or.... call stored proc.
@@ -3672,20 +3672,20 @@ func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
 
 		err = pgxscan.Select(ctx, conn, &v2, stmt, AuthToken, aCfg.UserdataPassword) // __userdata_password__
 		dbgo.Fprintf(logFilePtr, "Yep - should be a user_id and a set of privs >%s<- at:%(LF) auth_token->%s<-\n", dbgo.SVarI(v2), AuthToken)
-		dbgo.Fprintf(os.Stderr, "Yep - should be a user_id and a set of privs >%s<- at:%(LF) auth_token->%s<-\n", dbgo.SVarI(v2), AuthToken)
-		dbgo.Fprintf(os.Stderr, "%(yellow)%(LF) Error:%s stmt ->%s<- data:%s %s\n", err, stmt, AuthToken, aCfg.UserdataPassword)
+		// dbgo.Fprintf(os.Stderr, "Yep - should be a user_id and a set of privs >%s<- at:%(LF) auth_token->%s<-\n", dbgo.SVarI(v2), AuthToken)
+		// dbgo.Fprintf(os.Stderr, "%(yellow)%(LF) Error:%s stmt ->%s<- data:%s %s\n", err, stmt, AuthToken, aCfg.UserdataPassword)
 		if err != nil {
 			dbgo.Fprintf(os.Stderr, "%(red)%(LF) Error:%s stmt ->%s<- data:%s %s\n", err, stmt, AuthToken, aCfg.UserdataPassword)
 			log_enc.LogSQLError(c, stmt, err, "e", AuthToken, aCfg.UserdataPassword)
 			return
 		}
-		dbgo.Fprintf(os.Stderr, "%(green)%(LF) stmt ->%s<- data:%s %s\n", stmt, AuthToken, aCfg.UserdataPassword)
+		// dbgo.Fprintf(os.Stderr, "%(green)%(LF) stmt ->%s<- data:%s %s\n", stmt, AuthToken, aCfg.UserdataPassword)
 		// dbgo.Fprintf(logFilePtr, "X-Authentication - after select len(v2) = %d %(LF)\n", len(v2))
-		dbgo.Fprintf(os.Stderr, "X-Authentication - after select len(v2) = %d %(LF), data=%s\n", len(v2), dbgo.SVarI(v2))
+		// dbgo.Fprintf(os.Stderr, "X-Authentication - after select len(v2) = %d %(LF), data=%s\n", len(v2), dbgo.SVarI(v2))
 		if len(v2) > 0 {
 			UserId = v2[0].UserId
-			dbgo.Fprintf(logFilePtr, "X-Authentication - %(LF)\n")
-			dbgo.Fprintf(os.Stderr, "%(green)Is Authenticated! ----------------------- X-Authentication - %(LF)\n")
+			dbgo.Fprintf(logFilePtr, "Is Authenticated! ----------------------- X-Authentication - %(LF)\n")
+			dbgo.Fprintf(os.Stderr, "%(green)Is Authenticated! - %(LF)\n")
 			c.Set("__is_logged_in__", "y")
 			c.Set("__user_id__", UserId)
 			c.Set("__auth_token__", AuthToken)
@@ -3697,17 +3697,17 @@ func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
 			c.Set("__client_id__", v2[0].ClientId)
 			c.Set("__login_email_addr__", v2[0].Email)
 		} else {
-			dbgo.Fprintf(logFilePtr, "X-Authentication - %(LF) - did not find auth_token in database, token= ->%s<-\n", AuthToken)
-			dbgo.Fprintf(os.Stderr, "X-Authentication - %(LF) - %(red)did not find auth_token in database, token= ->%s<-\n", AuthToken)
+			dbgo.Fprintf(logFilePtr, "X-Authentication - %(LF) - did not find auth_token in database - Not Authenticated\n")
+			dbgo.Fprintf(os.Stderr, "X-Authentication - %(LF) - %(red)did not find auth_token in database - Not Authenticated\n")
 			UserId = ""
 			AuthToken = ""
 		}
-		dbgo.Fprintf(logFilePtr, "X-Authentication - at:%(LF)\n")
-		dbgo.Fprintf(os.Stderr, "X-Authentication - at:%(LF)\n")
+		// dbgo.Fprintf(logFilePtr, "X-Authentication - at:%(LF)\n")
+		// dbgo.Fprintf(os.Stderr, "X-Authentication - at:%(LF)\n")
 
 	}
-	dbgo.Fprintf(logFilePtr, "X-Authentication - at:%(LF)\n")
-	dbgo.Fprintf(os.Stderr, "X-Authentication - at:%(LF)\n")
+	// dbgo.Fprintf(logFilePtr, "X-Authentication - at:%(LF)\n")
+	// dbgo.Fprintf(os.Stderr, "X-Authentication - at:%(LF)\n")
 	return
 }
 
