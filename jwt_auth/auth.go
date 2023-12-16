@@ -381,6 +381,7 @@ func authHandleLogin(c *gin.Context) {
 	dbgo.Fprintf(logFilePtr, "--------------------------------------------------------------------------------------------------\n\n")
 
 	// xyzzy8 - fingerprint
+	//                            1                2             3                     4                        5                            6                      7                8                          9
 	// FUNCTION q_auth_v1_login ( p_email varchar, p_pw varchar, p_am_i_known varchar, p_hmac_password varchar, p_userdata_password varchar, p_fingerprint varchar, p_sc_id varchar, p_hash_of_headers varchar, p_xsrf_id varchar ) RETURNS text
 	stmt := "q_auth_v1_login ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )"
 	dbgo.Fprintf(logFilePtr, "In handler at %(LF) stmt: %s\n", stmt)
@@ -396,6 +397,7 @@ func authHandleLogin(c *gin.Context) {
 	err = json.Unmarshal([]byte(rv), &rvStatus)
 	if rvStatus.Status != "success" {
 		// xyzzy8 - fingerprint
+		// xyzzy8 - save-scid, save-hoh, fingerprint
 		// xyzzy TODO - add in logging of / reporting of ... reason for failure, XsrfID, FP, y_id, HeaderHash -- Add in md.AddCounter...
 		md.AddCounter("jwt_auth_failed_login_attempts", 1)
 		rvStatus.LogUUID = GenUUID()
@@ -3944,8 +3946,8 @@ func CallDatabaseJSONFunction(c *gin.Context, fCall string, encPat string, data 
 		dbgo.Fprintf(logFilePtr, "    Call Returns: %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
 		return v2[0].X, nil
 	}
-	dbgo.Fprintf(os.Stderr, "    %(yellow)Call Empty Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
-	dbgo.Fprintf(logFilePtr, "    Call Empty Return elapsed:%s at:%(LF)\n", elapsed)
+	dbgo.Fprintf(os.Stderr, "    %(yellow)Call ---no rows returned--- Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
+	dbgo.Fprintf(logFilePtr, "    Call Empty ---no rows returned--- elapsed:%s at:%(LF)\n", elapsed)
 	return "{}", nil
 }
 
@@ -3979,8 +3981,8 @@ func SelectString(c *gin.Context, stmt string, encPat string, data ...interface{
 		dbgo.Fprintf(logFilePtr, "    Call Returns: %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
 		return v2[0].X, nil
 	}
-	dbgo.Fprintf(os.Stderr, "    %(yellow)Call Empty Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
-	dbgo.Fprintf(logFilePtr, "    Call Empty Return elapsed:%s at:%(LF)\n", elapsed)
+	dbgo.Fprintf(os.Stderr, "    %(yellow)Call ---no rows returned--- Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
+	dbgo.Fprintf(logFilePtr, "    Call Empty ---no rows returned--- elapsed:%s at:%(LF)\n", elapsed)
 	return "{}", nil
 }
 
@@ -4011,8 +4013,8 @@ func CallDatabaseJSONFunctionNoErr(c *gin.Context, fCall string, encPat string, 
 		dbgo.Fprintf(logFilePtr, "    Call Returns: %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
 		return v2[0].X, nil
 	}
-	dbgo.Fprintf(os.Stderr, "    %(yellow)Call Empty Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
-	dbgo.Fprintf(logFilePtr, "    Call Empty Return elapsed:%s at:%(LF)\n", elapsed)
+	dbgo.Fprintf(os.Stderr, "    %(yellow)Call ---no rows returned--- Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
+	dbgo.Fprintf(logFilePtr, "    Call Empty ---no rows returned--- elapsed:%s at:%(LF)\n", elapsed)
 	return "{}", nil
 }
 

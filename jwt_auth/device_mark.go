@@ -213,13 +213,31 @@ if ( window.localStorage ) {
 	}
 	window.y_id = v;
 }
-var fpPromise = FingerprintJS.load()
-fpPromise
-	.then(fp => fp.get())
-	.then(result => window.x_id = result.visitorId)
+try {
+	var fpPromise = FingerprintJS.load()
+	fpPromise
+		.then(fp => fp.get())
+		.then(result => window.x_id = result.visitorId)
+} catch(e) {
+	var v = localStorage.getItem ( "FpID" );
+	if ( !v ) {
+		v = generateUUID();
+		localStorage.setItem ( "FpID", v );	
+	}
+	window.x_id = v;
+}
 `
 		fmt.Fprintf(c.Writer, "%s", code)
 	}
+
+	// xyzzy - Add in saving this data for login later!
+	// Called above.
+	// CREATE OR REPLACE FUNCTION q_auth_v1_etag_seen ( p_id varchar, p_etag varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+	// -- to be called when you have a successful 2fa validation on a user_id
+	// CREATE OR REPLACE FUNCTION q_auth_v1_etag_device_mark ( p_seen_id varchar, p_user_id uuid, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+	// Hm...
+	// CREATE OR REPLACE FUNCTION q_auth_v1_validate_fingerprint_data ( p_fingerprint_data varchar, p_state varchar, p_user_id uuid, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+
 }
 
 // {Method: "GET", Path: "/api/v1/setup", Fx: authHandlerGetXsrfIdFile, UseLogin: PublicApiCall},                                        //

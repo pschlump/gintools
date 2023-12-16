@@ -19,6 +19,13 @@ all:  pre $(SQL) post
 #	./fix-code.pl <001.tables.m4.sql >,a
 #	cp ,a 001.tables.m4.sql 
 
+.PHONEY: load
+load:
+	touch 001.tables.m4.sql
+	( make 001.tables.sql )
+	psql <001.tables.sql 2>&1 | tee log.001.func.out | ../bin/grep-rev.sh ERROR: | color-cat -c red
+
+
 
 pre:
 	cat setup.sql >all-sql.sql

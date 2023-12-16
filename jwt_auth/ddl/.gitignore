@@ -18,3 +18,4 @@ all-sql.sql
 cert.mk
 error-db.1
 fix-code.pl
+log.001.func.out

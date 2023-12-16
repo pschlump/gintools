@@ -146,9 +146,9 @@ CREATE TABLE if not exists q_qr_device_track (
     , n_login 			int default 0 not null
     , n_2fa_token 		int default 0 not null
 	, expires 			timestamp not null
-	, fingerprint_data	text    				-- FPDdata
-	, sc_id				text 					-- ScID
-	, header_hash		text 					-- hashOfHeaders	
+	, fingerprint_data	text    				-- FPDdata			fp_
+	, sc_id				text 					-- ScID				scid
+	, header_hash		text 					-- hashOfHeaders	hoh
 	, am_i_known		text 					-- AmIKnown
 	, valid_user_id		uuid 					-- Valid  User that has successfuly loged in on this device.
 	, state_data		text 
@@ -186,7 +186,7 @@ BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
-	NEW.expires := current_timestamp + interval '92 days';
+	NEW.expires := current_timestamp + interval '3660 days';
 	RETURN NEW;
 END
 $$ LANGUAGE 'plpgsql';
@@ -906,7 +906,9 @@ BEGIN
 		;
 		if not found then
 			l_fail = true;
-			l_data = '{"status":"success","msg":"created"}';
+			l_data = '{"status":"success"'
+				||',"xmsg":'			||'"created"'
+				||'}';
 			insert into q_qr_device_track ( id, etag_seen ) values ( p_id::uuid, p_etag );
 			l_id = p_id;
 			if l_debug_on then
@@ -1469,47 +1471,6 @@ CREATE INDEX if not exists q_qr_vapid_keys_p2 on q_qr_vapid_keys ( user_id, crea
 
 
 
-
--- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION q_auth_v1_cleanup_old_data ( ) RETURNS text
-AS $$
-DECLARE
-	l_data					text;
-BEGIN
-	-- Copyright (C) Philip Schlump, 2008-2023.
-	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
-
-	l_data = 'ok';
-
-	-- won't work !!! tranactional error !!!
-	-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	delete from q_qr_one_time_password
-		where user_id in (
-			select user_id 
-			from q_qr_users
-			where email_verify_expire < current_timestamp - interval '30 days'
-			  and ( email_validated = 'n' or ( setup_complete_2fa = 'n'  and require_2fa = 'y' ) )
-		)
-		;
-	delete from q_qr_users
-		where email_verify_expire < current_timestamp - interval '30 days'
-		  and ( email_validated = 'n' or ( setup_complete_2fa = 'n'  and require_2fa = 'y' ) )
-		;
-
-	delete from t_output where created < current_timestamp - interval '1 hour' ;
-
-	delete from q_qr_auth_tokens where expires < current_timestamp ;
-	delete from q_qr_device_track where expires < current_timestamp ;
-	delete from q_qr_device_track where user_id is null and created < current_timestamp - interval '1 hour' ;
-	delete from q_qr_n6_email_verify where created < current_timestamp - interval '2 days' ;
-	delete from q_qr_saved_state where expires < current_timestamp ;
-	delete from q_qr_tmp_token where expires < current_timestamp ;
-
-	RETURN l_data;
-END;
-$$ LANGUAGE plpgsql;
 
 
 
@@ -3787,10 +3748,6 @@ BEGIN
 		insert into t_output ( msg ) values ( '  ' );
 	end if;
 
-
-	-- Cleanup any users that have expired tokens.
-	l_junk = q_auth_v1_cleanup_old_data();
-
 	if not l_fail then
 
 		select json_agg(t0.priv_name)::text
@@ -4093,34 +4050,6 @@ BEGIN
 		insert into t_output ( msg ) values ( '  l_n6 ->'||coalesce(to_json(l_n6)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  ' );
 	end if;
-
-	-- Cleanup any users that have expired tokens.
-	-- won't work !!! tranactional error !!!
-	-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	delete from q_qr_one_time_password
-		where user_id in (
-			select user_id 
-			from q_qr_users
-			where email_verify_expire < current_timestamp - interval '30 days'
-			  and ( email_validated = 'n' or ( setup_complete_2fa = 'n' and require_2fa = 'y' ) )
-		)
-		;
-	delete from q_qr_users
-		where email_verify_expire < current_timestamp - interval '30 days'
-		  and ( email_validated = 'n' or ( setup_complete_2fa = 'n' and require_2fa = 'y' ) )
-		;
-	-- Cleanup any users that have expired saved state
-	delete from q_qr_saved_state
-		where expires < current_timestamp
-		;
-
-	-- Cleanup old tmp tokens.
-	delete from q_qr_tmp_token
-		where expires < current_timestamp
-		;
-	delete from  q_qr_n6_email_verify 
-		where created < current_timestamp - interval '2 days'
-		;
 
 	if not l_fail then
 		select role_name, client_id, is_one_time, admin_email
@@ -4471,32 +4400,6 @@ BEGIN
 
 	if not l_fail then
 
-		-- Cleanup any users that have expired tokens.
-		delete from q_qr_one_time_password
-			where user_id in (
-				select user_id 
-				from q_qr_users
-				where email_verify_expire < current_timestamp - interval '30 days'
-				  and ( email_validated = 'n' or ( setup_complete_2fa = 'n' and require_2fa = 'y' ) )
-			)
-			;
-		delete from q_qr_users
-			where email_verify_expire < current_timestamp - interval '30 days'
-			  and ( email_validated = 'n' or ( setup_complete_2fa = 'n' and require_2fa = 'y' ) )
-			;
-		-- Cleanup any users that have expired saved state
-		delete from q_qr_saved_state
-			where expires < current_timestamp
-			;
-
-		-- Cleanup old tmp tokens.
-		delete from q_qr_tmp_token
-			where expires < current_timestamp
-			;
-		delete from  q_qr_n6_email_verify 
-			where created < current_timestamp - interval '2 days'
-			;
-
 		l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
 		select q_auth_v1_delete_user ( user_id )
 			into l_junk
@@ -4727,34 +4630,6 @@ BEGIN
 		insert into t_output ( msg ) values ( '  ' );
 	end if;
 
-	-- Cleanup any users that have expired tokens.
-	delete from q_qr_one_time_password
-		where user_id in (
-			select user_id 
-			from q_qr_users
-			where email_verify_expire < current_timestamp - interval '30 days'
-			  and ( email_validated = 'n' or ( setup_complete_2fa = 'n' and require_2fa = 'y' ) )
-		)
-		;
-	delete from q_qr_users
-		where email_verify_expire < current_timestamp - interval '30 days'
-		  and ( email_validated = 'n' or ( setup_complete_2fa = 'n' and require_2fa = 'y' ) )
-		;
-	-- Cleanup any users that have expired saved state
-	delete from q_qr_saved_state
-		where expires < current_timestamp
-		;
-
-	-- Cleanup old tmp tokens.
-	delete from q_qr_tmp_token
-		where expires < current_timestamp
-		;
-	delete from  q_qr_n6_email_verify 
-		where created < current_timestamp - interval '2 days'
-		;
-
-
-
 	if p_tmp_token <> '' then
 		l_tmp_token := p_tmp_token::uuid;
 	end if;
@@ -4917,32 +4792,6 @@ BEGIN
 		insert into t_output ( msg ) values ( '  l_n6 ->'||coalesce(to_json(l_n6)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  ' );
 	end if;
-
-	-- Cleanup any users that have expired tokens.
-	delete from q_qr_one_time_password
-		where user_id in (
-			select user_id 
-			from q_qr_users
-			where email_verify_expire < current_timestamp - interval '30 days'
-			  and ( email_validated = 'n' or ( setup_complete_2fa = 'n' and require_2fa = 'y' ) )
-		)
-		;
-	delete from q_qr_users
-		where email_verify_expire < current_timestamp - interval '30 days'
-		  and ( email_validated = 'n' or ( setup_complete_2fa = 'n' and require_2fa = 'y' ) )
-		;
-	-- Cleanup any users that have expired saved state
-	delete from q_qr_saved_state
-		where expires < current_timestamp
-		;
-
-	-- Cleanup old tmp tokens.
-	delete from q_qr_tmp_token
-		where expires < current_timestamp
-		;
-	delete from  q_qr_n6_email_verify 
-		where created < current_timestamp - interval '2 days'
-		;
 
 	-- If user has hever logged in and is attempting to register the user again - then delete old user - must have same email.
 	-- PERFORM * FROM foo WHERE x = 'abc' AND y = 'xyz';
@@ -5137,32 +4986,6 @@ BEGIN
 	if p_n6_flag = 'n6' then
 		l_n6 = q_auth_v1_n6_email_validate ( l_email_verify_token , p_n6_flag );
 	end if;
-
-	-- Cleanup any users that have expired tokens.
-	delete from q_qr_one_time_password
-		where user_id in (
-			select user_id 
-			from q_qr_users
-			where email_verify_expire < current_timestamp - interval '30 days'
-			  and ( email_validated = 'n' or ( setup_complete_2fa = 'n' and require_2fa = 'y' ) )
-		)
-		;
-	delete from q_qr_users
-		where email_verify_expire < current_timestamp - interval '30 days'
-		  and ( email_validated = 'n' or ( setup_complete_2fa = 'n' and require_2fa = 'y' ) )
-		;
-	-- Cleanup any users that have expired saved state
-	delete from q_qr_saved_state
-		where expires < current_timestamp
-		;
-
-	-- Cleanup old tmp tokens.
-	delete from q_qr_tmp_token
-		where expires < current_timestamp
-		;
-	delete from  q_qr_n6_email_verify 
-		where created < current_timestamp - interval '2 days'
-		;
 
 	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
 	select t1.user_id, t1.require_2fa
@@ -5708,8 +5531,6 @@ BEGIN
 		insert into t_output ( msg ) values ( '  ' );
 	end if;
 
-	l_junk = q_auth_v1_cleanup_old_data();
-
 	-- --------------------------------------------------------------------------------------------------------------------------------------------------------
 	-- New Device
 	-- --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -6157,6 +5978,25 @@ BEGIN
 					  , am_i_known = p_am_i_known
 					where id = l_device_track_id;
 
+				GET DIAGNOSTICS v_cnt = ROW_COUNT;
+				if v_cnt != 1 then
+
+					l_is_new_device_login = 'n';
+					insert into q_qr_device_track (
+						  fingerprint_data 
+						, sc_id 
+						, header_hash 
+						, user_id
+						, am_i_known
+					) values (
+						  p_fingerprint
+						, p_sc_id
+						, p_hash_of_headers
+						, l_user_id
+						, p_am_i_known
+					) returning id into l_device_track_id;
+
+				end if;
 			end if;
 
 			insert into q_qr_valid_xsrf_id (
@@ -6476,6 +6316,7 @@ AS $$
 DECLARE
 	l_data					text;
 	l_fail					bool;
+	l_junk					text;
 	l_user_id				uuid;
 	l_bad_user_id			uuid;
 	l_debug_on 				bool;
@@ -6512,25 +6353,6 @@ BEGIN
 	end if;
 
 	l_pw = encode(digest(uuid_generate_v4()::text, 'sha256'), 'base64');
-
-	-- Cleanup any users that have expired tokens.
-	delete from q_qr_one_time_password
-		where user_id in (
-			select user_id 
-			from q_qr_users
-			where email_verify_expire < current_timestamp - interval '30 days'
-			  and ( email_validated = 'n' or ( setup_complete_2fa = 'n' and require_2fa = 'y' ) )
-		)
-		;
-	delete from q_qr_users
-		where email_verify_expire < current_timestamp - interval '30 days'
-		  and ( email_validated = 'n' or ( setup_complete_2fa = 'n' and require_2fa = 'y' ) )
-		;
-
-	-- Cleanup old auth tokens.
-	delete from q_qr_auth_tokens
-		where expires < current_timestamp
-		;
 
 	if not l_fail then
 		select
@@ -6688,6 +6510,7 @@ AS $$
 DECLARE
 	l_data					text;
 	l_fail					bool;
+	l_junk					text;
 	l_user_id				uuid;
 	l_bad_user_id			uuid;
 	l_debug_on 				bool;
@@ -6724,25 +6547,6 @@ BEGIN
 
 	l_un = encode(digest(uuid_generate_v4()::text, 'sha256'), 'base64');
 	l_pw = encode(digest(uuid_generate_v4()::text, 'sha256'), 'base64');
-
-	-- Cleanup any users that have expired tokens.
-	delete from q_qr_one_time_password
-		where user_id in (
-			select user_id 
-			from q_qr_users
-			where email_verify_expire < current_timestamp - interval '30 days'
-			  and ( email_validated = 'n' or setup_complete_2fa = 'n' )
-		)
-		;
-	delete from q_qr_users
-		where email_verify_expire < current_timestamp - interval '30 days'
-		  and ( email_validated = 'n' or setup_complete_2fa = 'n' )
-		;
-
-	-- Cleanup old auth tokens.
-	delete from q_qr_auth_tokens
-		where expires < current_timestamp
-		;
 
 	if not l_fail then
 		select
@@ -7079,6 +6883,7 @@ CREATE OR REPLACE FUNCTION q_auth_v1_email_verify ( p_email_verify_token varchar
 AS $$
 DECLARE
 	l_data					text;
+	l_junk					text;
 	l_fail					bool;
 	v_cnt 					int;
 	l_validated				text;
@@ -7204,21 +7009,6 @@ BEGIN
 			l_fail = true;
 			l_data = '{"status":"error","msg":"Unable to validate account via email.  Please register again.","code":"m4_count()","location":"m4___file__ m4___line__"}';
 			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to validate account via email..', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
-			-- Cleanup any users that have expired tokens more than 30 days ago.
-			delete from q_qr_one_time_password
-				where user_id in (
-					select user_id 
-					from q_qr_users
-					where email_verify_expire < current_timestamp - interval '30 days'
-					  and ( email_validated = 'n' or setup_complete_2fa = 'n' )
-					  and account_type	= 'login'
-				)
-				;
-			delete from q_qr_users
-				where email_verify_expire < current_timestamp - interval '30 days'
-				  and ( email_validated = 'n' or setup_complete_2fa = 'n' )
-				  and account_type	= 'login'
-				;
 		end if;
 	end if;
 
@@ -7253,45 +7043,13 @@ AS $$
 DECLARE
 	l_data					text;
 	l_fail					bool;
+	l_junk					text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
-
-	-- Cleanup any users that have expired tokens.
-	delete from q_qr_one_time_password
-		where user_id in (
-			select user_id 
-			from q_qr_users
-			where email_verify_expire < current_timestamp - interval '30 days'
-			  and ( email_validated = 'n' or setup_complete_2fa = 'n' )
-		)
-		;
-	delete from q_qr_users
-		where email_verify_expire < current_timestamp - interval '30 days'
-		  and ( email_validated = 'n' or setup_complete_2fa = 'n' )
-		;
-	-- Cleanup any users that have expired saved state
-	delete from q_qr_saved_state
-		where expires < current_timestamp
-		;
-
-	-- Cleanup old tmp tokens.
-	delete from q_qr_tmp_token
-		where expires < current_timestamp
-		;
-
-	-- Cleanup old unused q_qr_device_track data
-	--	delete from q_qr_device_track 
-	--		where user_id is null
-	--		  and created < current_timestamp - interval '1 hour'
-	--		;
-	--	delete from q_qr_device_track 
-	--		where expires < current_timestamp 
-	--		;
-
 
 	delete from q_qr_auth_tokens as t1
 		where t1.token = p_auth_token::uuid
@@ -7384,8 +7142,6 @@ BEGIN
 		insert into t_output ( msg ) values ( '  p_hmac_password ->'||coalesce(to_json(p_hmac_password)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  ' );
 	end if;
-
-	l_junk = q_auth_v1_cleanup_old_data();
 
 	-- Expires is in 31 days - but tell the user that it is 30 days so that they have a day of grace.
 	select (current_timestamp + interval '30 days')::text
@@ -8323,5 +8079,64 @@ $$ LANGUAGE plpgsql;
 --			ADD CONSTRAINT q_qr_role2_u1
 --			UNIQUE USING INDEX q_qr_role2_u1
 --CONTEXT:  PL/pgSQL function inline_code_block line 5 at SQL statement
+
+--	l_junk = q_auth_v1_cleanup_old_data();
+
+	
+-- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION q_auth_v1_cleanup_old_data ( ) RETURNS text
+AS $$
+DECLARE
+	l_data					text;
+	l_fail					bool;
+BEGIN
+	-- Copyright (C) Philip Schlump, 2008-2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+
+	l_data = 'ok';
+
+	begin
+
+		delete from q_qr_one_time_password
+			where user_id in (
+				select user_id 
+				from q_qr_users
+				where email_verify_expire < current_timestamp - interval '30 days'
+				  and ( email_validated = 'n' or ( setup_complete_2fa = 'n'  and require_2fa = 'y' ) )
+			)
+			;
+		delete from q_qr_user_config
+			where user_id in (
+				select user_id 
+				from q_qr_users
+				where email_verify_expire < current_timestamp - interval '30 days'
+				  and ( email_validated = 'n' or ( setup_complete_2fa = 'n' and require_2fa = 'y' ) )
+			);
+		delete from q_qr_users
+			where email_verify_expire < current_timestamp - interval '30 days'
+			  and ( email_validated = 'n' or ( setup_complete_2fa = 'n'  and require_2fa = 'y' ) )
+			;
+
+		delete from t_output where created < current_timestamp - interval '1 hour' ;
+
+		delete from q_qr_auth_tokens where expires < current_timestamp ;
+		delete from q_qr_device_track where expires < current_timestamp ;
+		delete from q_qr_device_track where user_id is null and created < current_timestamp - interval '1 hour' ;
+		delete from q_qr_n6_email_verify where created < current_timestamp - interval '2 days' ;
+		delete from q_qr_saved_state where expires < current_timestamp ;
+		delete from q_qr_tmp_token where expires < current_timestamp ;
+		delete from q_qr_saved_state where expires < current_timestamp ;
+
+	exception
+		when others then
+			l_fail = true;
+	end;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
 
 -- vim: set noai ts=4 sw=4: 
