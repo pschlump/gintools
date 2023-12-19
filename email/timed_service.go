@@ -46,7 +46,7 @@ func TimedDispatch(em *GenericEmailSender) {
 
 		case <-em.timeout:
 			ts := time.Now().Format("2006-01-02 15:04:05")
-			dbgo.Printf("%(blue)Clock-Ping At %s / Email Fetch Template and Send%(reset)\n", ts)
+			dbgo.Printf("%(blue)Clock-Ping At %s / Email Fetch Template and Send - email/timed_service.go%(reset)\n", ts)
 			em.TemplateAndSend()
 		}
 	}
