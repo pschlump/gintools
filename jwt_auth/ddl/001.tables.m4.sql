@@ -1761,10 +1761,13 @@ $$ LANGUAGE plpgsql;
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Auth Token Table
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+alter table q_qr_auth_tokens add column if not exists   sc_id				text 					;
+
 CREATE TABLE if not exists q_qr_auth_tokens (
 	auth_token_id 			uuid default uuid_generate_v4() primary key not null,
 	user_id 				uuid not null,
 	token			 		uuid not null,
+	sc_id					text, 					-- ScID				scid
 	api_encryption_key		text,
 	expires 				timestamp not null
 );
@@ -5856,7 +5859,7 @@ BEGIN
 			-- insert / create auth_token
 			l_auth_token = uuid_generate_v4();
 			BEGIN
-				insert into q_qr_auth_tokens ( token, user_id ) values ( l_auth_token, l_user_id );
+				insert into q_qr_auth_tokens ( token, user_id, sc_id ) values ( l_auth_token, l_user_id, p_sc_id );
 			EXCEPTION WHEN unique_violation THEN
 				l_fail = true;
 				l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"m4_count()","location":"m4___file__ m4___line__"}';
@@ -6425,7 +6428,7 @@ BEGIN
 			-- insert / create auth_token
 			l_auth_token = uuid_generate_v4();
 			BEGIN
-				insert into q_qr_auth_tokens ( token, user_id ) values ( l_auth_token, l_user_id );
+				insert into q_qr_auth_tokens ( token, user_id, sc_id ) values ( l_auth_token, l_user_id, l_sc_id );
 			EXCEPTION WHEN unique_violation THEN
 				l_fail = true;
 				l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"m4_count()","location":"m4___file__ m4___line__"}';
@@ -8137,6 +8140,62 @@ BEGIN
 	RETURN l_data;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
+
+
+
+CREATE OR REPLACE FUNCTION q_auth_v1_get_scid ( p_email varchar, p_auth_token uuid, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+AS $$
+DECLARE
+	l_data					text;
+	l_fail					bool;
+	l_user_id				uuid;
+	l_scid					text;
+	l_valid		 			varchar(20);
+	v_cnt 					int;
+	l_email_hmac			bytea;
+BEGIN
+	-- Copyright (C) Philip Schlump, 2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+
+	-- CREATE TABLE if not exists q_qr_device_track (
+	-- 	, sc_id				text 					-- ScID				scid
+
+	-- insert into q_qr_auth_tokens ( token, user_id, sc_id ) values ( l_auth_token, l_user_id, l_sc_id );
+
+	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
+	select t1.sc_id, t1.user_id
+		into l_scid, l_user_id
+		from q_qr_auth_tokens as t1
+			join q_qr_users as t2 on ( t1.user_id = t2.user_id and t2.email_hmac = l_email_hmac )
+		where token = p_auth_token
+		;
+	if not found then
+		l_valid = 'no';
+	else 
+		l_valid = 'yes';
+	end if;
+
+	if not l_fail then
+		l_data = '{"status":"success"'
+			||', "user_id":'  			||coalesce(to_json(l_user_id)::text,'""')
+			||', "scid":'   			||coalesce(to_json(l_scid)::text,'""')
+			||', "valid":'   			||coalesce(to_json(l_valid)::text,'""')
+			||'}';
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
 
 
 -- vim: set noai ts=4 sw=4: 
