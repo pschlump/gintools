@@ -16,7 +16,6 @@ package jwt_auth
 
 // =======================================================================================
 
-// xyzzy8 - fingerprint
 // xyzzy99 - AuthEmailToken           string `json:"auth_email_token" default:"uuid"`                                          // "uuid"|"n6" - if n6 then a 6 digit numer is used.
 
 // =======================================================================================
@@ -24,8 +23,6 @@ package jwt_auth
 // TODO - should allso allow use of x2fa_pin as an alternative to "password" - xyzzy988098
 // TODO -		em.SendEmail("email_address_changed_old_address",
 // TODO -		em.SendEmail("email_address_changed_new_address",
-
-// xyzzy-q_qr_role2 (probably done - checking)
 
 // xyzzy201312 - TODO - get user_config /api/v1/get-user-config -> array
 // xyzzy201312 - TODO - set/add/upd user_config /api/v1/set-user-config -> [ { id / name / value } , ..., { "name":"value" } ]
@@ -380,7 +377,6 @@ func authHandleLogin(c *gin.Context) {
 	dbgo.Fprintf(logFilePtr, "\tScID ->%s<-\n", pp.ScID)
 	dbgo.Fprintf(logFilePtr, "--------------------------------------------------------------------------------------------------\n\n")
 
-	// xyzzy8 - fingerprint
 	//                            1                2             3                     4                        5                            6                      7                8                          9
 	// FUNCTION q_auth_v1_login ( p_email varchar, p_pw varchar, p_am_i_known varchar, p_hmac_password varchar, p_userdata_password varchar, p_fingerprint varchar, p_sc_id varchar, p_hash_of_headers varchar, p_xsrf_id varchar ) RETURNS text
 	stmt := "q_auth_v1_login ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )"
@@ -396,8 +392,6 @@ func authHandleLogin(c *gin.Context) {
 	var rvStatus RvLoginType
 	err = json.Unmarshal([]byte(rv), &rvStatus)
 	if rvStatus.Status != "success" {
-		// xyzzy8 - fingerprint
-		// xyzzy8 - save-scid, save-hoh, fingerprint
 		// xyzzy TODO - add in logging of / reporting of ... reason for failure, XsrfID, FP, y_id, HeaderHash -- Add in md.AddCounter...
 		md.AddCounter("jwt_auth_failed_login_attempts", 1)
 		rvStatus.LogUUID = GenUUID()
@@ -419,7 +413,6 @@ func authHandleLogin(c *gin.Context) {
 
 	//  TokenHeaderVSCookie string `json:"token_header_vs_cookie" default:"cookie"`
 	if rvStatus.AuthToken != "" {
-		// xyzzy8 - fingerprint
 		// xyzzy TODO - add in logging of / reporting of ... reason for failure, XsrfID, FP, y_id, HeaderHash -- Add in md.AddCounter...
 		theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken, pp.Email, pp.NoCookie)
 		if err != nil {
@@ -458,7 +451,6 @@ func authHandleLogin(c *gin.Context) {
 		}
 	}
 
-	// xyzzy8 - fingerprint / header hash
 	// {ReqVar: "__hash_of_headers__", ParamName: "p_hash_of_headers"},
 	// hashOfHeaders := HeaderFingerprint(c)
 	c.Set("__hash_of_headers__", hashOfHeaders)
@@ -478,7 +470,6 @@ func authHandleLogin(c *gin.Context) {
 			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
 		))
 		if false {
-			// xyzzy8 - fingerprint
 			em.SendEmail("login_new_device",
 				"username", pp.Email,
 				"email", pp.Email,
@@ -514,7 +505,7 @@ func authHandleLogin(c *gin.Context) {
 //     Accept tells the server what content types the browser can render and send, and Content-Encoding provides data about the content compression.
 //     Content-Language and Accept-Language both indicate the user's (and browser's) preferred language.
 func HeaderFingerprint(c *gin.Context) (hashOfHeaders string) {
-	hashOfHeaders = "xyzzy8"
+	hashOfHeaders = "Xyzzy8"
 	h := sha256.New()
 	for key, hArr := range c.Request.Header {
 		if len(hArr) > 0 {
@@ -1222,7 +1213,7 @@ func authHandleChangePassword(c *gin.Context) {
 		return
 	}
 
-	_, AuthToken := GetAuthToken(c)
+	_, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
 
@@ -1765,7 +1756,7 @@ func authHandleLogout(c *gin.Context) {
 	if pp.Email == "" {
 		goto done
 	}
-	UserId, AuthToken = GetAuthToken(c)
+	UserId, _, AuthToken = GetAuthToken(c)
 	if AuthToken == "" {
 		time.Sleep(1500 * time.Millisecond)
 		goto done
@@ -2149,7 +2140,6 @@ func authHandleValidate2faToken(c *gin.Context) {
 		return
 	}
 
-	// xyzzy8 - fingerprint
 	// AmIKnown         string `json:"am_i_known" form:"am_i_known"` //
 	// XsrfId           string `json:"xsrf_id"    form:"xsrf_id"`    // From Login
 	// FPData           string `json:"fp_data"    form:"fp_data"`    // fingerprint data
@@ -2347,7 +2337,6 @@ func authHandleValidate2faToken(c *gin.Context) {
 				rvStatus.Token = theJwtToken
 			}
 			c.Set("__jwt_token__", theJwtToken)
-			// xyzzy8 - fingerprint
 		}
 
 	}
@@ -2389,14 +2378,13 @@ func authHandleDeleteAccount(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
-	_, AuthToken := GetAuthToken(c)
+	_, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
 
 		DumpParamsToLog("After Auth - Top", c)
 
 		// create or replace function q_auth_v1_delete_account ( p_un varchar, p_pw varchar, p_hmac_password varchar )
-		// xyzzy8 - fingerprint
 		stmt := "q_auth_v1_delete_account ( $1, $2, $3 )"
 		rv, e0 := CallDatabaseJSONFunction(c, stmt, "e!.", pp.Email, AuthToken, aCfg.EncryptionPassword)
 		if e0 != nil {
@@ -2477,7 +2465,7 @@ func authHandleRegisterUnPw(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
-	UserId, AuthToken := GetAuthToken(c)
+	UserId, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
 
@@ -2551,7 +2539,7 @@ type RvRegisterTokenAccountType struct {
 func authHandleRegisterToken(c *gin.Context) {
 	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
 
-	UserId, AuthToken := GetAuthToken(c)
+	UserId, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
 
@@ -2638,7 +2626,7 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
-	UserId, AuthToken := GetAuthToken(c)
+	UserId, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
 
@@ -2830,7 +2818,7 @@ func authHandleChangeAccountInfo(c *gin.Context) {
 		return
 	}
 
-	UserId, AuthToken := GetAuthToken(c)
+	UserId, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken == "" { // if user is logged in then logout - else - just ignore.
 		time.Sleep(1500 * time.Millisecond)
@@ -2897,7 +2885,7 @@ func authHandleChangePasswordAdmin(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
-	UserID, AuthToken := GetAuthToken(c)
+	UserID, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
 
@@ -2996,7 +2984,7 @@ func authHandleRegenOTP(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
-	_, AuthToken := GetAuthToken(c)
+	_, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken != "" { // if user is logged in then generate new OTP else - just ignore.
 
@@ -3116,7 +3104,7 @@ func authHandleRefreshToken(c *gin.Context) {
 		return
 	}
 
-	UserId, AuthToken := GetAuthToken(c)
+	UserId, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken != "" { // if user is logged in then generate new OTP else - just ignore.
 
@@ -3527,10 +3515,13 @@ type SQLUserIdPrivsType struct {
 	Privileges string `json:"privileges,omitempty"`
 	ClientId   string `json:"client_id,omitempty"    db:"client_id"`
 	Email      string `json:"email"                  db:"email"`
+	// , min(t2.expires) as expires
+	// , ceil(EXTRACT(EPOCH FROM min(t2.expires))) as seconds_till_expires
+	Expires            string `json:"expires" 		db:"expires"`
+	SecondsTillExpires int64  `json:"seconds_till_expires" db:"seconds_till_expires"`
 }
 
-// xyzzy8 - fingerprint
-func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
+func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
 	dbgo.Fprintf(logFilePtr, "    In GetAuthToken at:%(LF), aCfg.TokenHeaderVSCookie==%s\n", aCfg.TokenHeaderVSCookie)
 	dbgo.Fprintf(os.Stderr, "    %(magenta)In GetAuthToken at:%(LF), aCfg.TokenHeaderVSCookie==%s%(reset)\n", aCfg.TokenHeaderVSCookie)
 
@@ -3646,8 +3637,6 @@ func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
 		dbgo.Fprintf(logFilePtr, "X-Authentication - AuthToken = ->%s<- %(LF) --", AuthToken)
 		dbgo.Fprintf(os.Stderr, "X-Authentication - Have an auth_token - %(green)AuthToken = ->%s<-%(reset) %(LF) --", AuthToken)
 
-		// xyzzy-q_qr_role2
-		// xyzzy8 - fingerprint - add to query - or.... call stored proc.
 		var v2 []*SQLUserIdPrivsType
 
 		// -----------------------------------------------------------------------------------------------------------------------
@@ -3670,22 +3659,29 @@ func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
 		//			group by t1.user_id
 		//		`
 		// -----------------------------------------------------------------------------------------------------------------------
-		stmt := `select user_id, privileges, client_id, email from q_qr_validate_user_auth_token ( $1, $2 )`
+		var has bool
+		if v2, has = RedisGetCachedToken(AuthToken, aCfg.UserdataPassword); has {
+		} else {
+			stmt := `select user_id, privileges, client_id, email, seconds_till_expires from q_qr_validate_user_auth_token ( $1, $2 )`
 
-		err = pgxscan.Select(ctx, conn, &v2, stmt, AuthToken, aCfg.UserdataPassword) // __userdata_password__
-		dbgo.Fprintf(logFilePtr, "Yep - should be a user_id and a set of privs >%s<- at:%(LF) auth_token->%s<-\n", dbgo.SVarI(v2), AuthToken)
-		// dbgo.Fprintf(os.Stderr, "Yep - should be a user_id and a set of privs >%s<- at:%(LF) auth_token->%s<-\n", dbgo.SVarI(v2), AuthToken)
-		// dbgo.Fprintf(os.Stderr, "%(yellow)%(LF) Error:%s stmt ->%s<- data:%s %s\n", err, stmt, AuthToken, aCfg.UserdataPassword)
-		if err != nil {
-			dbgo.Fprintf(os.Stderr, "%(red)%(LF) Error:%s stmt ->%s<- data:%s %s\n", err, stmt, AuthToken, aCfg.UserdataPassword)
-			log_enc.LogSQLError(c, stmt, err, "e", AuthToken, aCfg.UserdataPassword)
-			return
+			err = pgxscan.Select(ctx, conn, &v2, stmt, AuthToken, aCfg.UserdataPassword) // __userdata_password__
+			dbgo.Fprintf(logFilePtr, "Yep - should be a user_id and a set of privs >%s<- at:%(LF) auth_token->%s<-\n", dbgo.SVarI(v2), AuthToken)
+			// dbgo.Fprintf(os.Stderr, "Yep - should be a user_id and a set of privs >%s<- at:%(LF) auth_token->%s<-\n", dbgo.SVarI(v2), AuthToken)
+			// dbgo.Fprintf(os.Stderr, "%(yellow)%(LF) Error:%s stmt ->%s<- data:%s %s\n", err, stmt, AuthToken, aCfg.UserdataPassword)
+			if err != nil {
+				dbgo.Fprintf(os.Stderr, "%(red)%(LF) Error:%s stmt ->%s<- data:%s %s\n", err, stmt, AuthToken, aCfg.UserdataPassword)
+				log_enc.LogSQLError(c, stmt, err, "e", AuthToken, aCfg.UserdataPassword)
+				return
+			}
+			RedisCacheAuthTokens(AuthToken, aCfg.UserdataPassword, v2)
 		}
+
 		// dbgo.Fprintf(os.Stderr, "%(green)%(LF) stmt ->%s<- data:%s %s\n", stmt, AuthToken, aCfg.UserdataPassword)
 		// dbgo.Fprintf(logFilePtr, "X-Authentication - after select len(v2) = %d %(LF)\n", len(v2))
 		// dbgo.Fprintf(os.Stderr, "X-Authentication - after select len(v2) = %d %(LF), data=%s\n", len(v2), dbgo.SVarI(v2))
 		if len(v2) > 0 {
 			UserId = v2[0].UserId
+			Email = v2[0].Email
 			dbgo.Fprintf(logFilePtr, "Is Authenticated! ----------------------- X-Authentication - %(LF)\n")
 			dbgo.Fprintf(os.Stderr, "%(green)Is Authenticated! - %(LF)\n")
 			c.Set("__is_logged_in__", "y")
@@ -3704,8 +3700,6 @@ func GetAuthToken(c *gin.Context) (UserId string, AuthToken string) {
 			UserId = ""
 			AuthToken = ""
 		}
-		// dbgo.Fprintf(logFilePtr, "X-Authentication - at:%(LF)\n")
-		// dbgo.Fprintf(os.Stderr, "X-Authentication - at:%(LF)\n")
 
 	}
 	// dbgo.Fprintf(logFilePtr, "X-Authentication - at:%(LF)\n")
@@ -3900,7 +3894,7 @@ func IsLoggedIn(c *gin.Context) (ItIs bool) {
 	if s == "y" {
 		ItIs = true
 	} else {
-		UserId, AuthToken := GetAuthToken(c)
+		UserId, _, AuthToken := GetAuthToken(c)
 		if AuthToken != "" {
 			dbgo.Fprintf(logFilePtr, " %(LF)2nd part of authorization: user_id=%s auth_token=->%s<-\n", UserId, AuthToken)
 			ItIs = true
@@ -4537,7 +4531,7 @@ func authHandleValidateToken(c *gin.Context) {
 		return
 	}
 
-	UserId, AuthToken := GetAuthToken(c)
+	UserId, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken != "" { // if user is logged in then generate new OTP else - just ignore.
 
@@ -4735,6 +4729,65 @@ func authHandlerRequires2fa(c *gin.Context) {
 }
 
 func RedisBrodcast(AuthToken string, data string) {
+}
+
+/*
+	user_id                |                                                                                                                                                                         privileges                                                                                                                                                                         | client_id |          email           |          expires           | seconds_till_expires
+
+--------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------+--------------------------+----------------------------+----------------------
+
+	0ed721f8-2aed-42f2-8ad3-76bad390a4f4 | ["May AN", "AN Admin", "May Login", "Modify Role", "May Register", "AutoJob Admin", "May Call Test", "May Create Coupon", "AutoJob Client User", "AutoJob Client Admin", "May Accept AN at Price", "May Administrate Coupons", "May Change Other Password", "May Create Role Based User", "Admin: May Create Admin User", "May Create Registration Token"] |           | admin@write-it-right.com | 2024-01-27 18:19:18.290637 |           1706379559
+
+(1 row)
+
+	type SQLUserIdPrivsType struct {
+		UserId     string `json:"user_id,omitempty"      db:"user_id"`
+		Privileges string `json:"privileges,omitempty"`
+		ClientId   string `json:"client_id,omitempty"    db:"client_id"`
+		Email      string `json:"email"                  db:"email"`
+					 //, min(t2.expires) as expires
+					 //, ceil(EXTRACT(EPOCH FROM min(t2.expires))) as seconds_till_expires
+		Expires string `json:"expires"`
+		SecondsTillExpires int64 `json:"seconds_till_expires"`
+	}
+*/
+// var rdb *redis.Client
+
+func RedisCacheAuthTokens(AuthToken, UserdataPassword string, v2 []*SQLUserIdPrivsType) {
+	if len(v2) <= 0 {
+		return
+	}
+	vX := v2[0]
+
+	//	dbgo.Printf("%(red)-------------------------------------------------------------------------------------------------------\n")
+	//	dbgo.Printf("%(yellow)-------------------------------------------------------------------------------------------------------\n")
+	//	dbgo.Printf("Redis Cache of ->%s<- for %d seconds: %s ---- %v\n", AuthToken, vX.SecondsTillExpires, dbgo.SVar(vX), time.Duration(vX.SecondsTillExpires)*time.Second)
+	//	dbgo.Printf("%(yellow)-------------------------------------------------------------------------------------------------------\n")
+	//	dbgo.Printf("%(red)-------------------------------------------------------------------------------------------------------\n")
+
+	// Set in redis with key 'auth_token:UUID` and expires of vX.SecondsTillExpires
+	rdb.Set(ctx, fmt.Sprintf("auth_token:%s", AuthToken), dbgo.SVar(vX), time.Duration(vX.SecondsTillExpires)*time.Second)
+}
+
+func RedisGetCachedToken(AuthToken, UserdataPassword string) (v2 []*SQLUserIdPrivsType, has bool) {
+	has = false
+
+	// get from redis, if found then "has" set to true.
+	val, err := rdb.Get(ctx, fmt.Sprintf("auth_token:%s", AuthToken)).Result()
+	if err != nil || val == "" {
+		return
+	}
+
+	// parse the data
+	var vX SQLUserIdPrivsType
+	err = json.Unmarshal([]byte(val), &vX)
+	if err != nil {
+		return
+	}
+	v2 = make([]*SQLUserIdPrivsType, 1, 1)
+	has = true
+	v2[0] = &vX
+	return
 }
 
 /* vim: set noai ts=4 sw=4: */

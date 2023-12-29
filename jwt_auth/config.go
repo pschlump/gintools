@@ -14,9 +14,11 @@ import (
 	"github.com/pschlump/gintools/data"
 	"github.com/pschlump/gintools/email"
 	"github.com/pschlump/gintools/metrics"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
+var rdb *redis.Client
 var xxCfg *data.GlobalConfigData
 
 var gCfg *data.BaseConfigType
@@ -39,7 +41,7 @@ var logger *zap.Logger
 // func NewMetricsData(saveKey string, validKeys []MetricsTypeInfo, saveRateSeconds int, xgCfg *data.BaseConfigType, xdb map[string]bool, xlfp *os.File, xconn *pgxpool.Pool, xctx context.Context) (md *MetricsData) {
 // func SetupConnectToJwtAuth(xctx context.Context, xconn *pgxpool.Pool, gcfg *data.GlobalConfigData, log *os.File, xem email.EmailSender, lgr *zap.Logger, xmd *metrics.MetricsData) {
 
-func SetupConnectToJwtAuth(xctx context.Context, xconn *pgxpool.Pool, gcfg *data.BaseConfigType, acfg *data.AppConfig, qcfg *data.QRConfig, log *os.File, xem email.EmailSender, lgr *zap.Logger, xmd *metrics.MetricsData) {
+func SetupConnectToJwtAuth(xctx context.Context, xconn *pgxpool.Pool, gcfg *data.BaseConfigType, acfg *data.AppConfig, qcfg *data.QRConfig, log *os.File, xem email.EmailSender, lgr *zap.Logger, xmd *metrics.MetricsData, xrdb *redis.Client) {
 	logFilePtr = log
 	gCfg = gcfg
 	aCfg = acfg
@@ -49,6 +51,7 @@ func SetupConnectToJwtAuth(xctx context.Context, xconn *pgxpool.Pool, gcfg *data
 	em = xem
 	logger = lgr
 	md = xmd
+	rdb = xrdb
 
 	if conn == nil {
 		dbgo.Fprintf(os.Stderr, "!!!! %(red)in SetupConnectToDb -- conn is nil\n")
@@ -102,7 +105,6 @@ func SetupConnectToJwtAuth(xctx context.Context, xconn *pgxpool.Pool, gcfg *data
 	}
 
 	md.AddMetricsKeys(validKeys)
-
 }
 
 func ResetLogFile(newFp *os.File) {

@@ -89,7 +89,7 @@ func authHandleCreateRegistrationToken(c *gin.Context) {
 		return
 	}
 
-	UserId, AuthToken := GetAuthToken(c)
+	UserId, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken == "" { // if user is logged in then logout - else - just ignore.
 		dbgo.Printf("%(red)at: %(LF) - failt to authenticate\n")
@@ -194,7 +194,7 @@ func authHandleCreateClient(c *gin.Context) {
 
 	var DBGetUserDataResp RvCreateClientType
 
-	UserId, AuthToken := GetAuthToken(c)
+	UserId, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken == "" { // if user is logged in then logout - else - just ignore.
 		dbgo.Printf("%(red)at: %(LF) - failt to authenticate\n")
@@ -273,7 +273,7 @@ func authHandleGetRegistrationToken(c *gin.Context) {
 
 	var DBData RvGetRegistrationTokenType
 
-	UserId, AuthToken := GetAuthToken(c)
+	UserId, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken == "" { // if user is logged in then logout - else - just ignore.
 		dbgo.Printf("%(red)at: %(LF) - failt to authenticate\n")

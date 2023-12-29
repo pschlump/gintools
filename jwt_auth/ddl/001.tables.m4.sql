@@ -7840,11 +7840,15 @@ LANGUAGE 'plpgsql';
 -- 
 -- drop  function q_qr_validate_user_auth_token ( p_auth_token uuid, p_userdata_password varchar ) ;
 
+DROP FUNCTION if exists q_qr_validate_user_auth_token(uuid,character varying);
+
 CREATE OR REPLACE FUNCTION q_qr_validate_user_auth_token ( p_auth_token uuid, p_userdata_password varchar ) RETURNS TABLE (
         user_id uuid,
         "privileges" text,
         client_id text,
-        email text
+        email text,
+		expires timestamp,
+		seconds_till_expires bigint
 	)
 AS $$
 BEGIN
@@ -7854,6 +7858,8 @@ BEGIN
     RETURN QUERY 
 			select t1.user_id as "user_id", json_agg(t3.priv_name)::text as "privileges", coalesce(t1.client_id::text,'')::text as client_id
 				 , pgp_sym_decrypt(t1.email_enc, p_userdata_password)::text as email
+				 , min(t2.expires) as expires
+				 , ceil(EXTRACT(EPOCH FROM min(t2.expires)))::bigint as seconds_till_expires
 			from q_qr_users as t1
 				join q_qr_auth_tokens as t2 on ( t1.user_id = t2.user_id )
 				left join q_qr_user_to_priv as t3 on ( t1.user_id = t3.user_id )
@@ -8193,6 +8199,63 @@ BEGIN
 	RETURN l_data;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
+
+
+
+
+
+
+
+drop FUNCTION if exists q_auth_v1_get_email_from_auth_token ( varchar, p_auth_token uuid, p_hmac_password varchar, p_userdata_password varchar ) ;
+
+CREATE OR REPLACE FUNCTION q_auth_v1_get_email_from_auth_token ( p_auth_token uuid, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+AS $$
+DECLARE
+	l_data					text;
+	l_fail					bool;
+	l_user_id				uuid;
+	l_scid					text;
+	v_cnt 					int;
+	l_email					text;
+	l_valid		 			varchar(20);
+BEGIN
+	-- Copyright (C) Philip Schlump, 2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	select t1.sc_id
+			, t1.user_id
+			, pgp_sym_decrypt(t2.email_enc::bytea,p_userdata_password)::text email
+		into l_scid, l_user_id, l_email
+		from q_qr_auth_tokens as t1
+			join q_qr_users as t2 on ( t1.user_id = t2.user_id )
+		where token = p_auth_token
+		;
+	if not found then
+		l_valid = 'no';
+	else 
+		l_valid = 'yes';
+	end if;
+
+	if not l_fail then
+		l_data = '{"status":"success"'
+			||', "user_id":'  			||coalesce(to_json(l_user_id)::text,'""')
+			||', "scid":'   			||coalesce(to_json(l_scid)::text,'""')
+			||', "email":'   			||coalesce(to_json(l_email)::text,'""')
+			||', "valid":'   			||coalesce(to_json(l_valid)::text,'""')
+			||'}';
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
+
 
 
 
