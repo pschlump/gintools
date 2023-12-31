@@ -10,6 +10,7 @@ require (
 	github.com/ethereum/go-ethereum v1.10.23
 	github.com/fatih/structtag v1.2.0
 	github.com/gin-gonic/gin v1.8.1
+	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/jackc/pgproto3/v2 v2.3.0
 	github.com/jackc/pgx/v4 v4.16.1
@@ -31,6 +32,7 @@ require (
 	github.com/pschlump/textTemplate v1.12.2
 	github.com/pschlump/uuid v1.0.3
 	github.com/pschlump/verhoeff_algorithm v1.0.2
+	github.com/redis/go-redis/v9 v9.3.1
 	github.com/sendgrid/sendgrid-go v3.11.1+incompatible
 	github.com/thoas/stats v0.0.0-20190407194641-965cb2de1678
 	github.com/xeipuuv/gojsonschema v1.2.0
@@ -85,7 +87,6 @@ require (
 	github.com/pschlump/gowords v1.0.1 // indirect
 	github.com/pschlump/picfloat v1.0.0 // indirect
 	github.com/pschlump/pictime v1.0.0 // indirect
-	github.com/redis/go-redis/v9 v9.3.1 // indirect
 	github.com/rjeczalik/notify v0.9.3 // indirect
 	github.com/sendgrid/rest v2.6.9+incompatible // indirect
 	github.com/shirou/gopsutil v3.21.4-0.20210419000835-c7a38de76ee5+incompatible // indirect

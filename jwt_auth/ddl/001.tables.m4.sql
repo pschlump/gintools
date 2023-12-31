@@ -8257,6 +8257,80 @@ $$ LANGUAGE plpgsql;
 
 
 
+CREATE OR REPLACE FUNCTION q_auth_v1_get_all_tokens ( p_auth_token uuid, p_delete_act varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+AS $$
+DECLARE
+	l_data					text;
+	l_fail					bool;
+	l_user_id				uuid;
+	l_scid					text;
+	v_cnt 					int;
+	l_email					text;
+	l_token_list			text;
+BEGIN
+	-- Copyright (C) Philip Schlump, 2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	select json_agg(t1.token)::text as token_list, t1.user_id
+		into l_token_list, l_user_id
+		from q_qr_auth_tokens as t1
+		where token = p_auth_token
+		group by t1.user_id
+		;
+
+	if not found then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"Invalid user","code":"m4_count()","location":"m4___file__ m4___line__"}';
+	end if;
+
+	if not ( q_admin_HasPriv ( p_user_id, 'Auth Token Admin' ) ) then	
+		l_fail = true;
+		l_data = '{"status":"error","msg":"Not authorized to ''Item Client Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id::uuid, 'Not authorized to ''Auth Token Admin''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+	end if;
+
+	if p_delete_act = '' or p_detete_act = 'auth_token' then
+		update q_qr_auth_tokens set expires = current_timestamp - interval '4 minues ' where token = p_auth_token;
+	end if;
+
+	if not l_fail then
+		if p_delete_act = 'all' then
+			update q_qr_auth_tokens set expires = current_timestamp - interval '2 minute' where user_id in ( select user_id from q_qr_aurth_tokens where token = p_auth_token );
+		elsif p_delete_act = 'both' then
+			update q_qr_auth_tokens set expires = current_timestamp - interval '2 minute' where user_id in ( select user_id from q_qr_aurth_tokens where token = p_auth_token );
+			update q_qr_users as t1
+				set
+						start_date = current_timestamp + interval '50 years'
+					  , end_date = current_timestamp - interval '1 minute'
+					  , email_hmac = q_auth_v1_hmac_encode ( l_x_email, p_hmac_password )
+					  , email_enc = pgp_sym_encrypt( l_x_email, p_userdata_password)
+					  , password_hash = crypt( l_x_pw, gen_salt('bf') )
+				where t1.user_id = l_user_id
+				;
+			-- check # of rows.
+			GET DIAGNOSTICS v_cnt = ROW_COUNT;
+			if v_cnt != 1 then
+				l_fail = true;
+				l_data = '{"status":"error","msg":"Invalid user","code":"m4_count()","location":"m4___file__ m4___line__"}';
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid user.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+			end if;
+		end if;
+	end if;
+
+	if not l_fail then
+		l_data = '{"status":"success"'
+			||', "user_id":'  			||coalesce(to_json(l_user_id)::text,'""')
+			||', "token_list":' 		||coalesce(to_json(l_token_list)::text,'[]')
+			||'}';
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
 
 
 

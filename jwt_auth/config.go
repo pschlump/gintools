@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/pschlump/dbgo"
+	"github.com/pschlump/gintools/callme"
 	"github.com/pschlump/gintools/data"
 	"github.com/pschlump/gintools/email"
 	"github.com/pschlump/gintools/metrics"
@@ -52,6 +53,9 @@ func SetupConnectToJwtAuth(xctx context.Context, xconn *pgxpool.Pool, gcfg *data
 	logger = lgr
 	md = xmd
 	rdb = xrdb
+
+	callme.SetupConnectToCallMe(ctx, conn)
+	callme.SetupCallDb(aCfg, logFilePtr)
 
 	if conn == nil {
 		dbgo.Fprintf(os.Stderr, "!!!! %(red)in SetupConnectToDb -- conn is nil\n")

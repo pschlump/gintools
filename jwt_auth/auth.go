@@ -90,6 +90,7 @@ import (
 	"github.com/pschlump/HashStrings"
 	"github.com/pschlump/dbgo"
 	"github.com/pschlump/filelib"
+	"github.com/pschlump/gintools/callme"
 	"github.com/pschlump/gintools/log_enc"
 	"github.com/pschlump/gintools/qr_svr2"
 	"github.com/pschlump/gintools/run_template"
@@ -175,6 +176,7 @@ var GinSetupTable = []GinLoginType{
 	{Method: "POST", Path: "/api/v1/auth/create-client", Fx: authHandleCreateClient, UseLogin: LoginRequired},                        //
 	{Method: "POST", Path: "/api/v1/auth/create-registration-token", Fx: authHandleCreateRegistrationToken, UseLogin: LoginRequired}, //
 	{Method: "POST", Path: "/api/v1/auth/get-registration-token", Fx: authHandleGetRegistrationToken, UseLogin: LoginRequired},       //
+	{Method: "POST", Path: "/api/v1/auth/auth-token-delete-admin", Fx: authHandleAuthTokenDeleteAdmin, UseLogin: LoginRequired},      //
 
 	//{Method: "POST", Path: "/api/v1/auth/add-2fa-secret", Fx: authHandleAdd2faSecret, UseLogin: LoginRequired},               //
 	//{Method: "POST", Path: "/api/v1/auth/remove-2fa-secret", Fx: authHandleRemove2faSecret, UseLogin: LoginRequired},         //
@@ -4729,6 +4731,81 @@ func authHandlerRequires2fa(c *gin.Context) {
 }
 
 func RedisBrodcast(AuthToken string, data string) {
+}
+
+type ApiAuthTokenDeleteAdmin struct {
+	Email     string `json:"email"         form:"email"       binding:"required,email"`
+	AuthToken string `json:"auth_token"    form:"auth_token"  binding:"required"`
+	DeleteAct string `json:"delete_act"    form:"delete_act"`
+}
+
+// {Method: "POST", Path: "/api/v1/auth/auth-token-delete-admin", Fx: authHandleAuthTokenDeleteAdmin, UseLogin: LoginRequired},       //
+func authHandleAuthTokenDeleteAdmin(c *gin.Context) {
+	var pp ApiAuthTokenDeleteAdmin
+	if err := BindFormOrJSON(c, &pp); err != nil {
+		md.AddCounter("jwt_auth_failed_login_attempts", 1)
+		return
+	}
+
+	if pp.DeleteAct == "auth_token" || pp.DeleteAct == "" {
+		_, err := callme.CallAuthGetAllTokens(c, pp.AuthToken, pp.DeleteAct)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, LogJsonReturned(gin.H{ // 400
+				"status": "error",
+				"msg":    fmt.Sprintf("From Redis Error: %s", err),
+			}))
+			return
+		}
+
+		err = rdb.Del(ctx, fmt.Sprintf("auth_token:%s", pp.AuthToken)).Err()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, LogJsonReturned(gin.H{ // 400
+				"status": "error",
+				"msg":    fmt.Sprintf("From Redis Error: %s", err),
+			}))
+			return
+		}
+
+		return
+	} else if pp.DeleteAct == "all" || pp.DeleteAct == "both" {
+		rv, err := callme.CallAuthGetAllTokens(c, pp.AuthToken, pp.DeleteAct)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, LogJsonReturned(gin.H{ // 400
+				"status": "error",
+				"msg":    fmt.Sprintf("From Redis Error: %s", err),
+			}))
+			return
+		}
+
+		var tl []string
+		err = json.Unmarshal([]byte(rv.TokenList), &tl)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, LogJsonReturned(gin.H{ // 400
+				"status": "error",
+				"msg":    fmt.Sprintf("From Redis Error: %s", err),
+			}))
+			return
+		}
+
+		for _, AnAuthToken := range tl {
+			err := rdb.Del(ctx, fmt.Sprintf("auth_token:%s", AnAuthToken)).Err
+			if err != nil {
+				c.JSON(http.StatusBadRequest, LogJsonReturned(gin.H{ // 400
+					"status": "error",
+					"msg":    fmt.Sprintf("From Redis Error: %s", err),
+				}))
+				return
+			}
+		}
+
+		return
+	} else {
+		c.JSON(http.StatusNotAcceptable, LogJsonReturned(gin.H{ // 406
+			"status": "error",
+			"msg":    "Error: DeleteAct must be '', 'all, 'both', 'auth_token'",
+		}))
+		return
+	}
 }
 
 /*
