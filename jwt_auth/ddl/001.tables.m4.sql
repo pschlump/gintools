@@ -1443,6 +1443,8 @@ CREATE TABLE if not exists q_qr_n6_email_verify (
 	created 				timestamp default current_timestamp not null 		-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
 
+comment on table q_qr_n6_email_verify is 'n6/n8 keys - Copyright (C) Philip Schlump, 2008-2023. -- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()';
+
 CREATE UNIQUE INDEX if not exists  q_qr_n6_email_verify_u1 on q_qr_n6_email_verify ( n6_token );
 DROP INDEX if exists q_qr_n6_email_verify_u2;
 CREATE INDEX if not exists  q_qr_n6_email_verify_p1 on q_qr_n6_email_verify ( email_verify_token );
@@ -2417,6 +2419,7 @@ CREATE TABLE if not exists q_qr_token_registration_hist (
 	, created 					timestamp default current_timestamp not null
 );
 
+comment on table q_qr_token_registration_hist is 'Token history for registration - Copyright (C) Philip Schlump, 2008-2023. -- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()';
 
 
 
@@ -8334,5 +8337,17 @@ $$ LANGUAGE plpgsql;
 
 
 
+
+
+
+CREATE OR REPLACE FUNCTION rel_description(
+     p_relname text, p_schemaname text DEFAULT NULL
+ ) RETURNS text AS $f$
+    SELECT obj_description((CASE 
+       WHEN strpos($1, '.')>0 THEN $1
+       WHEN $2 IS NULL THEN 'public.'||$1
+       ELSE $2||'.'||$1
+            END)::regclass, 'pg_class');
+ $f$ LANGUAGE SQL;
 
 -- vim: set noai ts=4 sw=4: 

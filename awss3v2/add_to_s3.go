@@ -4,22 +4,6 @@ package awss3v2
 // MIT Licensed.  See LICENSE.mit file.
 // BSD Licensed.  See LICENSE.bsd file.
 
-/*
-from https://golangcode.com/uploading-a-file-to-s3/
-
-Uploading a File to AWS S3
-
-This example shows how to upload a local file onto an S3 bucket using the Go AWS SDK. Our first step is to step up the
-session using the NewSession function. We’ve then created an AddFileToS3 function which can be called multiple times
-when wanting to upload many files.
-
-Within the PutObjectInput you can specify options when uploading the file and in our example we show how you can enable
-AES256 encryption on your files (when at rest).
-
-For this to work you’ll need to have your AWS credentials setup (with AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY) and
-you’ll need to fill in the S3_REGION and S3_BUCKET constants (More info on bucket regions here).
-*/
-
 import (
 	"bytes"
 	"context"
@@ -65,11 +49,6 @@ func Setup(gcfg *AwsS3Cfg, lfp *os.File) (err error) {
 
 	gCfg = gcfg
 	logFilePtr = lfp
-
-	// dbgo.DbFprintf("AwsS3.config", os.Stderr, "gCfg >%s< bucket >%s< at:%s\n", dbgo.SVarI(gCfg), gCfg.S3_Bucket, dbgo.LF())
-
-	//OLD	// Create a single AWS session (we can re use this if we're uploading many files)
-	//OLD	s, err = session.NewSession(&aws.Config{Region: aws.String(gCfg.S3_Region)})
 
 	uploader, err = NewUploader()
 	if err != nil {

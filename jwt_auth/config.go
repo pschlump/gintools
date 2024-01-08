@@ -113,6 +113,7 @@ func SetupConnectToJwtAuth(xctx context.Context, xconn *pgxpool.Pool, gcfg *data
 
 func ResetLogFile(newFp *os.File) {
 	logFilePtr = newFp
+	callme.ResetLogFile(newFp)
 }
 
 /* vim: set noai ts=4 sw=4: */
