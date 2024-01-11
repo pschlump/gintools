@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pschlump/dbgo"
+	"github.com/pschlump/gintools/tf"
 )
 
 var ErrHttpStatusInternalServerError = errors.New("Internal Server Error")
@@ -20,6 +20,7 @@ type RvCallErrorType struct {
 // type suitable to be passed to json.Unmarshal to decode the data.
 func CallDatabaseFunction(c *gin.Context, out interface{}, fCall string, encPat string, data ...interface{}) (err error) {
 
+	perReqLog := tf.GetLogFilePtr(c)
 	var rv string
 	rv, err = CallDatabaseJSONFunction(c, fCall, encPat, data...)
 	if err != nil {
@@ -30,12 +31,12 @@ func CallDatabaseFunction(c *gin.Context, out interface{}, fCall string, encPat 
 
 	err = json.Unmarshal([]byte(rv), out)
 	if err != nil {
-		dbgo.Fprintf(os.Stderr, "Unable to unmarshal %s, ->%s<- %(LF)\n", err, rv)
-		dbgo.Fprintf(logFilePtr, "Unable to unmarshal %s, ->%s<- %(LF)\n", err, rv)
+		dbgo.Fprintf(perReqLog, "Unable to unmarshal %s, ->%s<- %(LF)\n", err, rv)
+		// dbgo.Fprintf(logFilePtr, "Unable to unmarshal %s, ->%s<- %(LF)\n", err, rv)
 
 		rvStatus.LogUUID = GenUUID()
 		if c != nil {
-			c.JSON(http.StatusInternalServerError, LogJsonReturned(rvStatus.StdErrorReturn)) // 500
+			c.JSON(http.StatusInternalServerError, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 500
 		}
 		return ErrHttpStatusInternalServerError
 	}

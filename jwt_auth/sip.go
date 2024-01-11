@@ -57,6 +57,7 @@ func authHandleSipRegister(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+	// perReqLog := tf.GetLogFilePtr(c)
 
 	secret := GenerateSecret()
 

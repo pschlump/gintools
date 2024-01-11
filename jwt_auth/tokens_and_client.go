@@ -14,6 +14,7 @@ import (
 	"github.com/jinzhu/copier"
 	"github.com/pschlump/dbgo"
 	"github.com/pschlump/gintools/log_enc"
+	"github.com/pschlump/gintools/tf"
 	"github.com/pschlump/json"
 )
 
@@ -90,6 +91,7 @@ func authHandleCreateRegistrationToken(c *gin.Context) {
 	}
 
 	UserId, _, AuthToken := GetAuthToken(c)
+	perReqLog := tf.GetLogFilePtr(c)
 
 	if AuthToken == "" { // if user is logged in then logout - else - just ignore.
 		dbgo.Printf("%(red)at: %(LF) - failt to authenticate\n")
@@ -98,7 +100,7 @@ func authHandleCreateRegistrationToken(c *gin.Context) {
 			Msg:      "401 not authorized",
 			Location: dbgo.LF(),
 		}
-		c.JSON(http.StatusUnauthorized, LogJsonReturned(out))
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out))
 		return
 	}
 
@@ -137,13 +139,13 @@ func authHandleCreateRegistrationToken(c *gin.Context) {
 	if DBGetUserDataResp.Status != "success" {
 		DBGetUserDataResp.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(DBGetUserDataResp), UserId, pp.AdminEmail, gCfg.BaseServerURL /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
-		c.JSON(http.StatusBadRequest, LogJsonReturned(DBGetUserDataResp.StdErrorReturn))
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, DBGetUserDataResp.StdErrorReturn))
 		return
 	}
 
 	var out CreateRegistrationStuccess
 	copier.Copy(&out, &DBGetUserDataResp)
-	c.JSON(http.StatusOK, LogJsonReturned(out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 }
 
 // {Method: "POST", Path: "/api/v1/auth/create-client", Fx: authHandleCreateClient, UseLogin: LoginRequired}, //
@@ -191,6 +193,7 @@ func authHandleCreateClient(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 
 	var DBGetUserDataResp RvCreateClientType
 
@@ -203,7 +206,7 @@ func authHandleCreateClient(c *gin.Context) {
 			Msg:      "401 not authorized",
 			Location: dbgo.LF(),
 		}
-		c.JSON(http.StatusUnauthorized, LogJsonReturned(out))
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out))
 		return
 	}
 
@@ -223,13 +226,13 @@ func authHandleCreateClient(c *gin.Context) {
 	if DBGetUserDataResp.Status != "success" {
 		DBGetUserDataResp.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(DBGetUserDataResp), UserId /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
-		c.JSON(http.StatusBadRequest, LogJsonReturned(DBGetUserDataResp.StdErrorReturn))
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, DBGetUserDataResp.StdErrorReturn))
 		return
 	}
 
 	var out CreateClientSuccess
 	copier.Copy(&out, &DBGetUserDataResp)
-	c.JSON(http.StatusOK, LogJsonReturned(out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
@@ -270,6 +273,7 @@ func authHandleGetRegistrationToken(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 
 	var DBData RvGetRegistrationTokenType
 
@@ -282,7 +286,7 @@ func authHandleGetRegistrationToken(c *gin.Context) {
 			Msg:      "401 not authorized",
 			Location: dbgo.LF(),
 		}
-		c.JSON(http.StatusUnauthorized, LogJsonReturned(out))
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out))
 		return
 	}
 
@@ -302,13 +306,13 @@ func authHandleGetRegistrationToken(c *gin.Context) {
 	if DBData.Status != "success" {
 		DBData.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(DBData), UserId /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
-		c.JSON(http.StatusBadRequest, LogJsonReturned(DBData.StdErrorReturn))
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, DBData.StdErrorReturn))
 		return
 	}
 
 	var out CreateClientSuccess2
 	copier.Copy(&out, &DBData)
-	c.JSON(http.StatusOK, LogJsonReturned(out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 }
 
 /* vim: set noai ts=4 sw=4: */

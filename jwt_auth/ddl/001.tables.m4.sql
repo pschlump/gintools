@@ -3,6 +3,8 @@
 -- MIT Licensed.  See LICENSE.mit file.
 -- BSD Licensed.  See LICENSE.bsd file.
 
+			-- xyzzyPartialReg
+
 -- xyzzyError100 - never true iff.
 -- xyzzy-Fix-Error-Message-to-be-clear
 
@@ -5790,7 +5792,17 @@ BEGIN
 		if l_email_validated = 'n' then
 			-- Indicates partial registration, email_validated == "n", - code==="0020"
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Account has not been validated","code":"m4_count()","location":"m4___file__ m4___line__"}';
+			l_tmp_token = uuid_generate_v4();
+			insert into q_qr_tmp_token ( user_id, token ) values ( l_user_id, l_tmp_token );
+			if l_debug_on then
+				insert into t_output ( msg ) values ( ' l_tmp_token ->'||coalesce(to_json(l_tmp_token)::text,'---null---')||'<-');
+			end if;
+			l_auth_token = NULL;
+			-- xyzzyPartialReg, add tmp_token, email to message so can complete registration.
+			l_data = '{"status":"error","msg":"Account has not been validated","code":"m4_count()","location":"m4___file__ m4___line__"'
+				||', "tmp_token":'   		||coalesce(to_json(l_tmp_token)::text,'""')
+				||', "email":'   			||coalesce(to_json(p_email)::text,'""')
+				||'}';
 			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account has not been validated', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 		end if;
 	end if;
@@ -5951,6 +5963,7 @@ BEGIN
 		  		, email_verify_token = null
 			where user_id = l_user_id
 			;
+		-- xyzzyPartialReg, add tmp_token, email to message so can complete registration.
 		l_tmp_token = uuid_generate_v4();
 		insert into q_qr_tmp_token ( user_id, token ) values ( l_user_id, l_tmp_token );
 		if l_debug_on then

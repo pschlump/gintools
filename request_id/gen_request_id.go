@@ -5,7 +5,10 @@ package request_id
 // BSD Licensed.  See LICENSE.bsd file.
 
 import (
+	"os"
+
 	"github.com/gin-gonic/gin"
+	"github.com/pschlump/dbgo"
 	"github.com/pschlump/uuid"
 )
 
@@ -23,9 +26,11 @@ import (
 func RequestIdMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		uuidRequestId := GenUUID()
+		dbgo.Fprintf(os.Stderr, "%(yellow)AT:%(LF) before request - request_id = %s\n", uuidRequestId)
 		c.Writer.Header().Set("X-Request-Id", uuidRequestId)
 		c.Set("__request_id__", uuidRequestId) // will show up in log
 		c.Next()
+		dbgo.Fprintf(os.Stderr, "%(yellow)AT:%(LF) after request - request_id = %s\n", uuidRequestId)
 	}
 }
 

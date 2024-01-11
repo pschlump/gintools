@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pschlump/dbgo"
 	"github.com/pschlump/gintools/log_enc"
+	"github.com/pschlump/gintools/tf"
 	"github.com/pschlump/json"
 )
 
@@ -39,6 +40,7 @@ func UrlShortCreateHandler(c *gin.Context) {
 	if err = BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 
 	// create or replace function q_qr_url_short_create ( p_destination_url varchar, p_should_proxy varchar, p_headers varchar, p_params varchar, p_method varchar, p_hmac_password varchar, p_userdata_password varchar )
 	stmt := "q_qr_url_short_create ( $1, $2, $3, $4, $5, $6, $7 )"
@@ -54,7 +56,7 @@ func UrlShortCreateHandler(c *gin.Context) {
 	if rvStatus.Status != "success" {
 		rvStatus.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-		c.JSON(http.StatusUnauthorized, LogJsonReturned(rvStatus.StdErrorReturn)) // 401
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 401
 		return
 	}
 
@@ -80,6 +82,7 @@ func UrlShortHandler(c *gin.Context) {
 	if err = BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 
 	// ----------------------------------------------------------------------------------------------------
 	// Validate, Lookup, Count
@@ -99,7 +102,7 @@ func UrlShortHandler(c *gin.Context) {
 	if rvStatus.Status != "success" {
 		rvStatus.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-		c.JSON(http.StatusUnauthorized, LogJsonReturned(rvStatus.StdErrorReturn)) // 401
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 401
 		return
 	}
 

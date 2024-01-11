@@ -94,6 +94,7 @@ import (
 	"github.com/pschlump/gintools/log_enc"
 	"github.com/pschlump/gintools/qr_svr2"
 	"github.com/pschlump/gintools/run_template"
+	"github.com/pschlump/gintools/tf"
 	"github.com/pschlump/gintools/tools/jwt-cli/jwtlib"
 	"github.com/pschlump/htotp"
 	"github.com/pschlump/json"
@@ -208,7 +209,8 @@ func GinInitAuthPaths(router *gin.Engine) {
 			case "DELETE":
 				router.DELETE(vv.Path, vv.Fx)
 			default:
-				dbgo.Fprintf(os.Stderr, "Invalid %s [pos %d in table] method in setup at %(LF) -- fatal internal error\n", vv.Method, ii)
+				// dbgo.Fprintf(os.Stderr, "Invalid %s [pos %d in table] method in setup at %(LF) -- fatal internal error\n", vv.Method, ii)
+				dbgo.Fprintf(logFilePtr, "Invalid %s [pos %d in table] method in setup at %(LF) -- fatal internal error\n", vv.Method, ii)
 				os.Exit(1)
 			}
 		}
@@ -322,6 +324,12 @@ type LoginSuccess struct {
 	Email      string            `json:"email,omitempty"`
 }
 
+type LoginError1 struct {
+	StdErrorReturn
+	TmpToken string `json:"tmp_token,omitempty"` // May be "" - used in 2fa part 1 / 2
+	Email    string `json:"email,omitempty"`
+}
+
 // /api/register-user, send-data={"user":"alice","v":13136}
 // router.POST("/api/v1/auth/login", authHandleLogin)
 
@@ -362,34 +370,35 @@ func authHandleLogin(c *gin.Context) {
 	}
 
 	hashOfHeaders := HeaderFingerprint(c)
+	perReqLog := tf.GetLogFilePtr(c)
 
-	// dbgo.DbFprintf("dump-qr-encode-string", logFilePtr, "%(Yellow)Encoding  ->%s<- intooo QR.png at:%(LF)\n", InputString)
+	// dbgo.DbFprintf("dump-qr-encode-string", perReqLog, "%(Yellow)Encoding  ->%s<- intooo QR.png at:%(LF)\n", InputString)
 	// if dbgo.IsDbOn("dump-login-info") {
-	dbgo.Printf("\n%(red)--------------------------------------------------------------------------------------------------\n")
-	dbgo.Printf("%(cyan)AT: %(LF)\n\temail ->%(yellow)%s%(cyan)<- pw ->%(yellow)%s%(cyan)<-\n\tAmIKnown ->%(yellow)%s%(cyan)<-     XsrfId ->%(yellow)%s%(cyan)<-\n", pp.Email, log_enc.EncryptLogItem(pp.Pw), pp.AmIKnown, pp.XsrfId)
-	dbgo.Printf("%(red)\thashOfHeadrs ->%s<-\n", hashOfHeaders)
-	dbgo.Printf("%(red)\tFPData ->%s<-\n", pp.FPData)
-	dbgo.Printf("%(red)\tScID ->%s<-\n", pp.ScID)
-	dbgo.Printf("%(red)--------------------------------------------------------------------------------------------------\n\n")
+	dbgo.Fprintf(perReqLog, "\n%(red)--------------------------------------------------------------------------------------------------\n"+
+		"%(cyan)AT: %(LF)\n\temail ->%(yellow)%s%(cyan)<- pw ->%(yellow)%s%(cyan)<-\n\tAmIKnown ->%(yellow)%s%(cyan)<-     XsrfId ->%(yellow)%s%(cyan)<-\n"+
+		"%(red)\thashOfHeadrs ->%s<-\n"+
+		"%(red)\tFPData ->%s<-\n"+
+		"%(red)\tScID ->%s<-\n"+
+		"%(red)--------------------------------------------------------------------------------------------------\n\n",
+		pp.Email, log_enc.EncryptLogItem(pp.Pw), pp.AmIKnown, pp.XsrfId, hashOfHeaders, pp.FPData, pp.ScID)
 
-	dbgo.Fprintf(logFilePtr, "\n--------------------------------------------------------------------------------------------------\n")
-	dbgo.Fprintf(logFilePtr, "AT: %(LF)\n\temail ->%s<- pw ->%s<-\n\tAmIKnown ->%s<-     XsrfId ->%s<-\n", pp.Email, log_enc.EncryptLogItem(pp.Pw), pp.AmIKnown, pp.XsrfId)
-	dbgo.Fprintf(logFilePtr, "\thashOfHeadrs ->%s<-\n", hashOfHeaders)
-	dbgo.Fprintf(logFilePtr, "\tFPData ->%s<-\n", pp.FPData)
-	dbgo.Fprintf(logFilePtr, "\tScID ->%s<-\n", pp.ScID)
-	dbgo.Fprintf(logFilePtr, "--------------------------------------------------------------------------------------------------\n\n")
+	//dbgo.Fprintf(perReqLog, "\n--------------------------------------------------------------------------------------------------\n")
+	//dbgo.Fprintf(perReqLog, "AT: %(LF)\n\temail ->%s<- pw ->%s<-\n\tAmIKnown ->%s<-     XsrfId ->%s<-\n", pp.Email, log_enc.EncryptLogItem(pp.Pw), pp.AmIKnown, pp.XsrfId)
+	//dbgo.Fprintf(perReqLog, "\thashOfHeadrs ->%s<-\n", hashOfHeaders)
+	//dbgo.Fprintf(perReqLog, "\tFPData ->%s<-\n", pp.FPData)
+	//dbgo.Fprintf(perReqLog, "\tScID ->%s<-\n", pp.ScID)
+	//dbgo.Fprintf(perReqLog, "--------------------------------------------------------------------------------------------------\n\n")
 
 	//                            1                2             3                     4                        5                            6                      7                8                          9
 	// FUNCTION q_auth_v1_login ( p_email varchar, p_pw varchar, p_am_i_known varchar, p_hmac_password varchar, p_userdata_password varchar, p_fingerprint varchar, p_sc_id varchar, p_hash_of_headers varchar, p_xsrf_id varchar ) RETURNS text
 	stmt := "q_auth_v1_login ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )"
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF) stmt: %s\n", stmt)
 	//                                                    1         2      3            4                        5                      6          7        8              9
 	rv, err := CallDatabaseJSONFunction(c, stmt, "ee.!!", pp.Email, pp.Pw, pp.AmIKnown, aCfg.EncryptionPassword, aCfg.UserdataPassword, pp.FPData, pp.ScID, hashOfHeaders, pp.XsrfId)
 	if err != nil {
 		md.AddCounter("jwt_auth_failed_login_attempts", 1)
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 
 	var rvStatus RvLoginType
 	err = json.Unmarshal([]byte(rv), &rvStatus)
@@ -409,7 +418,11 @@ func authHandleLogin(c *gin.Context) {
 		} else {
 			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
 		}
-		c.JSON(http.StatusUnauthorized, LogJsonReturned(rvStatus.StdErrorReturn)) // 401
+		var out LoginError1
+		copier.Copy(&out, &rvStatus)
+		out.Email = pp.Email
+		// c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 401
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out)) // 401
 		return
 	}
 
@@ -420,13 +433,13 @@ func authHandleLogin(c *gin.Context) {
 		if err != nil {
 			return
 		}
-		dbgo.Fprintf(logFilePtr, "!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, pp.Email)
-		dbgo.Fprintf(os.Stderr, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, pp.Email)
+		// dbgo.Fprintf(perReqLog, "!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, pp.Email)
+		dbgo.Fprintf(perReqLog, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, pp.Email)
 
 		c.Set("__is_logged_in__", "y")
 		c.Set("__user_id__", rvStatus.UserId)
 		c.Set("__auth_token__", rvStatus.AuthToken)
-		rv, mr := ConvPrivs2(rvStatus.Privileges)
+		rv, mr := ConvPrivs2(perReqLog, rvStatus.Privileges)
 		c.Set("__privs__", rv)
 		c.Set("__privs_map__", mr)
 		c.Set("__email_hmac_password__", aCfg.EncryptionPassword)
@@ -459,7 +472,7 @@ func authHandleLogin(c *gin.Context) {
 
 	// send email if a login is from a new device. ??
 	if rvStatus.IsNewDeviceLogin == "y" {
-		dbgo.Fprintf(logFilePtr, "at:%(LF) data=%s\n", XArgs(em, "login_new_device",
+		dbgo.Fprintf(perReqLog, "at:%(LF) data=%s\n", XArgs(em, "login_new_device",
 			"username", pp.Email,
 			"email", pp.Email,
 			"email_url_encoded", url.QueryEscape(pp.Email),
@@ -490,7 +503,7 @@ func authHandleLogin(c *gin.Context) {
 	var out LoginSuccess
 	copier.Copy(&out, &rvStatus)
 	out.Email = pp.Email
-	c.JSON(http.StatusOK, LogJsonReturned(out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
@@ -543,20 +556,20 @@ func AppendStructToZapLog(fields []zapcore.Field, input interface{}) []zapcore.F
 // -------------------------------------------------------------------------------------------------------------------------
 
 func ValidateXsrfId(c *gin.Context, XsrfId string) (err error) {
+	perReqLog := tf.GetLogFilePtr(c)
 	stmt := "q_auth_v1_validate_xsrf_id ( $1, $2, $3 )"
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	rv, err := CallDatabaseJSONFunction(c, stmt, "e!!", XsrfId, aCfg.EncryptionPassword, aCfg.UserdataPassword)
 	if err != nil {
 		return fmt.Errorf("Invalid Xref ID - error in database call")
 	}
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 
 	var rvStatus RvLoginType
 	err = json.Unmarshal([]byte(rv), &rvStatus)
 	if rvStatus.Status != "success" {
 		rvStatus.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-		c.JSON(http.StatusUnauthorized, LogJsonReturned(rvStatus.StdErrorReturn)) // 401
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 401
 		return fmt.Errorf("Invalid Xref ID")
 	}
 	return
@@ -627,6 +640,7 @@ type RegisterSuccess struct {
 // @Router /api/v1/auth/register [post]
 func authHandleRegister(c *gin.Context) {
 	var err error
+	perReqLog := tf.GetLogFilePtr(c)
 	var pp ApiAuthRegister
 	var RegisterResp RvRegisterType
 	if err := BindFormOrJSON(c, &pp); err != nil {
@@ -649,7 +663,7 @@ func authHandleRegister(c *gin.Context) {
 		RegisterResp.Msg = "Simulated Error"
 		RegisterResp.Code = "0000"
 		RegisterResp.Location = dbgo.LF()
-		c.JSON(http.StatusBadRequest, LogJsonReturned(RegisterResp.StdErrorReturn))
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, RegisterResp.StdErrorReturn))
 		return
 	}
 
@@ -658,19 +672,18 @@ func authHandleRegister(c *gin.Context) {
 	//                      1             2             3                        4                     5                    6                            7                    8                  9                     10
 	// q_auth_v1_register ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar, p_n6_flag varchar, p_agree_eula varchar, p_agree_tos varchar )
 	stmt := "q_auth_v1_register ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 )"
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	//                                                       1         2      3                        4             5            6                      7       8                    9             10
 	rv, err := CallDatabaseJSONFunction(c, stmt, "ee!ee!..", pp.Email, pp.Pw, aCfg.EncryptionPassword, pp.FirstName, pp.LastName, aCfg.UserdataPassword, secret, gCfg.AuthEmailToken, pp.AgreeEULA, pp.AgreeTOS)
 	if err != nil {
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 	err = json.Unmarshal([]byte(rv), &RegisterResp)
 	if RegisterResp.Status != "success" {
 		time.Sleep(1500 * time.Millisecond)
 		RegisterResp.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "ee!ee!..ee", SVar(RegisterResp), pp.Email, pp.Pw /*aCfg.EncryptionPassword,*/, pp.FirstName, pp.LastName /*, aCfg.UserdataPassword*/, secret, gCfg.AuthEmailToken, pp.AgreeEULA, pp.AgreeTOS)
-		c.JSON(http.StatusBadRequest, LogJsonReturned(RegisterResp.StdErrorReturn))
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, RegisterResp.StdErrorReturn))
 		return
 	}
 
@@ -719,7 +732,7 @@ func authHandleRegister(c *gin.Context) {
 	var out RegisterSuccess
 	copier.Copy(&out, &RegisterResp)
 	out.Email = pp.Email
-	c.JSON(http.StatusOK, LogJsonReturned(out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
@@ -736,6 +749,7 @@ type ApiAuthQrForSecret struct {
 }
 
 func authHandleGenerateQRForSecret(c *gin.Context) {
+	perReqLog := tf.GetLogFilePtr(c)
 	var pp ApiAuthQrForSecret
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
@@ -750,7 +764,7 @@ func authHandleGenerateQRForSecret(c *gin.Context) {
 		Secret:      pp.Secret,
 		URLFor2faQR: URLFor2faQR,
 	}
-	c.JSON(http.StatusOK, LogJsonReturned(out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
@@ -813,6 +827,7 @@ func authHandleRegisterClientAdmin(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 
 	if IsXDBOn("authHandleRegister:error01") {
 		RegisterResp.LogUUID = GenUUID()
@@ -820,7 +835,7 @@ func authHandleRegisterClientAdmin(c *gin.Context) {
 		RegisterResp.Msg = "Simulated Error"
 		RegisterResp.Code = "0000"
 		RegisterResp.Location = dbgo.LF()
-		c.JSON(http.StatusBadRequest, LogJsonReturned(RegisterResp.StdErrorReturn))
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, RegisterResp.StdErrorReturn))
 		return
 	}
 
@@ -829,18 +844,17 @@ func authHandleRegisterClientAdmin(c *gin.Context) {
 	//                             1                2             3                        4                     5                    6                            7                 8                          9
 	// q_auth_v1_register_client ( p_email varchar, p_pw varchar, p_hmac_password varchar, p_first_name varchar, p_last_name varchar, p_userdata_password varchar, p_secret varchar, p_registration_token uuid, p_n6_flag varchar ) RETURNS text
 	stmt := "q_auth_v1_register_client ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )"
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	//                                                      1         2      3                        4             5            6                      7       8          9
 	rv, err := CallDatabaseJSONFunction(c, stmt, "ee.ee..", pp.Email, pp.Pw, aCfg.EncryptionPassword, pp.FirstName, pp.LastName, aCfg.UserdataPassword, secret, pp.Token, gCfg.AuthEmailToken)
 	if err != nil {
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 	err = json.Unmarshal([]byte(rv), &RegisterResp)
 	if RegisterResp.Status != "success" {
 		RegisterResp.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "ee!ee!!", SVar(RegisterResp), pp.Email, pp.Pw /*aCfg.EncryptionPassword,*/, pp.FirstName, pp.LastName /*, aCfg.UserdataPassword*/, secret, pp.Token)
-		c.JSON(http.StatusBadRequest, LogJsonReturned(RegisterResp.StdErrorReturn))
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, RegisterResp.StdErrorReturn))
 		return
 	}
 
@@ -885,13 +899,14 @@ func authHandleRegisterClientAdmin(c *gin.Context) {
 
 	var out RegisterSuccess
 	copier.Copy(&out, &RegisterResp)
-	c.JSON(http.StatusOK, LogJsonReturned(out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
 func MintQRPng(c *gin.Context, InputString string) (qrurl string) {
 
-	dbgo.Fprintf(logFilePtr, "at:%(LF)\n")
+	perReqLog := tf.GetLogFilePtr(c)
+	dbgo.Fprintf(perReqLog, "at:%(LF)\n")
 	qrid := GenUUID() // generate ID
 	qrid10 := qrid[0:8] + qrid[9:11]
 
@@ -928,7 +943,7 @@ func MintQRPng(c *gin.Context, InputString string) (qrurl string) {
 	qrurl = filelib.Qt("%{baseurl%}%{slash_if_needed%}qr/%{qr2%}/%{basefn%}", mdata)
 	mdata["qrurl"] = filelib.Qt(qCfg.QrURLPath, mdata)
 
-	dbgo.Fprintf(logFilePtr, "%s - at:%(LF)\n", dbgo.SVarI(mdata))
+	dbgo.Fprintf(perReqLog, "%s - at:%(LF)\n", dbgo.SVarI(mdata))
 
 	// create directory
 	os.MkdirAll(pth, 0755)
@@ -941,15 +956,15 @@ func MintQRPng(c *gin.Context, InputString string) (qrurl string) {
 	}
 	defer fp.Close()
 
-	dbgo.Fprintf(logFilePtr, "at:%(LF)\n")
+	dbgo.Fprintf(perReqLog, "at:%(LF)\n")
 
 	// Generate the QR code in internal format
 	var q *qr_svr2.QRCode
-	dbgo.DbFprintf("dump-qr-encode-string", logFilePtr, "%(Yellow)Encoding  ->%s<- intooo QR.png at:%(LF)\n", InputString)
+	dbgo.DbFprintf("dump-qr-encode-string", perReqLog, "%(Yellow)Encoding  ->%s<- intooo QR.png at:%(LF)\n", InputString)
 	q, err = qr_svr2.New(InputString, redundancy)
 	qr_svr2.CheckError(err)
 
-	dbgo.Fprintf(logFilePtr, "at:%(LF)\n")
+	dbgo.Fprintf(perReqLog, "at:%(LF)\n")
 
 	// Output QR Code as a PNG
 	var png []byte
@@ -1018,26 +1033,27 @@ func authHandlerEmailConfirm(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 
 	rv, stmt, err := ConfirmEmailAccount(c, pp.EmailVerifyToken)
 	if err != nil {
 		return
 	}
 
-	dbgo.Fprintf(logFilePtr, "%(LF): confirm-email  rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): confirm-email  rv=%s\n", rv)
 	var rvEmailConfirm RvEmailConfirm
 	err = json.Unmarshal([]byte(rv), &rvEmailConfirm)
 	if rvEmailConfirm.Status != "success" {
 		rvEmailConfirm.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvEmailConfirm))
-		// c.JSON(http.StatusBadRequest, LogJsonReturned(rvEmailConfirm.StdErrorReturn)) // 400
+		// c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog,rvEmailConfirm.StdErrorReturn)) // 400
 		c.Writer.WriteHeader(http.StatusSeeOther) // 303
 		to := gCfg.BaseServerURL + gCfg.AuthConfirmEmailErrorURI + "/error-token.html?msg=" + url.QueryEscape(rvEmailConfirm.Msg)
 		c.Writer.Header().Set("Location", to)
 		// , { path: '/regPt2/:email/:tmp_token',                name: 'regPt2',             component: RegPt2                     }
 		html := run_template.RunTemplate("./tmpl/location-error.html.tmpl", "location", map[string]interface{}{
 			"destination":  to,
-			"error_detail": dbgo.SVarI(LogJsonReturned(rvEmailConfirm.StdErrorReturn)),
+			"error_detail": dbgo.SVarI(LogJsonReturned(perReqLog, rvEmailConfirm.StdErrorReturn)),
 			"msg":          rvEmailConfirm.Msg,
 		}) // email, tmp_token
 		dbgo.Printf("Redirect/location-error.html: ->%(yellow)%s%(reset)<-\n", html)
@@ -1064,7 +1080,7 @@ func authHandlerEmailConfirm(c *gin.Context) {
 		// 	to, err = url.JoinPath(gCfg.BaseServerURL, gCfg.AuthConfirmEmailURI, UrlEscapePeriod(url.QueryEscape(rvEmailConfirm.Email)), url.QueryEscape(rvEmailConfirm.TmpToken))
 		// }
 		// if err != nil {
-		// 	dbgo.Fprintf(logFilePtr, "Redirect To: ->%s<-\n An error occured in joining the path: %s at:%(LF)\n", to, err)
+		// 	dbgo.Fprintf(perReqLog, "Redirect To: ->%s<-\n An error occured in joining the path: %s at:%(LF)\n", to, err)
 		// 	dbgo.Fprintf(os.Stderr, "%(red)Redirect To: ->%s<-\n An error occured in joining the path: %s at:%(LF)\n", to, err)
 		// 	to = gCfg.BaseServerURL
 		// }
@@ -1075,8 +1091,8 @@ func authHandlerEmailConfirm(c *gin.Context) {
 			"tmp_token":       url.QueryEscape(rvEmailConfirm.TmpToken),
 		})
 		c.Writer.Header().Set("Location", to)
-		dbgo.Fprintf(logFilePtr, "\n\n------------------------------------------------------------------------------------------------------------\n| Redirect To: ->%s<-\n------------------------------------------------------------------------------------------------------------\n\n", to)
-		dbgo.Fprintf(os.Stdout, "\n\n%(cyan)------------------------------------------------------------------------------------------------------------\n%(magenta)| Redirect To: ->%s<-\n%(cyan)------------------------------------------------------------------------------------------------------------\n\n", to)
+		dbgo.Fprintf(perReqLog, "\n\n------------------------------------------------------------------------------------------------------------\n| Redirect To: ->%s<-\n------------------------------------------------------------------------------------------------------------\n\n", to)
+		dbgo.Fprintf(perReqLog, "\n\n%(cyan)------------------------------------------------------------------------------------------------------------\n%(magenta)| Redirect To: ->%s<-\n%(cyan)------------------------------------------------------------------------------------------------------------\n\n", to)
 		// Generate the webpage incase Redirect is not followed.  This will attempt to do a client rediret
 		// using window.location.  If EcmaScript is disabled then there will be a page with a link to click.
 		html := run_template.RunTemplate("./tmpl/location.html.tmpl", "location", map[string]interface{}{
@@ -1085,7 +1101,7 @@ func authHandlerEmailConfirm(c *gin.Context) {
 			"tmp_token":   rvEmailConfirm.TmpToken,
 		})
 		// Dump page to Log File
-		dbgo.Fprintf(logFilePtr, "Redirect/location.html: ->%s<-\n", html)
+		dbgo.Fprintf(perReqLog, "Redirect/location.html: ->%s<-\n", html)
 		fmt.Fprintf(c.Writer, html)
 		// Page should look like...
 		//<html>
@@ -1105,7 +1121,7 @@ func authHandlerEmailConfirm(c *gin.Context) {
 
 	var out EmailConfirmSuccess
 	copier.Copy(&out, &rvEmailConfirm)
-	c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out)) // 200
 
 }
 
@@ -1134,25 +1150,26 @@ func authHandlerValidateEmailConfirm(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 
 	rv, stmt, err := ConfirmEmailAccount(c, pp.EmailVerifyToken)
 	if err != nil {
 		return
 	}
 
-	dbgo.Fprintf(logFilePtr, "%(LF): confirm-email  rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): confirm-email  rv=%s\n", rv)
 	var rvEmailConfirm RvEmailConfirm
 	err = json.Unmarshal([]byte(rv), &rvEmailConfirm)
 	if rvEmailConfirm.Status != "success" {
 		rvEmailConfirm.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvEmailConfirm))
-		c.JSON(http.StatusNotAcceptable, LogJsonReturned(rvEmailConfirm.StdErrorReturn)) // 406
+		c.JSON(http.StatusNotAcceptable, LogJsonReturned(perReqLog, rvEmailConfirm.StdErrorReturn)) // 406
 		return
 	}
 
 	var out EmailConfirmSuccess
 	copier.Copy(&out, &rvEmailConfirm)
-	c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out)) // 200
 
 }
 
@@ -1200,15 +1217,15 @@ type RvChangePasswordType struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/change-password [post]
 func authHandleChangePassword(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
 	var pp ApiAuthChangePassword
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 
 	if pp.NewPw == pp.OldPw {
 		// should be a log call - with a log_enc.LogInputValidationError... call...
-		c.JSON(http.StatusNotAcceptable, LogJsonReturned(gin.H{ // 406
+		c.JSON(http.StatusNotAcceptable, LogJsonReturned(perReqLog, gin.H{ // 406
 			"status": "error",
 			"msg":    "Old and new password should be different",
 		}))
@@ -1226,14 +1243,14 @@ func authHandleChangePassword(c *gin.Context) {
 			return
 		}
 
-		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+		dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 		var rvSecret RvGetSecretType
 		err := json.Unmarshal([]byte(rv), &rvSecret)
 		if err != nil || rvSecret.Status != "success" {
 			rvSecret.LogUUID = GenUUID()
 			dbgo.Printf("%(red)%(LF) -- err:%s rvSecret=%s\n", err, dbgo.SVarI(rvSecret))
 			log_enc.LogStoredProcError(c, stmt, "e.", SVar(rvSecret), fmt.Sprintf("%s", err))
-			c.JSON(http.StatusNotAcceptable, LogJsonReturned(rvSecret.StdErrorReturn)) // 406
+			c.JSON(http.StatusNotAcceptable, LogJsonReturned(perReqLog, rvSecret.StdErrorReturn)) // 406
 			return
 		}
 
@@ -1241,7 +1258,7 @@ func authHandleChangePassword(c *gin.Context) {
 			rvSecret.LogUUID = GenUUID()
 			dbgo.Printf("%(red)%(LF) -- err:%s rvSecret=%s\n", err, dbgo.SVarI(rvSecret))
 			log_enc.LogStoredProcError(c, stmt, "e.", SVar(rvSecret), fmt.Sprintf("%s", err))
-			c.JSON(http.StatusBadRequest, LogJsonReturned(rvSecret.StdErrorReturn)) // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvSecret.StdErrorReturn)) // 400
 			return
 		}
 
@@ -1263,7 +1280,7 @@ func authHandleChangePassword(c *gin.Context) {
 					return false
 				}
 				for ii, a_secret := range secret_list {
-					dbgo.Fprintf(logFilePtr, "		Secret[%d] = %s\n", ii, a_secret)
+					dbgo.Fprintf(perReqLog, "		Secret[%d] = %s\n", ii, a_secret)
 					rv := htotp.CheckRfc6238TOTPKeyWithSkew(pp.Email /*username*/, pp.X2FaPin /*pin2fa*/, a_secret, 1, 2)
 					if rv {
 						return true
@@ -1292,11 +1309,11 @@ func authHandleChangePassword(c *gin.Context) {
 			}
 
 			// If the 2fa token fails to validate - then we are done.
-			dbgo.Fprintf(logFilePtr, "\n\n%(LF) Secret = %s\n", rvSecret.Secret2fa)
-			dbgo.Fprintf(os.Stderr, "\n\n%(LF)%(magenta) Secret = %(yellow)%s\n", rvSecret.Secret2fa)
+			// dbgo.Fprintf(perReqLog, "\n\n%(LF) Secret = %s\n", rvSecret.Secret2fa)
+			dbgo.Fprintf(perReqLog, "\n\n%(LF)%(magenta) Secret = %(yellow)%s\n", rvSecret.Secret2fa)
 			// if !htotp.CheckRfc6238TOTPKeyWithSkew(pp.Email /*username*/, pp.X2FaPin /*pin2fa*/, rvSecret.Secret2fa, 1, 2) {
 			if !chkSecret(rvSecret.Secret2fa) {
-				dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+				dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 				// xyzzy - log event - TODO
 				c.JSON(http.StatusBadRequest, StdErrorReturn{ // 400
 					Status:   "error",
@@ -1310,7 +1327,7 @@ func authHandleChangePassword(c *gin.Context) {
 				// ------------------------------------------------------------------------------------------
 				return
 			}
-			dbgo.Fprintf(logFilePtr, "%(LF) -- 2fa has been validated -- \n\n")
+			dbgo.Fprintf(perReqLog, "%(LF) -- 2fa has been validated -- \n\n")
 			dbgo.Fprintf(os.Stderr, "%(LF)%(magenta)  -- 2fa has been validated -- %(reset)\n\n")
 		}
 
@@ -1322,14 +1339,14 @@ func authHandleChangePassword(c *gin.Context) {
 			return
 		}
 
-		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+		dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 		// var rvStatus RvStatusType
 		var rvStatus RvChangePasswordType
 		err = json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
 			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-			c.JSON(http.StatusBadRequest, LogJsonReturned(rvStatus)) // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus)) // 400
 			return
 		}
 
@@ -1354,7 +1371,7 @@ func authHandleChangePassword(c *gin.Context) {
 	}
 
 	out := ReturnSuccess{Status: "success"}
-	c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out)) // 200
 
 }
 
@@ -1397,11 +1414,11 @@ type ApiEmailOptional struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/recover-password-01-setup [post]
 func authHandleRecoverPassword01Setup(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
 	var pp ApiEmail
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 
 	// create or replace function q_auth_v1_recover_password_01_setup ( p_un varchar, p_hmac_password varchar, p_userdata_password varchar )
 	stmt := "q_auth_v1_recover_password_01_setup ( $1, $2, $3 )"
@@ -1410,13 +1427,13 @@ func authHandleRecoverPassword01Setup(c *gin.Context) {
 		return
 	}
 
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 	var rvStatus RvRecoverPassword01Setup
 	err := json.Unmarshal([]byte(rv), &rvStatus)
 	if err != nil || rvStatus.Status != "success" {
 		rvStatus.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-		c.JSON(http.StatusBadRequest, LogJsonReturned(rvStatus.StdErrorReturn)) // 400
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 400
 		return
 	}
 
@@ -1428,7 +1445,7 @@ func authHandleRecoverPassword01Setup(c *gin.Context) {
 	if strings.HasPrefix(gCfg.AuthPasswordRecoveryURI, "http://") || strings.HasPrefix(gCfg.AuthPasswordRecoveryURI, "https://") {
 		template_name = "recover_password_tmpl"
 		gCfg_BaseServerURL = ""
-		dbgo.Fprintf(os.Stderr, "%(LF)%(cyan)Has 'http' or 'https'\n")
+		dbgo.Fprintf(perReqLog, "%(LF)%(cyan)Has 'http' or 'https'\n")
 	}
 
 	// Apply Template : gCfg_AuthPasswordRecoveryURI := gCfg.AuthPasswordRecoveryURI
@@ -1438,9 +1455,9 @@ func authHandleRecoverPassword01Setup(c *gin.Context) {
 		"email_addr":  url.QueryEscape(pp.Email),
 		"email_token": rvStatus.RecoveryToken,
 	}
-	dbgo.Fprintf(os.Stderr, "%(LF)%(cyan)Before Template ->%s<-\n", gCfg_AuthPasswordRecoveryURI)
+	// dbgo.Fprintf(os.Stderr, "%(LF)%(cyan)Before Template ->%s<-\n", gCfg_AuthPasswordRecoveryURI)
 	gCfg_AuthPasswordRecoveryURI = filelib.Qt(gCfg.AuthPasswordRecoveryURI, mdata)
-	dbgo.Fprintf(os.Stderr, "%(LF)%(cyan)After  Template ->%s<-\n", gCfg_AuthPasswordRecoveryURI)
+	// dbgo.Fprintf(os.Stderr, "%(LF)%(cyan)After  Template ->%s<-\n", gCfg_AuthPasswordRecoveryURI)
 
 	em.SendEmail(template_name,
 		"username", pp.Email,
@@ -1468,7 +1485,7 @@ func authHandleRecoverPassword01Setup(c *gin.Context) {
 	SetInsecureCookie("X-Is-Logged-In", "no", c) // To let the JS code know that it is logged in.
 
 	out := ReturnSuccess{Status: "success"}
-	c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out)) // 200
 
 }
 
@@ -1514,11 +1531,11 @@ type RecoverPassword02Success struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/recover-password-02-fetch-info [post]
 func authHandleRecoverPassword02FetchInfo(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
 	var pp ApiAuthRecoveryPassword02FetchInfo
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 
 	// create or replace function q_auth_v1_recover_password_02_fetch_info ( p_un varchar, p_recovery_token varchar, p_hmac_password varchar, p_userdata_password varchar )
 	stmt := "q_auth_v1_recover_password_02_fetch_info ( $1, $2, $3, $4 )"
@@ -1527,19 +1544,19 @@ func authHandleRecoverPassword02FetchInfo(c *gin.Context) {
 		return
 	}
 
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 	var rvStatus RvRecoverPassword02FetchInfo
 	err := json.Unmarshal([]byte(rv), &rvStatus)
 	if err != nil || rvStatus.Status != "success" {
 		rvStatus.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-		c.JSON(http.StatusBadRequest, LogJsonReturned(rvStatus.StdErrorReturn)) // 400
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 400
 		return
 	}
 
 	var out RecoverPassword02Success
 	copier.Copy(&out, &rvStatus)
-	c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out)) // 200
 
 }
 
@@ -1587,11 +1604,11 @@ type RecoverPassword03SetPasswordSuccess struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/recover-password-03-set-password [post]
 func authHandleRecoverPassword03SetPassword(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
 	var pp ApiAuthRecoverPassword03SetPassword
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 
 	// Check x2faPin for validity for this account.
 	stmt := "q_auth_v1_2fa_get_secret ( $1, $2 )"
@@ -1600,14 +1617,14 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 		return
 	}
 
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 	var rvSecret RvGetSecretType
 	err := json.Unmarshal([]byte(rv), &rvSecret)
 	if err != nil || rvSecret.Status != "success" {
 		rvSecret.LogUUID = GenUUID()
 		dbgo.Printf("%(red)%(LF) -- err:%s rvSecret=%s\n", err, dbgo.SVarI(rvSecret))
 		log_enc.LogStoredProcError(c, stmt, "e.", SVar(rvSecret), fmt.Sprintf("%s", err))
-		c.JSON(http.StatusBadRequest, LogJsonReturned(rvSecret.StdErrorReturn)) // 400
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvSecret.StdErrorReturn)) // 400
 		return
 	}
 
@@ -1616,7 +1633,7 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 		rvSecret.LogUUID = GenUUID()
 		dbgo.Printf("%(red)%(LF) -- err:%s rvSecret=%s\n", err, dbgo.SVarI(rvSecret))
 		log_enc.LogStoredProcError(c, stmt, "e.", SVar(rvSecret), fmt.Sprintf("%s", err))
-		c.JSON(http.StatusBadRequest, LogJsonReturned(rvSecret.StdErrorReturn)) // 400
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvSecret.StdErrorReturn)) // 400
 		return
 	}
 
@@ -1638,7 +1655,7 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 				return false
 			}
 			for ii, a_secret := range secret_list {
-				dbgo.Fprintf(logFilePtr, "		Secret[%d] = %s\n", ii, a_secret)
+				dbgo.Fprintf(perReqLog, "		Secret[%d] = %s\n", ii, a_secret)
 				rv := htotp.CheckRfc6238TOTPKeyWithSkew(pp.Email /*username*/, pp.X2FaPin /*pin2fa*/, a_secret, 1, 2)
 				if rv {
 					return true
@@ -1667,11 +1684,11 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 		}
 
 		// If the 2fa token fails to validate - then we are done.
-		dbgo.Fprintf(logFilePtr, "\n\n%(LF) Secret = %s\n", rvSecret.Secret2fa)
-		dbgo.Fprintf(os.Stderr, "\n\n%(LF)%(magenta) Secret = %(yellow)%s\n", rvSecret.Secret2fa)
+		// dbgo.Fprintf(perReqLog, "\n\n%(LF) Secret = %s\n", rvSecret.Secret2fa)
+		dbgo.Fprintf(perReqLog, "\n\n%(LF)%(magenta) Secret = %(yellow)%s\n", rvSecret.Secret2fa)
 		// if !htotp.CheckRfc6238TOTPKeyWithSkew(pp.Email /*username*/, pp.X2FaPin /*pin2fa*/, rvSecret.Secret2fa, 1, 2) {
 		if !chkSecret(rvSecret.Secret2fa) {
-			dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+			dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 			// xyzzy - log event - TODO
 			c.JSON(http.StatusBadRequest, StdErrorReturn{ // 400
 				Status:   "error",
@@ -1685,8 +1702,8 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 			// ------------------------------------------------------------------------------------------
 			return
 		}
-		dbgo.Fprintf(logFilePtr, "%(LF) -- 2fa has been validated -- \n\n")
-		dbgo.Fprintf(os.Stderr, "%(LF)%(magenta)  -- 2fa has been validated -- %(reset)\n\n")
+		//dbgo.Fprintf(perReqLog, "%(LF) -- 2fa has been validated -- \n\n")
+		dbgo.Fprintf(perReqLog, "%(LF)%(magenta)  -- 2fa has been validated -- %(reset)\n\n")
 
 	}
 
@@ -1697,13 +1714,13 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 		return
 	}
 
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 	var rvStatus RvRecoverPassword03SetPassword
 	err = json.Unmarshal([]byte(rv), &rvStatus)
 	if err != nil || rvStatus.Status != "success" {
 		rvStatus.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-		c.JSON(http.StatusBadRequest, LogJsonReturned(rvStatus.StdErrorReturn)) // 400
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 400
 		return
 	}
 
@@ -1729,7 +1746,7 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 
 	var out RecoverPassword03SetPasswordSuccess
 	copier.Copy(&out, &rvStatus)
-	c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out)) // 200
 
 }
 
@@ -1749,7 +1766,7 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/logout [post]
 func authHandleLogout(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
+	perReqLog := tf.GetLogFilePtr(c)
 	var UserId, AuthToken string
 	var pp ApiEmailOptional
 	if err := BindFormOrJSONOptional(c, &pp); err != nil {
@@ -1764,29 +1781,24 @@ func authHandleLogout(c *gin.Context) {
 		goto done
 	}
 
-	dbgo.Fprintf(os.Stderr, "%(cyan)In Handler at %(LF)\n")
-
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
 		DumpParamsToLog("After Auth - Top", c)
 
-		dbgo.Fprintf(os.Stderr, "%(cyan)In Handler at %(LF)\n")
 		// create or replace function q_auth_v1_logout ( p_un varchar, p_auth_token varchar, p_hmac_password varchar )
 		stmt := "q_auth_v1_logout ( $1, $2, $3 )"
 		rv, e0 := CallDatabaseJSONFunction(c, stmt, "e!.", pp.Email, AuthToken, aCfg.EncryptionPassword)
 		if e0 != nil {
-			dbgo.Fprintf(os.Stderr, "%(cyan)In Handler at %(LF)\n")
 			return
 		}
 
-		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+		dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 		// var rvStatus RvStatusType
 		var rvStatus StdErrorReturn
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
-			dbgo.Fprintf(os.Stderr, "%(cyan)In Handler at %(LF)\n")
 			rvStatus.LogUUID = GenUUID()
 			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-			c.JSON(http.StatusBadRequest, LogJsonReturned(rvStatus)) // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus)) // 400
 			return
 		}
 
@@ -1795,13 +1807,11 @@ func authHandleLogout(c *gin.Context) {
 			RedisBrodcast(AuthToken, fmt.Sprintf(`{"cmd":"/auth/logout","auth_token":%q,"user_id":%q}`, AuthToken, UserId))
 		}
 
-		dbgo.Fprintf(os.Stderr, "%(cyan)In Handler at %(LF)\n")
 	}
 
 done:
 
-	dbgo.Fprintf(os.Stderr, "%(cyan)In Handler at %(LF) - Logout / not authenticated on server side\n")
-	dbgo.Fprintf(logFilePtr, "# In Handler at %(LF) - Logout / not authenticated on server side\n")
+	dbgo.Fprintf(perReqLog, "# In Handler at %(LF) - Logout / not authenticated on server side\n")
 
 	// Cookies Reset
 	SetCookie("X-Authentication", "", c) // Will be a secure http cookie on TLS.
@@ -1811,7 +1821,7 @@ done:
 	SetInsecureCookie("X-Is-Logged-In", "no", c) // To let the JS code know that it is logged in.
 
 	out := ReturnSuccess{Status: "success"}
-	c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out)) // 200
 
 }
 
@@ -1840,7 +1850,7 @@ type X2faSetupSuccess struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/2fa-has-been-setup [get]
 func authHandle2faHasBeenSetup(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
+	perReqLog := tf.GetLogFilePtr(c)
 	var err error
 	var pp ApiEmail
 	if err := BindFormOrJSON(c, &pp); err != nil {
@@ -1863,17 +1873,17 @@ func authHandle2faHasBeenSetup(c *gin.Context) {
 	}
 
 	out := X2faSetupSuccess{Status: "success"}
-	// c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
+	// c.JSON(http.StatusOK, LogJsonReturned(perReqLog,out)) // 200
 	if len(v2) > 0 {
 		out.Msg = "2FA has been Setup"
 		out.X2faValidated = "y"
-		c.JSON(http.StatusOK, LogJsonReturned(out))
+		c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 		return
 	}
 
 	out.Msg = "2FA *not* Setup"
 	out.X2faValidated = "n"
-	c.JSON(http.StatusOK, LogJsonReturned(out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 
 }
 
@@ -1902,7 +1912,7 @@ type EmailSetupSuccess struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/email-has-been-validated [get]
 func authHandleEmailHasBeenSetup(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
+	perReqLog := tf.GetLogFilePtr(c)
 	var err error
 	var pp ApiEmail
 	if err := BindFormOrJSON(c, &pp); err != nil {
@@ -1933,7 +1943,7 @@ func authHandleEmailHasBeenSetup(c *gin.Context) {
 		out.EmailValidated = "n"
 		time.Sleep(1000 * time.Millisecond)
 	}
-	c.JSON(http.StatusOK, LogJsonReturned(out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 
 }
 
@@ -1969,7 +1979,7 @@ type AcctSetupSuccess struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/acct-status [get]
 func authHandleAcctHasBeenSetup(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
+	perReqLog := tf.GetLogFilePtr(c)
 	var err error
 	var pp ApiEmail
 	if err := BindFormOrJSON(c, &pp); err != nil {
@@ -1999,11 +2009,11 @@ func authHandleAcctHasBeenSetup(c *gin.Context) {
 		if v2[0].Require2fa == "n" {
 			out.X2faValidated = "y"
 		}
-		c.JSON(http.StatusOK, LogJsonReturned(out))
+		c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 		return
 	}
 	out := AcctSetupSuccess{Status: "error", Msg: "User Not Found"}
-	c.JSON(http.StatusOK, LogJsonReturned(out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 
 }
 
@@ -2036,8 +2046,7 @@ type SetDebugFlagSuccess struct {
 // @Failure 406 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/set-debug-flag [get]
 func authHandlerSetDebugFlag(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In set-debug-flag handler at %(LF)\n")
-
+	perReqLog := tf.GetLogFilePtr(c)
 	var pp ApiAuthSetDebugFlag
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
@@ -2045,7 +2054,7 @@ func authHandlerSetDebugFlag(c *gin.Context) {
 
 	if HashStrings.HashStrings(pp.AuthKey) != "d1925935f59354de774257bd02867eca749b617b21641f66aba49447f02ae377" {
 		out := SetDebugFlagSuccess{Status: "error"}
-		c.JSON(http.StatusUnauthorized, LogJsonReturned(out)) // 401
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out)) // 401
 		return
 	}
 
@@ -2055,7 +2064,7 @@ func authHandlerSetDebugFlag(c *gin.Context) {
 	XDbOnLock.Unlock()
 
 	out := SetDebugFlagSuccess{Status: "success"}
-	c.JSON(http.StatusOK, LogJsonReturned(out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 	return
 }
 
@@ -2135,12 +2144,12 @@ type Validate2faTokenSuccess struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/validate-2fa-token [post]
 func authHandleValidate2faToken(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
 	var pp ApiAuthValidate2faToken
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		md.AddCounter("jwt_auth_failed_login_attempts", 1)
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 
 	// AmIKnown         string `json:"am_i_known" form:"am_i_known"` //
 	// XsrfId           string `json:"xsrf_id"    form:"xsrf_id"`    // From Login
@@ -2154,14 +2163,14 @@ func authHandleValidate2faToken(c *gin.Context) {
 			return
 		}
 
-		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+		dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 		var rvEmailConfirm RvEmailConfirm
 		err = json.Unmarshal([]byte(rv), &rvEmailConfirm)
 		if rvEmailConfirm.Status != "success" {
 			md.AddCounter("jwt_auth_failed_login_attempts", 1)
 			rvEmailConfirm.LogUUID = GenUUID()
 			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvEmailConfirm))
-			c.JSON(http.StatusBadRequest, LogJsonReturned(rvEmailConfirm.StdErrorReturn)) // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvEmailConfirm.StdErrorReturn)) // 400
 			return
 		}
 	}
@@ -2173,7 +2182,7 @@ func authHandleValidate2faToken(c *gin.Context) {
 		return
 	}
 
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 	var rvSecret RvGetSecretType
 	err := json.Unmarshal([]byte(rv), &rvSecret)
 	if err != nil || rvSecret.Status != "success" {
@@ -2181,7 +2190,7 @@ func authHandleValidate2faToken(c *gin.Context) {
 		rvSecret.LogUUID = GenUUID()
 		dbgo.Printf("%(red)%(LF) -- err:%s rvSecret=%s\n", err, dbgo.SVarI(rvSecret))
 		log_enc.LogStoredProcError(c, stmt, "e.", SVar(rvSecret), fmt.Sprintf("%s", err))
-		c.JSON(http.StatusBadRequest, LogJsonReturned(rvSecret.StdErrorReturn)) // 400
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvSecret.StdErrorReturn)) // 400
 		return
 	}
 
@@ -2189,7 +2198,7 @@ func authHandleValidate2faToken(c *gin.Context) {
 		rvSecret.LogUUID = GenUUID()
 		dbgo.Printf("%(red)%(LF) -- err:%s rvSecret=%s\n", err, dbgo.SVarI(rvSecret))
 		log_enc.LogStoredProcError(c, stmt, "e.", SVar(rvSecret), fmt.Sprintf("%s", err))
-		c.JSON(http.StatusBadRequest, LogJsonReturned(rvSecret.StdErrorReturn)) // 400
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvSecret.StdErrorReturn)) // 400
 		return
 	}
 
@@ -2211,7 +2220,7 @@ func authHandleValidate2faToken(c *gin.Context) {
 				return false
 			}
 			for ii, a_secret := range secret_list {
-				dbgo.Fprintf(logFilePtr, "		Secret[%d] = %s\n", ii, a_secret)
+				dbgo.Fprintf(perReqLog, "		Secret[%d] = %s\n", ii, a_secret)
 				rv := htotp.CheckRfc6238TOTPKeyWithSkew(pp.Email /*username*/, pp.X2FaPin /*pin2fa*/, a_secret, 1, 2)
 				if rv {
 					return true
@@ -2240,12 +2249,12 @@ func authHandleValidate2faToken(c *gin.Context) {
 		}
 
 		// If the 2fa token fails to validate - then we are done.
-		dbgo.Fprintf(logFilePtr, "\n\n%(LF) Secret = %s\n", rvSecret.Secret2fa)
-		dbgo.Fprintf(os.Stderr, "\n\n%(LF)%(magenta) Secret = %(yellow)%s\n", rvSecret.Secret2fa)
+		// dbgo.Fprintf(perReqLog, "\n\n%(LF) Secret = %s\n", rvSecret.Secret2fa)
+		dbgo.Fprintf(perReqLog, "\n\n%(LF)%(magenta) Secret = %(yellow)%s\n", rvSecret.Secret2fa)
 		// if !htotp.CheckRfc6238TOTPKeyWithSkew(pp.Email /*username*/, pp.X2FaPin /*pin2fa*/, rvSecret.Secret2fa, 1, 2) {
 		if !chkSecret(rvSecret.Secret2fa) {
 			md.AddCounter("jwt_auth_failed_login_attempts", 1)
-			dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+			dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 			// xyzzy - log event - TODO
 			c.JSON(http.StatusBadRequest, StdErrorReturn{ // 400
 				Status:   "error",
@@ -2259,8 +2268,8 @@ func authHandleValidate2faToken(c *gin.Context) {
 			// ------------------------------------------------------------------------------------------
 			return
 		}
-		dbgo.Fprintf(logFilePtr, "%(LF) -- 2fa has been validated -- \n\n")
-		dbgo.Fprintf(os.Stderr, "%(LF)%(magenta)  -- 2fa has been validated -- %(reset)\n\n")
+		// dbgo.Fprintf(perReqLog, "%(LF) -- 2fa has been validated -- \n\n")
+		dbgo.Fprintf(perReqLog, "%(LF)%(magenta)  -- 2fa has been validated -- %(reset)\n\n")
 
 	}
 
@@ -2269,19 +2278,19 @@ func authHandleValidate2faToken(c *gin.Context) {
 	// ----------------------------------------------------------------------------------------------
 	// create or replace function q_auth_v1_etag_device_mark ( p_seen_id varchar, p_user_id varchar, p_hmac_password varchar, p_userdata_password varchar )
 	if pp.AmIKnown != "" {
-		dbgo.Fprintf(os.Stderr, "\n%(magenta)Marking device as seen : at:%(LF)\n%(yellow)    am_i_known(AmIKnown)=->%s<- user_id=->%s<-\n\n", pp.AmIKnown, rvSecret.UserId)
+		dbgo.Fprintf(perReqLog, "\n%(magenta)Marking device as seen : at:%(LF)\n%(yellow)    am_i_known(AmIKnown)=->%s<- user_id=->%s<-\n\n", pp.AmIKnown, rvSecret.UserId)
 		stmt := "q_auth_v1_etag_device_mark ( $1, $2, $3, $4 )"
 		rv, e0 := CallDatabaseJSONFunctionNoErr(c, stmt, "..!!", pp.AmIKnown, rvSecret.UserId, aCfg.EncryptionPassword, aCfg.UserdataPassword)
 		_ = rv
 		if e0 != nil {
-			dbgo.Fprintf(os.Stderr, "   %(red)Error on call to ->%s<- err: %s\n", stmt, err)
+			dbgo.Fprintf(perReqLog, "   %(red)Error on call to ->%s<- err: %s\n", stmt, err)
 		}
 	} else {
 		dbgo.Printf("\n%(magenta)No marker am_i_known(AmIKnown) id at:%(LF)\n    user_id=%s\n\n", rvSecret.UserId)
 	}
 	// ----------------------------------------------------------------------------------------------
 
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 
 	// xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
 
@@ -2296,32 +2305,32 @@ func authHandleValidate2faToken(c *gin.Context) {
 		return
 	}
 
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 	var rvStatus RvValidate2faTokenType
 	err = json.Unmarshal([]byte(rv), &rvStatus)
 	if rvStatus.Status != "success" { // if the d.b. call is not success then done - report error
 		md.AddCounter("jwt_auth_failed_login_attempts", 1)
-		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+		dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 		rvStatus.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-		c.JSON(http.StatusBadRequest, LogJsonReturned(rvStatus.StdErrorReturn)) // 400
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 400
 		return
 	}
 
-	dbgo.Fprintf(logFilePtr, "%(LF): rvStatus.AuthToken= ->%s<- for ->%s<-\n", rvStatus.AuthToken, pp.Email)
+	dbgo.Fprintf(perReqLog, "%(LF): rvStatus.AuthToken= ->%s<- for ->%s<-\n", rvStatus.AuthToken, pp.Email)
 	if rvStatus.AuthToken != "" {
-		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+		dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 		theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken, pp.Email, pp.NoCookie)
 		if err != nil {
 			md.AddCounter("jwt_auth_failed_login_attempts", 1)
 			return
 		}
-		dbgo.Fprintf(logFilePtr, "!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, pp.Email)
-		dbgo.Fprintf(os.Stderr, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, pp.Email)
+		// dbgo.Fprintf(perReqLog, "!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, pp.Email)
+		dbgo.Fprintf(perReqLog, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, pp.Email)
 		c.Set("__is_logged_in__", "y")
 		c.Set("__user_id__", rvStatus.UserId)
 		c.Set("__auth_token__", rvStatus.AuthToken)
-		rv, mr := ConvPrivs2(rvStatus.Privileges)
+		rv, mr := ConvPrivs2(perReqLog, rvStatus.Privileges)
 		c.Set("__privs__", rv)
 		c.Set("__privs_map__", mr)
 		c.Set("__email_hmac_password__", aCfg.EncryptionPassword)
@@ -2342,11 +2351,11 @@ func authHandleValidate2faToken(c *gin.Context) {
 		}
 
 	}
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 
 	var out Validate2faTokenSuccess
 	copier.Copy(&out, &rvStatus)
-	c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out)) // 200
 
 }
 
@@ -2375,11 +2384,11 @@ type RvDeleteAccountType struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/delete-acct [post]
 func authHandleDeleteAccount(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
 	var pp ApiEmail
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 	_, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
@@ -2393,13 +2402,13 @@ func authHandleDeleteAccount(c *gin.Context) {
 			return
 		}
 
-		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+		dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 		var rvStatus RvDeleteAccountType
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
 			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-			c.JSON(http.StatusBadRequest, LogJsonReturned(rvStatus)) // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus)) // 400
 			return
 		}
 
@@ -2418,7 +2427,7 @@ func authHandleDeleteAccount(c *gin.Context) {
 		)
 
 		out := ReturnSuccess{Status: "success"}
-		c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
+		c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out)) // 200
 		return
 	} else {
 		time.Sleep(1500 * time.Millisecond)
@@ -2428,7 +2437,7 @@ func authHandleDeleteAccount(c *gin.Context) {
 		Msg:      "401 not authorized",
 		Location: dbgo.LF(),
 	}
-	c.JSON(http.StatusUnauthorized, LogJsonReturned(out))
+	c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out))
 
 }
 
@@ -2462,11 +2471,11 @@ type RvRegisterUnPwAccountType struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/register-un-pw [post]
 func authHandleRegisterUnPw(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
 	var pp ApiAuthUn
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 	UserId, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
@@ -2480,13 +2489,13 @@ func authHandleRegisterUnPw(c *gin.Context) {
 			return
 		}
 
-		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+		dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 		var rvStatus RvRegisterUnPwAccountType
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
 			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-			c.JSON(http.StatusBadRequest, LogJsonReturned(rvStatus)) // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus)) // 400
 			return
 		}
 
@@ -2505,7 +2514,7 @@ func authHandleRegisterUnPw(c *gin.Context) {
 		)
 
 		out := ReturnSuccess{Status: "success"}
-		c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
+		c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out)) // 200
 		return
 	}
 	out := StdErrorReturn{
@@ -2513,7 +2522,7 @@ func authHandleRegisterUnPw(c *gin.Context) {
 		Msg:      "401 not authorized",
 		Location: dbgo.LF(),
 	}
-	c.JSON(http.StatusUnauthorized, LogJsonReturned(out))
+	c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out))
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
@@ -2539,9 +2548,9 @@ type RvRegisterTokenAccountType struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/register-token [post]
 func authHandleRegisterToken(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
 
 	UserId, _, AuthToken := GetAuthToken(c)
+	perReqLog := tf.GetLogFilePtr(c)
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
 
@@ -2554,13 +2563,13 @@ func authHandleRegisterToken(c *gin.Context) {
 			return
 		}
 
-		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+		dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 		var rvStatus RvRegisterTokenAccountType
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
 			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-			c.JSON(http.StatusBadRequest, LogJsonReturned(rvStatus)) // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus)) // 400
 			return
 		}
 
@@ -2579,7 +2588,7 @@ func authHandleRegisterToken(c *gin.Context) {
 		)
 
 		out := ReturnSuccess{Status: "success"}
-		c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
+		c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out)) // 200
 		return
 	}
 	out := StdErrorReturn{
@@ -2587,7 +2596,7 @@ func authHandleRegisterToken(c *gin.Context) {
 		Msg:      "401 not authorized",
 		Location: dbgo.LF(),
 	}
-	c.JSON(http.StatusUnauthorized, LogJsonReturned(out))
+	c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out))
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
@@ -2623,7 +2632,7 @@ type RvChangeEmailAddressType struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/change-email-address [post]
 func authHandleChangeEmailAddress(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
+	perReqLog := tf.GetLogFilePtr(c)
 	var pp ApiAuthChangeEmail
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
@@ -2641,14 +2650,14 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 			return
 		}
 
-		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+		dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 		var rvSecret RvGetSecretType
 		err := json.Unmarshal([]byte(rv), &rvSecret)
 		if err != nil || rvSecret.Status != "success" {
 			rvSecret.LogUUID = GenUUID()
 			dbgo.Printf("%(red)%(LF) -- err:%s rvSecret=%s\n", err, dbgo.SVarI(rvSecret))
 			log_enc.LogStoredProcError(c, stmt, "e.", SVar(rvSecret), fmt.Sprintf("%s", err))
-			c.JSON(http.StatusBadRequest, LogJsonReturned(rvSecret.StdErrorReturn)) // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvSecret.StdErrorReturn)) // 400
 			return
 		}
 
@@ -2656,7 +2665,7 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 			rvSecret.LogUUID = GenUUID()
 			dbgo.Printf("%(red)%(LF) -- err:%s rvSecret=%s\n", err, dbgo.SVarI(rvSecret))
 			log_enc.LogStoredProcError(c, stmt, "e.", SVar(rvSecret), fmt.Sprintf("%s", err))
-			c.JSON(http.StatusBadRequest, LogJsonReturned(rvSecret.StdErrorReturn)) // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvSecret.StdErrorReturn)) // 400
 			return
 		}
 
@@ -2678,7 +2687,7 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 					return false
 				}
 				for ii, a_secret := range secret_list {
-					dbgo.Fprintf(logFilePtr, "		Secret[%d] = %s\n", ii, a_secret)
+					dbgo.Fprintf(perReqLog, "		Secret[%d] = %s\n", ii, a_secret)
 					rv := htotp.CheckRfc6238TOTPKeyWithSkew(pp.OldEmail /*username*/, pp.X2FaPin /*pin2fa*/, a_secret, 1, 2)
 					if rv {
 						return true
@@ -2707,11 +2716,11 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 			}
 
 			// If the 2fa token fails to validate - then we are done.
-			dbgo.Fprintf(logFilePtr, "\n\n%(LF) Secret = %s\n", rvSecret.Secret2fa)
-			dbgo.Fprintf(os.Stderr, "\n\n%(LF)%(magenta) Secret = %(yellow)%s\n", rvSecret.Secret2fa)
+			// dbgo.Fprintf(perReqLog, "\n\n%(LF) Secret = %s\n", rvSecret.Secret2fa)
+			dbgo.Fprintf(perReqLog, "\n\n%(LF)%(magenta) Secret = %(yellow)%s\n", rvSecret.Secret2fa)
 			// if !htotp.CheckRfc6238TOTPKeyWithSkew(pp.Email /*username*/, pp.X2FaPin /*pin2fa*/, rvSecret.Secret2fa, 1, 2) {
 			if !chkSecret(rvSecret.Secret2fa) {
-				dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+				dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 				// xyzzy - log event - TODO
 				c.JSON(http.StatusBadRequest, StdErrorReturn{ // 400
 					Status:   "error",
@@ -2725,8 +2734,8 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 				// ------------------------------------------------------------------------------------------
 				return
 			}
-			dbgo.Fprintf(logFilePtr, "%(LF) -- 2fa has been validated -- \n\n")
-			dbgo.Fprintf(os.Stderr, "%(LF)%(magenta)  -- 2fa has been validated -- %(reset)\n\n")
+			// dbgo.Fprintf(perReqLog, "%(LF) -- 2fa has been validated -- \n\n")
+			dbgo.Fprintf(perReqLog, "%(LF)%(magenta)  -- 2fa has been validated -- %(reset)\n\n")
 
 		}
 
@@ -2739,13 +2748,13 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 			return
 		}
 
-		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+		dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 		var rvStatus RvChangeEmailAddressType
 		err = json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
 			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-			c.JSON(http.StatusBadRequest, LogJsonReturned(rvStatus)) // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus)) // 400
 			return
 		}
 
@@ -2778,7 +2787,7 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 		// xyzzy551 - Change Email NOT Tested
 
 		out := ReturnSuccess{Status: "success"}
-		c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
+		c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out)) // 200
 		return
 	} else {
 		time.Sleep(1500 * time.Millisecond)
@@ -2789,7 +2798,7 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 		Msg:      "401 not authorized",
 		Location: dbgo.LF(),
 	}
-	c.JSON(http.StatusUnauthorized, LogJsonReturned(out))
+	c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out))
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
@@ -2814,7 +2823,7 @@ type ApiAuthChangeAccountInfo struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/change-account-info [post]
 func authHandleChangeAccountInfo(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
+	perReqLog := tf.GetLogFilePtr(c)
 	var pp ApiAuthChangeAccountInfo
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
@@ -2829,7 +2838,7 @@ func authHandleChangeAccountInfo(c *gin.Context) {
 			Msg:      "401 not authorized",
 			Location: dbgo.LF(),
 		}
-		c.JSON(http.StatusUnauthorized, LogJsonReturned(out))
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out))
 		return
 	}
 
@@ -2849,7 +2858,7 @@ func authHandleChangeAccountInfo(c *gin.Context) {
 	}
 
 	out := ReturnSuccess{Status: "success"}
-	c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out)) // 200
 	return
 
 }
@@ -2882,7 +2891,7 @@ type ApiAdminChangePassword struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/change-password-admin [post]
 func authHandleChangePasswordAdmin(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
+	perReqLog := tf.GetLogFilePtr(c)
 	var pp ApiAdminChangePassword
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
@@ -2902,13 +2911,13 @@ func authHandleChangePasswordAdmin(c *gin.Context) {
 
 		// “If opportunity doesn’t knock, build a door.” – Milton Berle
 
-		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+		dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 		var rvStatus RvChangePasswordAdminType
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
 			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-			c.JSON(http.StatusBadRequest, LogJsonReturned(rvStatus)) // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus)) // 400
 			return
 		}
 
@@ -2927,7 +2936,7 @@ func authHandleChangePasswordAdmin(c *gin.Context) {
 		)
 
 		out := ReturnSuccess{Status: "success"}
-		c.JSON(http.StatusOK, LogJsonReturned(out)) // 200
+		c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out)) // 200
 		return
 	}
 	out := StdErrorReturn{
@@ -2935,7 +2944,7 @@ func authHandleChangePasswordAdmin(c *gin.Context) {
 		Msg:      "401 not authorized",
 		Location: dbgo.LF(),
 	}
-	c.JSON(http.StatusUnauthorized, LogJsonReturned(out))
+	c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out))
 
 }
 
@@ -2973,7 +2982,7 @@ type RegenOTPSuccess struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/regen-otp [post]
 func authHandleRegenOTP(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
+	perReqLog := tf.GetLogFilePtr(c)
 	var pp ApiAuthLogin
 	/*
 	   type ApiAuthLogin struct {
@@ -2999,14 +3008,14 @@ func authHandleRegenOTP(c *gin.Context) {
 			return
 		}
 
-		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+		dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 		var rvStatus RvRegenOTPType
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
-			dbgo.Fprintf(logFilePtr, "%(LF) email >%s< AuthToken >%s<\n", pp.Email, AuthToken)
+			dbgo.Fprintf(perReqLog, "%(LF) email >%s< AuthToken >%s<\n", pp.Email, AuthToken)
 			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-			c.JSON(http.StatusBadRequest, LogJsonReturned(rvStatus.StdErrorReturn)) // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 400
 			return
 		}
 
@@ -3030,7 +3039,7 @@ func authHandleRegenOTP(c *gin.Context) {
 			Status: "success",
 			Otp:    rvStatus.Otp,
 		}
-		c.JSON(http.StatusOK, LogJsonReturned(out))
+		c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 		return
 	} else {
 		time.Sleep(1500 * time.Millisecond)
@@ -3041,7 +3050,7 @@ func authHandleRegenOTP(c *gin.Context) {
 		Msg:      "401 not authorized",
 		Location: dbgo.LF(),
 	}
-	c.JSON(http.StatusUnauthorized, LogJsonReturned(out))
+	c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out))
 
 }
 
@@ -3093,7 +3102,7 @@ type ApiAuthRefreshToken struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/refresh-token [post]
 func authHandleRefreshToken(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
+	perReqLog := tf.GetLogFilePtr(c)
 	var pp ApiAuthRefreshToken
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
@@ -3119,7 +3128,7 @@ func authHandleRefreshToken(c *gin.Context) {
 			return
 		}
 
-		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+		dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 		var rvStatus RvRefreshTokenType
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if rvStatus.Status == "401" {
@@ -3127,9 +3136,9 @@ func authHandleRefreshToken(c *gin.Context) {
 		}
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
-			// dbgo.Fprintf(logFilePtr, "%(LF) email >%s< AuthToken >%s<\n", pp.Email, AuthToken)
+			// dbgo.Fprintf(perReqLog, "%(LF) email >%s< AuthToken >%s<\n", pp.Email, AuthToken)
 			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-			c.JSON(http.StatusBadRequest, LogJsonReturned(rvStatus.StdErrorReturn)) // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 400
 			return
 		}
 
@@ -3141,8 +3150,8 @@ func authHandleRefreshToken(c *gin.Context) {
 			if err != nil {
 				return
 			}
-			dbgo.Fprintf(logFilePtr, "!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, rvStatus.Email)
-			dbgo.Fprintf(os.Stderr, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, rvStatus.Email)
+			// dbgo.Fprintf(perReqLog, "!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, rvStatus.Email)
+			dbgo.Fprintf(perReqLog, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, rvStatus.Email)
 
 			c.Set("__auth_token__", rvStatus.AuthToken)
 
@@ -3164,7 +3173,7 @@ func authHandleRefreshToken(c *gin.Context) {
 
 		var out RefreshTokenSuccess
 		copier.Copy(&out, &rvStatus)
-		c.JSON(http.StatusOK, LogJsonReturned(out))
+		c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 		return
 	}
 
@@ -3179,7 +3188,7 @@ no_auth:
 		Msg:      "401 not authorized",
 		Location: dbgo.LF(),
 	}
-	c.JSON(http.StatusUnauthorized, LogJsonReturned(out))
+	c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out))
 	return
 
 }
@@ -3197,12 +3206,12 @@ no_auth:
 // @Success 200 {object} jwt_auth.ReturnStatusSuccess
 // @Router /api/v1/auth/no-login-status [get]
 func authHandleNoLoginStatus(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
+	perReqLog := tf.GetLogFilePtr(c)
 	out := ReturnStatusSuccess{
 		Status: "success",
 		Msg:    fmt.Sprintf("No Login Requried to Reach .../no-login-status %s\n", dbgo.LF()),
 	}
-	c.JSON(http.StatusOK, LogJsonReturned(out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
@@ -3259,6 +3268,7 @@ func authHandleResendRegistrationEmail(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 
 	var secret string
 	secret = ""
@@ -3269,25 +3279,24 @@ func authHandleResendRegistrationEmail(c *gin.Context) {
 		RegisterResp.Msg = "Simulated Error"
 		RegisterResp.Code = "0000"
 		RegisterResp.Location = dbgo.LF()
-		c.JSON(http.StatusBadRequest, LogJsonReturned(RegisterResp.StdErrorReturn))
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, RegisterResp.StdErrorReturn))
 		return
 	}
 
 	//                                   1                2                   3                         4                            5
 	// q_auth_v1_resend_email_register ( p_email varchar, p_tmp_token varchar, p_hmac_password varchar, p_userdata_password varchar, p_n6_flag varchar ) RETURNS text
 	stmt := "q_auth_v1_resend_email_register ( $1, $2, $3, $4, $5 )"
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	//                                                      1         2            3                        4                       5
 	rv, err := CallDatabaseJSONFunction(c, stmt, "ee.ee..", pp.Email, pp.TmpToken, aCfg.EncryptionPassword, aCfg.UserdataPassword, gCfg.AuthEmailToken)
 	if err != nil {
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 	err = json.Unmarshal([]byte(rv), &RegisterResp)
 	if RegisterResp.Status != "success" {
 		RegisterResp.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "ee", SVar(RegisterResp), pp.Email, pp.TmpToken /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
-		c.JSON(http.StatusBadRequest, LogJsonReturned(RegisterResp.StdErrorReturn))
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, RegisterResp.StdErrorReturn))
 		return
 	}
 
@@ -3298,9 +3307,9 @@ func authHandleResendRegistrationEmail(c *gin.Context) {
 	// ---------------------------------------------------------------------------------------------------------------------
 	// send email with validation - using: RegisterResp.EmailVerifyToken
 	// ---------------------------------------------------------------------------------------------------------------------
-	dbgo.Fprintf(os.Stderr, "%(magenta)================================================================================================%(reset)\n")
-	dbgo.Fprintf(os.Stderr, "%(yellow)%(LF) - sending 2nd email - %s%(reset)\n", RegisterResp.EmailVerifyToken)
-	dbgo.Fprintf(os.Stderr, "%(magenta)================================================================================================%(reset)\n")
+	dbgo.Fprintf(perReqLog, "%(magenta)================================================================================================%(reset)\n")
+	dbgo.Fprintf(perReqLog, "%(yellow)%(LF) - sending 2nd email - %s%(reset)\n", RegisterResp.EmailVerifyToken)
+	dbgo.Fprintf(perReqLog, "%(magenta)================================================================================================%(reset)\n")
 	em.SendEmail("welcome_registration", // Email Template
 		"username", pp.Email,
 		"email", pp.Email,
@@ -3332,7 +3341,7 @@ func authHandleResendRegistrationEmail(c *gin.Context) {
 
 	var out ResendEmailRegisterSuccess
 	copier.Copy(&out, &RegisterResp)
-	c.JSON(http.StatusOK, LogJsonReturned(out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
@@ -3360,7 +3369,7 @@ type ReturnStatusSuccess struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/login-status [post]
 func authHandleLoginStatus(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
+	perReqLog := tf.GetLogFilePtr(c)
 	out := ReturnStatusSuccess{
 		Status: "success",
 		Msg:    fmt.Sprintf("Login Requried to Reach .../login-status %s\n", dbgo.LF()),
@@ -3372,7 +3381,7 @@ func authHandleLoginStatus(c *gin.Context) {
 
 	DumpParamsToLog("At - Top", c)
 
-	c.JSON(http.StatusOK, LogJsonReturned(out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
@@ -3404,7 +3413,7 @@ type GetUserConfigSuccess struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/get-user-config [post]
 func authHandleGetUserConfig(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
+	perReqLog := tf.GetLogFilePtr(c)
 
 	var DBGetUserDataResp RvGetUserConfigType
 
@@ -3420,24 +3429,23 @@ func authHandleGetUserConfig(c *gin.Context) {
 
 	// create or replace function q_auth_v1_get_user_config ( p_user_id uuid, varchar, p_hmac_password varchar, p_userdata_password varchar )
 	stmt := "q_auth_v1_get_user_config ( $1, $2, $3 )"
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	//                                                      1         2            3                        4             5            6                      7
 	rv, err := CallDatabaseJSONFunction(c, stmt, "ee.ee..", UserId, aCfg.EncryptionPassword, aCfg.UserdataPassword)
 	if err != nil {
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 	err = json.Unmarshal([]byte(rv), &DBGetUserDataResp)
 	if DBGetUserDataResp.Status != "success" {
 		DBGetUserDataResp.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(DBGetUserDataResp), UserId /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
-		c.JSON(http.StatusBadRequest, LogJsonReturned(DBGetUserDataResp.StdErrorReturn))
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, DBGetUserDataResp.StdErrorReturn))
 		return
 	}
 
 	var out GetUserConfigSuccess
 	copier.Copy(&out, &DBGetUserDataResp)
-	c.JSON(http.StatusOK, LogJsonReturned(out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
@@ -3463,7 +3471,7 @@ type ApiSetUserConfig struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/set-user-config [post]
 func authHandleSetUserConfig(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
+	perReqLog := tf.GetLogFilePtr(c)
 
 	var pp ApiSetUserConfig
 	if err := BindFormOrJSON(c, &pp); err != nil {
@@ -3484,24 +3492,23 @@ func authHandleSetUserConfig(c *gin.Context) {
 
 	// create or replace function q_auth_v1_set_user_config ( p_user_id uuid, varchar, p_hmac_password varchar, p_userdata_password varchar )
 	stmt := "q_auth_v1_set_user_config ( $1, $2, $3, $4, $5 )"
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	//                                                      1            2        3         4       5                        6
 	rv, err := CallDatabaseJSONFunction(c, stmt, "eee..", pp.Name, pp.Value, UserId, aCfg.EncryptionPassword, aCfg.UserdataPassword)
 	if err != nil {
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 	err = json.Unmarshal([]byte(rv), &DBGetUserDataResp)
 	if DBGetUserDataResp.Status != "success" {
 		DBGetUserDataResp.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(DBGetUserDataResp), UserId /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
-		c.JSON(http.StatusBadRequest, LogJsonReturned(DBGetUserDataResp.StdErrorReturn))
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, DBGetUserDataResp.StdErrorReturn))
 		return
 	}
 
 	var out GetUserConfigSuccess
 	copier.Copy(&out, &DBGetUserDataResp)
-	c.JSON(http.StatusOK, LogJsonReturned(out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 	return
 
 }
@@ -3524,8 +3531,9 @@ type SQLUserIdPrivsType struct {
 }
 
 func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
-	dbgo.Fprintf(logFilePtr, "    In GetAuthToken at:%(LF), aCfg.TokenHeaderVSCookie==%s\n", aCfg.TokenHeaderVSCookie)
-	dbgo.Fprintf(os.Stderr, "    %(magenta)In GetAuthToken at:%(LF), aCfg.TokenHeaderVSCookie==%s%(reset)\n", aCfg.TokenHeaderVSCookie)
+	perReqLog := tf.GetLogFilePtr(c)
+	// dbgo.Fprintf(perReqLog, "    In GetAuthToken at:%(LF), aCfg.TokenHeaderVSCookie==%s\n", aCfg.TokenHeaderVSCookie)
+	dbgo.Fprintf(perReqLog, "    %(magenta)In GetAuthToken at:%(LF), aCfg.TokenHeaderVSCookie==%s%(reset)\n", aCfg.TokenHeaderVSCookie)
 
 	// -----------------------------------------------------------------------------------------------------------------------
 	// Look for the auth token in multiple places.
@@ -3540,11 +3548,11 @@ func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
 	if aCfg.TokenHeaderVSCookie == "cookie" || aCfg.TokenHeaderVSCookie == "both" {
 		has, jwtTok = HasCookie("X-Authentication", c)
 		if has {
-			dbgo.Fprintf(logFilePtr, "COOKIE: %(Green) has=%v val=%s for X-Authentication - %(LF)\n", has, jwtTok)
-			dbgo.Fprintf(os.Stderr, "COOKIE: %(Green) has=%v val=%s for X-Authentication - %(LF)\n", has, jwtTok)
+			// dbgo.Fprintf(perReqLog, "COOKIE: %(Green) has=%v val=%s for X-Authentication - %(LF)\n", has, jwtTok)
+			dbgo.Fprintf(perReqLog, "COOKIE: %(Green) has=%v val=->%s<- for X-Authentication - %(LF)\n", has, jwtTok)
 		} else {
-			dbgo.Fprintf(logFilePtr, "COOKIE: %(Red) has=%v val=%s for X-Authentication - %(LF)\n", has, jwtTok)
-			dbgo.Fprintf(os.Stderr, "COOKIE: %(Red) has=%v val=%s for X-Authentication - %(LF)\n", has, jwtTok)
+			// dbgo.Fprintf(perReqLog, "COOKIE: %(Red) has=%v val=%s for X-Authentication - %(LF)\n", has, jwtTok)
+			dbgo.Fprintf(perReqLog, "COOKIE: %(Red) has=%v val=%s for X-Authentication - %(LF)\n", has, jwtTok)
 		}
 	}
 	if !has && (aCfg.TokenHeaderVSCookie == "header" || aCfg.TokenHeaderVSCookie == "both") {
@@ -3565,22 +3573,22 @@ func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
 			}
 		}
 		if has {
-			dbgo.Fprintf(logFilePtr, "AuthorizationBearer: %(Green) has=%v val=%s for Authorization - %(LF)\n", has, jwtTok)
-			dbgo.Fprintf(os.Stderr, "AuthorizationBearer: %(Green) has=%v val=%s for Authorization - %(LF)\n", has, jwtTok)
+			// dbgo.Fprintf(perReqLog, "AuthorizationBearer: %(Green) has=%v val=%s for Authorization - %(LF)\n", has, jwtTok)
+			dbgo.Fprintf(perReqLog, "AuthorizationBearer: %(Green) has=%v val=%s for Authorization - %(LF)\n", has, jwtTok)
 		} else {
-			dbgo.Fprintf(logFilePtr, "AuthorizationBearer:  has=%v val=%s for Authorization   - NO TOKEN - %(LF)\n", has, jwtTok)
-			dbgo.Fprintf(os.Stderr, "AuthorizationBearer: %(Red) has=%v val=%s for Authorization   %(yellow) - NO TOKEN - %(LF)\n", has, jwtTok)
+			// dbgo.Fprintf(perReqLog, "AuthorizationBearer:  has=%v val=%s for Authorization   - NO TOKEN - %(LF)\n", has, jwtTok)
+			dbgo.Fprintf(perReqLog, "AuthorizationBearer: %(Red) has=%v val=%s for Authorization   %(yellow) - NO TOKEN - %(LF)\n", has, jwtTok)
 		}
 	}
 
 	if !has {
-		dbgo.Fprintf(logFilePtr, "Authorization:  has=%v -- false -- means not logged in. No Cookie, No Authorization: berrer <token>, %(LF), %s\n", has, dbgo.SVarI(c.Request))
-		dbgo.Fprintf(os.Stderr, "Authorization: %(red) has=%v -- false -- means not logged in. No Cookie, No Authorization: berrer <token>, %(LF)\n", has)
+		// dbgo.Fprintf(perReqLog, "Authorization:  has=%v -- false -- means not logged in. No Cookie, No Authorization: berrer <token>, %(LF), %s\n", has, dbgo.SVarI(c.Request))
+		dbgo.Fprintf(perReqLog, "Authorization: %(red) has=%v -- false -- means not logged in. No Cookie, No Authorization: berrer <token>, %(LF)\n", has)
 		return
 	} else {
 
-		dbgo.Fprintf(logFilePtr, "    In GetAuthToken has is true at:%(LF)\n")
-		dbgo.Fprintf(os.Stderr, "    %(magenta)In GetAuthToken has is true at:%(LF)%(reset)\n")
+		// dbgo.Fprintf(perReqLog, "    In GetAuthToken has is true at:%(LF)\n")
+		dbgo.Fprintf(perReqLog, "    %(magenta)In GetAuthToken has is true at:%(LF)%(reset)\n")
 
 		// Parse and Validate the JWT Berrer
 		// Extract the auth_token
@@ -3600,8 +3608,8 @@ func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
 
 		var tkn *jwt.Token
 		if len(gCfg.AuthJWTKey) == 0 && jwtlib.IsHs(gCfg.AuthJWTKeyType) {
-			fmt.Fprintf(os.Stderr, "Fatal Error: Invalid configuration, HS* key and AuthJWTKey not set\n")
-			fmt.Fprintf(logFilePtr, "Fatal Error: Invalid configuration, HS* key and AuthJWTKey not set\n")
+			// fmt.Fprintf(os.Stderr, "Fatal Error: Invalid configuration, HS* key and AuthJWTKey not set\n")
+			fmt.Fprintf(perReqLog, "Fatal Error: Invalid configuration, HS* key and AuthJWTKey not set\n")
 			os.Exit(1)
 		} else if len(gCfg.AuthJWTKey) > 0 && jwtlib.IsHs(gCfg.AuthJWTKeyType) {
 			tkn, err = jwtlib.VerifyToken([]byte(jwtTok), gCfg.AuthJWTKeyType, []byte(gCfg.AuthJWTKey))
@@ -3609,12 +3617,12 @@ func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
 			tkn, err = jwtlib.VerifyToken([]byte(jwtTok), gCfg.AuthJWTKeyType, []byte(gCfg.AuthJWTPublic)) // Validate with Public
 		}
 		if err != nil {
-			dbgo.Fprintf(os.Stderr, "%(LF) Error: Invalid Token : %s token->%s<-\n", err, jwtTok)
-			dbgo.Fprintf(logFilePtr, "%(LF) Error: Invalid Token : %s token->%s<-\n", err, jwtTok)
+			// dbgo.Fprintf(os.Stderr, "%(LF) Error: Invalid Token : %s token->%s<-\n", err, jwtTok)
+			dbgo.Fprintf(perReqLog, "%(LF) Error: Invalid Token : %s token->%s<-\n", err, jwtTok)
 		}
 		if err != nil || tkn == nil || !tkn.Valid {
-			dbgo.Fprintf(logFilePtr, "X-Authentication - %(LF)\n")
-			dbgo.Fprintf(os.Stderr, "X-Authentication - %(LF) - token not valid\n")
+			dbgo.Fprintf(perReqLog, "X-Authentication - %(LF)\n")
+			// dbgo.Fprintf(os.Stderr, "X-Authentication - %(LF) - token not valid\n")
 			// log-xyzzy-log  Log info to log xyzzy
 			c.Writer.WriteHeader(http.StatusUnauthorized) // 401
 			return
@@ -3628,16 +3636,16 @@ func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
 			AuthToken, ok = cc["auth_token"].(string)
 			if !ok {
 				AuthToken = ""
-				dbgo.Fprintf(os.Stderr, "%(red)== Failed! Mapped [auth_token] to string\n")
+				dbgo.Fprintf(perReqLog, "%(red)== Failed! Mapped [auth_token] to string\n")
 				// } else {
 				// 	dbgo.Fprintf(os.Stderr, "%(green)== Mapped [auth_token] to string\n")
 			}
 		} else {
-			dbgo.Fprintf(os.Stderr, "%(red)== Failed! Mapped the claims to jwt.MapClaims\n")
+			dbgo.Fprintf(perReqLog, "%(red)== Failed! Mapped the claims to jwt.MapClaims\n")
 		}
 
-		dbgo.Fprintf(logFilePtr, "X-Authentication - AuthToken = ->%s<- %(LF) --", AuthToken)
-		dbgo.Fprintf(os.Stderr, "X-Authentication - Have an auth_token - %(green)AuthToken = ->%s<-%(reset) %(LF) --", AuthToken)
+		// dbgo.Fprintf(perReqLog, "X-Authentication - AuthToken = ->%s<- %(LF) --", AuthToken)
+		dbgo.Fprintf(perReqLog, "X-Authentication - Have an auth_token - %(green)AuthToken = ->%s<-%(reset) %(LF) --", AuthToken)
 
 		var v2 []*SQLUserIdPrivsType
 
@@ -3667,11 +3675,11 @@ func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
 			stmt := `select user_id, privileges, client_id, email, seconds_till_expires from q_qr_validate_user_auth_token ( $1, $2 )`
 
 			err = pgxscan.Select(ctx, conn, &v2, stmt, AuthToken, aCfg.UserdataPassword) // __userdata_password__
-			dbgo.Fprintf(logFilePtr, "Yep - should be a user_id and a set of privs >%s<- at:%(LF) auth_token->%s<-\n", dbgo.SVarI(v2), AuthToken)
+			dbgo.Fprintf(perReqLog, "Yep - should be a user_id and a set of privs >%s<- at:%(LF) auth_token->%s<-\n", dbgo.SVarI(v2), AuthToken)
 			// dbgo.Fprintf(os.Stderr, "Yep - should be a user_id and a set of privs >%s<- at:%(LF) auth_token->%s<-\n", dbgo.SVarI(v2), AuthToken)
 			// dbgo.Fprintf(os.Stderr, "%(yellow)%(LF) Error:%s stmt ->%s<- data:%s %s\n", err, stmt, AuthToken, aCfg.UserdataPassword)
 			if err != nil {
-				dbgo.Fprintf(os.Stderr, "%(red)%(LF) Error:%s stmt ->%s<- data:%s %s\n", err, stmt, AuthToken, aCfg.UserdataPassword)
+				dbgo.Fprintf(perReqLog, "%(red)%(LF) Error:%s stmt ->%s<- data:%s %s\n", err, stmt, AuthToken, aCfg.UserdataPassword)
 				log_enc.LogSQLError(c, stmt, err, "e", AuthToken, aCfg.UserdataPassword)
 				return
 			}
@@ -3679,17 +3687,17 @@ func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
 		}
 
 		// dbgo.Fprintf(os.Stderr, "%(green)%(LF) stmt ->%s<- data:%s %s\n", stmt, AuthToken, aCfg.UserdataPassword)
-		// dbgo.Fprintf(logFilePtr, "X-Authentication - after select len(v2) = %d %(LF)\n", len(v2))
+		// dbgo.Fprintf(perReqLog, "X-Authentication - after select len(v2) = %d %(LF)\n", len(v2))
 		// dbgo.Fprintf(os.Stderr, "X-Authentication - after select len(v2) = %d %(LF), data=%s\n", len(v2), dbgo.SVarI(v2))
 		if len(v2) > 0 {
 			UserId = v2[0].UserId
 			Email = v2[0].Email
-			dbgo.Fprintf(logFilePtr, "Is Authenticated! ----------------------- X-Authentication - %(LF)\n")
-			dbgo.Fprintf(os.Stderr, "%(green)Is Authenticated! - %(LF)\n")
+			// dbgo.Fprintf(perReqLog, "Is Authenticated! ----------------------- X-Authentication - %(LF)\n")
+			dbgo.Fprintf(perReqLog, "%(green)Is Authenticated! - %(LF)\n")
 			c.Set("__is_logged_in__", "y")
 			c.Set("__user_id__", UserId)
 			c.Set("__auth_token__", AuthToken)
-			rv, mr := ConvPrivs(v2[0].Privileges)
+			rv, mr := ConvPrivs(perReqLog, v2[0].Privileges)
 			c.Set("__privs__", rv)
 			c.Set("__privs_map__", mr)
 			c.Set("__email_hmac_password__", aCfg.EncryptionPassword)
@@ -3697,14 +3705,14 @@ func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
 			c.Set("__client_id__", v2[0].ClientId)
 			c.Set("__login_email_addr__", v2[0].Email)
 		} else {
-			dbgo.Fprintf(logFilePtr, "X-Authentication - %(LF) - did not find auth_token in database - Not Authenticated\n")
-			dbgo.Fprintf(os.Stderr, "X-Authentication - %(LF) - %(red)did not find auth_token in database - Not Authenticated\n")
+			// dbgo.Fprintf(perReqLog, "X-Authentication - %(LF) - did not find auth_token in database - Not Authenticated\n")
+			dbgo.Fprintf(perReqLog, "X-Authentication - %(LF) - %(red)did not find auth_token in database - Not Authenticated\n")
 			UserId = ""
 			AuthToken = ""
 		}
 
 	}
-	// dbgo.Fprintf(logFilePtr, "X-Authentication - at:%(LF)\n")
+	// dbgo.Fprintf(perReqLog, "X-Authentication - at:%(LF)\n")
 	// dbgo.Fprintf(os.Stderr, "X-Authentication - at:%(LF)\n")
 	return
 }
@@ -3717,23 +3725,24 @@ func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
 
 func CreateJWTSignedCookie(c *gin.Context, DBAuthToken, email_addr, NoCookie string) (rv string, err error) {
 
+	perReqLog := tf.GetLogFilePtr(c)
 	if DBAuthToken != "" { // If the Database code created an auth-token, then this needs to be converted to a JWT-Token and sent back to the user (Coookie, Header etc)
 
 		claims := jwt.MapClaims{
 			"auth_token": DBAuthToken,
 		}
 
-		dbgo.Fprintf(os.Stderr, "%(green)== Authentication == New Sign/Cookie Section ======================================== at: %(LF)\n")
+		dbgo.Fprintf(perReqLog, "%(green)== Authentication == New Sign/Cookie Section ======================================== at: %(LF)\n")
 		if len(gCfg.AuthJWTKey) == 0 && jwtlib.IsHs(gCfg.AuthJWTKeyType) {
-			fmt.Fprintf(os.Stderr, "Fatal Error: Invalid configuration, HS* key and AuthJWTKey not set\n")
-			fmt.Fprintf(logFilePtr, "Fatal Error: Invalid configuration, HS* key and AuthJWTKey not set\n")
+			// fmt.Fprintf(perReqLog, "Fatal Error: Invalid configuration, HS* key and AuthJWTKey not set\n")
+			fmt.Fprintf(perReqLog, "Fatal Error: Invalid configuration, HS* key and AuthJWTKey not set\n")
 			os.Exit(1)
 		} else if len(gCfg.AuthJWTKey) > 0 && jwtlib.IsHs(gCfg.AuthJWTKeyType) {
-			dbgo.Fprintf(os.Stderr, "%(green)== HS type key - this is good.\n")
+			dbgo.Fprintf(perReqLog, "%(green)== HS type key - this is good.\n")
 			rv, err = jwtlib.SignToken([]byte("{}"), gCfg.AuthJWTKeyType, map[string]string{}, claims, []byte(gCfg.AuthJWTKey))
 		} else {
-			dbgo.Fprintf(os.Stderr, "%(green)== ES/RS/EdDSA type key - this is new. ->%s<- -- using a pub/private key\n", gCfg.AuthJWTKeyType)
-			// dbgo.Fprintf(os.Stderr, "%(green)== Private Key ->%s<-\n", gCfg.AuthJWTPrivate)
+			dbgo.Fprintf(perReqLog, "%(green)== ES/RS/EdDSA type key - this is new. ->%s<- -- using a pub/private key\n", gCfg.AuthJWTKeyType)
+			// dbgo.Fprintf(perReqLog, "%(green)== Private Key ->%s<-\n", gCfg.AuthJWTPrivate)
 			// jwtlib. SignToken(rawToken []byte, Alg string, Head map[string]string, claims jwt.MapClaims, keyData []byte) (signedToken string, err error) {
 			rv, err = jwtlib.SignToken([]byte("{}"), gCfg.AuthJWTKeyType, map[string]string{}, claims, []byte(gCfg.AuthJWTPrivate)) // Sign with Private
 		}
@@ -3769,25 +3778,26 @@ func CreateJWTSignedCookie(c *gin.Context, DBAuthToken, email_addr, NoCookie str
 //	AuthJWTPrivate           string `json:"auth_jwt_private_file" default:""`                                                    // Private Key File
 //	AuthJWTKeyType           string `json:"auth_jwt_key_type" default:"ES" validate:"v.In(['ES256','RS256', 'ES512', 'RS512'])"` // Key type ES = ESDSA or RS = RSA
 
-func CreateJWTSignedCookieNoErr(DBAuthToken, email_addr string) (rv string, err error) {
+func CreateJWTSignedCookieNoErr(c *gin.Context, DBAuthToken, email_addr string) (rv string, err error) {
 
+	perReqLog := tf.GetLogFilePtr(c)
 	if DBAuthToken != "" { // If the Database code created an auth-token, then this needs to be converted to a JWT-Token and sent back to the user (Coookie, Header etc)
 
 		claims := jwt.MapClaims{
 			"auth_token": DBAuthToken,
 		}
 
-		dbgo.Fprintf(os.Stderr, "%(green)== Authentication == New Sign/Cookie Section ======================================== at: %(LF)\n")
+		dbgo.Fprintf(perReqLog, "%(green)== Authentication == New Sign/Cookie Section ======================================== at: %(LF)\n")
 		if len(gCfg.AuthJWTKey) == 0 && jwtlib.IsHs(gCfg.AuthJWTKeyType) {
 			md.AddCounter("jwt_auth_misc_fatal_error", 1)
-			fmt.Fprintf(os.Stderr, "Fatal Error: Invalid configuration, HS* key and AuthJWTKey not set\n")
-			fmt.Fprintf(logFilePtr, "Fatal Error: Invalid configuration, HS* key and AuthJWTKey not set\n")
+			// fmt.Fprintf(perReqLog, "Fatal Error: Invalid configuration, HS* key and AuthJWTKey not set\n")
+			fmt.Fprintf(perReqLog, "Fatal Error: Invalid configuration, HS* key and AuthJWTKey not set\n")
 			os.Exit(1)
 		} else if len(gCfg.AuthJWTKey) > 0 && jwtlib.IsHs(gCfg.AuthJWTKeyType) {
-			dbgo.Fprintf(os.Stderr, "%(green)== HS type key - this is good.\n")
+			dbgo.Fprintf(perReqLog, "%(green)== HS type key - this is good.\n")
 			rv, err = jwtlib.SignToken([]byte("{}"), gCfg.AuthJWTKeyType, map[string]string{}, claims, []byte(gCfg.AuthJWTKey))
 		} else {
-			dbgo.Fprintf(os.Stderr, "%(green)== ES/RS/EdDSA type key - this is new. ->%s<- -- using a pub/private key\n", gCfg.AuthJWTKeyType)
+			dbgo.Fprintf(perReqLog, "%(green)== ES/RS/EdDSA type key - this is new. ->%s<- -- using a pub/private key\n", gCfg.AuthJWTKeyType)
 			rv, err = jwtlib.SignToken([]byte("{}"), gCfg.AuthJWTKeyType, map[string]string{}, claims, []byte(gCfg.AuthJWTPrivate)) // Sign with Private
 		}
 		if err != nil {
@@ -3800,7 +3810,7 @@ func CreateJWTSignedCookieNoErr(DBAuthToken, email_addr string) (rv string, err 
 				}
 				logger.Error("failed-to-sign-jwt-token", fields...)
 			} else {
-				dbgo.Fprintf(logFilePtr, "Error: Error occured in signing a cookie as a JWT token: %s at:%(LF)\n", err)
+				dbgo.Fprintf(perReqLog, "Error: Error occured in signing a cookie as a JWT token: %s at:%(LF)\n", err)
 			}
 			return
 		}
@@ -3810,14 +3820,14 @@ func CreateJWTSignedCookieNoErr(DBAuthToken, email_addr string) (rv string, err 
 
 // -------------------------------------------------------------------------------------------------------------------------
 func Confirm2faSetupAccount(c *gin.Context, UserId string) {
+	perReqLog := tf.GetLogFilePtr(c)
 	// create or replace function q_auth_v1_setup_2fa ( p_user_id varchar )
 	stmt := "q_auth_v1_setup_2fa_test ( $1, $2, $3 )"
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	rv, err := CallDatabaseJSONFunction(c, stmt, "!", UserId, aCfg.EncryptionPassword, aCfg.UserdataPassword)
 	if err != nil {
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 	return
 }
 
@@ -3831,23 +3841,24 @@ func GenerateSecret() string {
 //	ConfirmEmailAccount uses the token to lookup a user and confirms that the email that received the token is real.
 func ConfirmEmailAccount(c *gin.Context, EmailVerifyToken string) (rv, stmt string, err error) {
 
+	perReqLog := tf.GetLogFilePtr(c)
 	// xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
 
 	//                          1                             2                        3                            4
 	// q_auth_v1_email_verify ( p_email_verify_token varchar, p_hmac_password varchar, p_userdata_password varchar, p_n6_flag varchar ) RETURNS text
 	stmt = "q_auth_v1_email_verify ( $1, $2, $3, $4 )"
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	//                                                 1                 2                        3                      4
 	rv, err = CallDatabaseJSONFunction(c, stmt, "!!!", EmailVerifyToken, aCfg.EncryptionPassword, aCfg.UserdataPassword, gCfg.AuthEmailToken)
 	if err != nil {
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 	return
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
 func SaveState(cookieValue string, UserId string, c *gin.Context) (err error) {
+	perReqLog := tf.GetLogFilePtr(c)
 	// set Cookie for SavedState -- Save into database!
 	//jwt, err := GetJWTAuthResponceWriterFromWWW(www, req)
 	//if err != nil {
@@ -3877,7 +3888,7 @@ func SaveState(cookieValue string, UserId string, c *gin.Context) (err error) {
 	`
 	res, err := conn.Exec(ctx, stmt, cookieValue, UserId, stateData)
 	if err != nil {
-		dbgo.Fprintf(logFilePtr, " at %(LF)\n")
+		dbgo.Fprintf(perReqLog, " at %(LF)\n")
 		log_enc.LogSQLError(c, stmt, err, "e.e", cookieValue, UserId, stateData)
 		return fmt.Errorf("Sql error")
 	}
@@ -3892,16 +3903,17 @@ func SaveState(cookieValue string, UserId string, c *gin.Context) (err error) {
 //
 // This is the fucntion to call to login a user.
 func IsLoggedIn(c *gin.Context) (ItIs bool) {
+	perReqLog := tf.GetLogFilePtr(c)
 	s := c.GetString("__is_logged_in__")
 	if s == "y" {
 		ItIs = true
 	} else {
 		UserId, _, AuthToken := GetAuthToken(c)
 		if AuthToken != "" {
-			dbgo.Fprintf(logFilePtr, " %(LF)2nd part of authorization: user_id=%s auth_token=->%s<-\n", UserId, AuthToken)
+			dbgo.Fprintf(perReqLog, " %(LF)2nd part of authorization: user_id=%s auth_token=->%s<-\n", UserId, AuthToken)
 			ItIs = true
 		} else {
-			dbgo.Fprintf(logFilePtr, " %(LF) ****not authoriazed ****2nd part of authorization: user_id=%s auth_token=->%s<-\n", UserId, AuthToken)
+			dbgo.Fprintf(perReqLog, " %(LF) ****not authoriazed ****2nd part of authorization: user_id=%s auth_token=->%s<-\n", UserId, AuthToken)
 		}
 	}
 	return
@@ -3916,113 +3928,117 @@ type SQLIntType struct {
 }
 
 func CallDatabaseJSONFunction(c *gin.Context, fCall string, encPat string, data ...interface{}) (rv string, err error) {
+	perReqLog := tf.GetLogFilePtr(c)
 	var v2 []*SQLStringType
 	stmt := "select " + fCall + " as \"x\""
 	if conn == nil {
-		dbgo.Fprintf(logFilePtr, "!!!!! connection is nil at:%(LF)\n")
+		dbgo.Fprintf(perReqLog, "!!!!! connection is nil at:%(LF)\n")
 		os.Exit(1)
 	}
-	dbgo.Fprintf(os.Stderr, "%(yellow)[    Database Call]:%(reset) ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
-	dbgo.Fprintf(logFilePtr, "[    Database Call] ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
+	dbgo.Fprintf(perReqLog, "%(yellow)[    Database Call]:%(reset) ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
+	dbgo.Fprintf(perReqLog, "[    Database Call] ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
 	start := time.Now()
 	err = pgxscan.Select(ctx, conn, &v2, stmt, data...)
 	elapsed := time.Since(start) // elapsed time.Duration
 	if err != nil {
 		if elapsed > (1 * time.Millisecond) {
-			dbgo.Fprintf(os.Stderr, "    %(red)Error on select stmt ->%s<- data %s %(red)elapsed:%s%(reset) at:%s %s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1), dbgo.LF(-2))
+			dbgo.Fprintf(perReqLog, "    %(red)Error on select stmt ->%s<- data %s %(red)elapsed:%s%(reset) at:%s %s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1), dbgo.LF(-2))
 		} else {
-			dbgo.Fprintf(os.Stderr, "    %(red)Error on select stmt ->%s<- data %s elapsed:%s at:%s %s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1), dbgo.LF(-2))
+			dbgo.Fprintf(perReqLog, "    %(red)Error on select stmt ->%s<- data %s elapsed:%s at:%s %s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1), dbgo.LF(-2))
 		}
-		dbgo.Fprintf(logFilePtr, "    Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
+		// dbgo.Fprintf(perReqLog, "    Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
 		log_enc.LogSQLError(c, stmt, err, encPat, data...)
 		return "", fmt.Errorf("Sql error")
 	}
 	if len(v2) > 0 {
-		dbgo.Fprintf(os.Stderr, "    %(yellow)Call Returns:%(reset) %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
-		dbgo.Fprintf(logFilePtr, "    Call Returns: %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
+		dbgo.Fprintf(perReqLog, "    %(yellow)Call Returns:%(reset) %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
+		// dbgo.Fprintf(perReqLog, "    Call Returns: %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
 		return v2[0].X, nil
 	}
-	dbgo.Fprintf(os.Stderr, "    %(yellow)Call ---no rows returned--- Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
-	dbgo.Fprintf(logFilePtr, "    Call Empty ---no rows returned--- elapsed:%s at:%(LF)\n", elapsed)
+	dbgo.Fprintf(perReqLog, "    %(yellow)Call ---no rows returned--- Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
+	// dbgo.Fprintf(perReqLog, "    Call Empty ---no rows returned--- elapsed:%s at:%(LF)\n", elapsed)
 	return "{}", nil
 }
 
 func SelectString(c *gin.Context, stmt string, encPat string, data ...interface{}) (rv string, err error) {
+	perReqLog := tf.GetLogFilePtr(c)
 	var v2 []*SQLStringType
 	if conn == nil {
-		dbgo.Fprintf(logFilePtr, "!!!!! connection is nil at:%(LF)\n")
+		dbgo.Fprintf(perReqLog, "!!!!! connection is nil at:%(LF)\n")
 		os.Exit(1)
 	}
-	dbgo.Fprintf(os.Stderr, "%(yellow)[    Database Call]:%(reset) ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
-	dbgo.Fprintf(logFilePtr, "[    Database Call] ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
+	dbgo.Fprintf(perReqLog, "%(yellow)[    Database Call]:%(reset) ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
+	// dbgo.Fprintf(perReqLog, "[    Database Call] ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
 	start := time.Now()
 	err = pgxscan.Select(ctx, conn, &v2, stmt, data...)
 	elapsed := time.Since(start) // elapsed time.Duration
 	if err != nil {
 		if elapsed > (1 * time.Millisecond) {
-			dbgo.Fprintf(os.Stderr, "    %(red)Error on select stmt ->%s<- data %s %(red)elapsed:%s%(reset) at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
+			dbgo.Fprintf(perReqLog, "    %(red)Error on select stmt ->%s<- data %s %(red)elapsed:%s%(reset) at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
 		} else {
-			dbgo.Fprintf(os.Stderr, "    %(red)Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
+			dbgo.Fprintf(perReqLog, "    %(red)Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
 		}
-		dbgo.Fprintf(logFilePtr, "    Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
+		// dbgo.Fprintf(perReqLog, "    Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
 		//if c == nil {
-		//	dbgo.Fprintf(os.Stderr, "Error: %s stmt %s at %(LF)\n", stmt, err)
+		//	dbgo.Fprintf(perReqLog, "Error: %s stmt %s at %(LF)\n", stmt, err)
 		//} else {
 		log_enc.LogSQLError(c, stmt, err, encPat, data...)
 		//}
 		return "", fmt.Errorf("Sql error")
 	}
 	if len(v2) > 0 {
-		dbgo.Fprintf(os.Stderr, "    %(yellow)Call Returns:%(reset) %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
-		dbgo.Fprintf(logFilePtr, "    Call Returns: %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
+		dbgo.Fprintf(perReqLog, "    %(yellow)Call Returns:%(reset) %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
+		// dbgo.Fprintf(perReqLog, "    Call Returns: %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
 		return v2[0].X, nil
 	}
-	dbgo.Fprintf(os.Stderr, "    %(yellow)Call ---no rows returned--- Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
-	dbgo.Fprintf(logFilePtr, "    Call Empty ---no rows returned--- elapsed:%s at:%(LF)\n", elapsed)
+	dbgo.Fprintf(perReqLog, "    %(yellow)Call ---no rows returned--- Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
+	// dbgo.Fprintf(perReqLog, "    Call Empty ---no rows returned--- elapsed:%s at:%(LF)\n", elapsed)
 	return "{}", nil
 }
 
 func CallDatabaseJSONFunctionNoErr(c *gin.Context, fCall string, encPat string, data ...interface{}) (rv string, err error) {
+	perReqLog := tf.GetLogFilePtr(c)
 	var v2 []*SQLStringType
 	stmt := "select " + fCall + " as \"x\""
 	if conn == nil {
-		dbgo.Fprintf(logFilePtr, "!!!!! connection is nil at:%(LF)\n")
+		dbgo.Fprintf(perReqLog, "!!!!! connection is nil at:%(LF)\n")
 		os.Exit(1)
 	}
-	dbgo.Fprintf(os.Stderr, "%(yellow)[    Database Call]:%(reset) ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
-	dbgo.Fprintf(logFilePtr, "[    Database Call] ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
+	dbgo.Fprintf(perReqLog, "%(yellow)[    Database Call]:%(reset) ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
+	// dbgo.Fprintf(perReqLog, "[    Database Call] ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
 	start := time.Now()
 	err = pgxscan.Select(ctx, conn, &v2, stmt, data...)
 	elapsed := time.Since(start) // elapsed time.Duration
 	if err != nil {
 		if elapsed > (1 * time.Millisecond) {
-			dbgo.Fprintf(os.Stderr, "    %(red)Error on select stmt ->%s<- data %s %(red)elapsed:%s%(reset) at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
+			dbgo.Fprintf(perReqLog, "    %(red)Error on select stmt ->%s<- data %s %(red)elapsed:%s%(reset) at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
 		} else {
-			dbgo.Fprintf(os.Stderr, "    %(red)Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
+			dbgo.Fprintf(perReqLog, "    %(red)Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
 		}
-		dbgo.Fprintf(logFilePtr, "    Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
+		// dbgo.Fprintf(perReqLog, "    Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
 		log_enc.LogSQLErrorNoErr(c, stmt, err, encPat, data...)
 		return "", fmt.Errorf("Sql error")
 	}
 	if len(v2) > 0 {
-		dbgo.Fprintf(os.Stderr, "    %(yellow)Call Returns:%(reset) %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
-		dbgo.Fprintf(logFilePtr, "    Call Returns: %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
+		dbgo.Fprintf(perReqLog, "    %(yellow)Call Returns:%(reset) %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
+		// dbgo.Fprintf(perReqLog, "    Call Returns: %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
 		return v2[0].X, nil
 	}
-	dbgo.Fprintf(os.Stderr, "    %(yellow)Call ---no rows returned--- Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
-	dbgo.Fprintf(logFilePtr, "    Call Empty ---no rows returned--- elapsed:%s at:%(LF)\n", elapsed)
+	dbgo.Fprintf(perReqLog, "    %(yellow)Call ---no rows returned--- Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
+	// dbgo.Fprintf(perReqLog, "    Call Empty ---no rows returned--- elapsed:%s at:%(LF)\n", elapsed)
 	return "{}", nil
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
 func SqlRunStmt(c *gin.Context, stmt string, encPat string, data ...interface{}) (rv []map[string]interface{}, err error) {
+	perReqLog := tf.GetLogFilePtr(c)
 	// var v2 []*SQLStringType
 	if conn == nil {
-		dbgo.Fprintf(logFilePtr, "!!!!! connection is nil at:%(LF)\n")
+		dbgo.Fprintf(perReqLog, "!!!!! connection is nil at:%(LF)\n")
 		os.Exit(1)
 	}
-	fmt.Fprintf(os.Stderr, "Database Stmt ->%s<- data ->%s<-\n", stmt, dbgo.SVar(data))
-	fmt.Fprintf(logFilePtr, "Database Stmt ->%s<- data ->%s<-\n", stmt, dbgo.SVar(data))
+	// fmt.Fprintf(perReqLog, "Database Stmt ->%s<- data ->%s<-\n", stmt, dbgo.SVar(data))
+	fmt.Fprintf(perReqLog, "Database Stmt ->%s<- data ->%s<-\n", stmt, dbgo.SVar(data))
 
 	// res, err := conn.Exec(ctx, stmt, data...)
 	err = pgxscan.Select(ctx, conn, &rv, stmt, data...)
@@ -4036,8 +4052,7 @@ func SqlRunStmt(c *gin.Context, stmt string, encPat string, data ...interface{})
 
 // Input : [{"priv_name":"May Change Password"}, {"priv_name":"May Password"}]
 // Outupt : {"May Change Password":true, "May Password":true}
-func ConvPrivs(Privileges string) (rv string, mr map[string]bool) {
-	dbgo.Fprintf(os.Stderr, "%(cyan)%(LF) -- ConvPrivs : Privs found = %s, called from %s\n", dbgo.SVar(Privileges), dbgo.LF(2))
+func ConvPrivs(perReqLog *os.File, Privileges string) (rv string, mr map[string]bool) {
 
 	if Privileges == "" {
 		return
@@ -4046,7 +4061,7 @@ func ConvPrivs(Privileges string) (rv string, mr map[string]bool) {
 	mr = make(map[string]bool)
 	err := json.Unmarshal([]byte(Privileges), &PrivData)
 	if err != nil {
-		dbgo.Fprintf(logFilePtr, "Invalid syntax ->%s<- %s at:%(LF)\n", Privileges, err)
+		dbgo.Fprintf(perReqLog, "Invalid syntax ->%s<- %s at:%(LF)\n", Privileges, err)
 		rv = ""
 		return
 	}
@@ -4060,8 +4075,8 @@ func ConvPrivs(Privileges string) (rv string, mr map[string]bool) {
 
 // Input : ["May Change Password", "May Do Whatever"]
 // Outupt : {"May Change Password":true, "May Do Whatever":true}
-func ConvPrivs2(Privileges []string) (rv string, mr map[string]bool) {
-	dbgo.Printf("%(cyan)%(LF) -- ConvPrivs2(%s) ==\n", dbgo.SVar(Privileges))
+func ConvPrivs2(perReqLog *os.File, Privileges []string) (rv string, mr map[string]bool) {
+	// dbgo.Fprintf(perReqLog, "%(cyan)%(LF) -- ConvPrivs2(%s) ==\n", dbgo.SVar(Privileges))
 
 	mr = make(map[string]bool)
 	if len(Privileges) == 0 {
@@ -4080,7 +4095,7 @@ func ConvPrivs2(Privileges []string) (rv string, mr map[string]bool) {
 /* From: https://techwasti.com/log-requests-and-responses-in-go-gin */
 func peekAtBody(c *gin.Context) {
 
-	// dbgo.Fprintf(os.Stderr, "\n\n%(magenta)Request\n===============================================================================================================%(reset)\n%(yellow)Headers\n")
+	// dbgo.Fprintf(perReqLog, "\n\n%(magenta)Request\n===============================================================================================================%(reset)\n%(yellow)Headers\n")
 	//
 	//	for name, values := range c.Request.Header {
 	//		// Loop over all values for the name.
@@ -4092,10 +4107,10 @@ func peekAtBody(c *gin.Context) {
 	// body, err := io.ReadAll(c.Request.Body)
 	//
 	//	if err != nil {
-	//		dbgo.Fprintf(os.Stderr, "%(red)request body pee resulted in error: %s\n", err)
+	//		dbgo.Fprintf(perReqLog, "%(red)request body pee resulted in error: %s\n", err)
 	//	} else {
 	//
-	//		dbgo.Fprintf(os.Stderr, "%(yellow)request body ->%s<-\n", body)
+	//		dbgo.Fprintf(perReqLog, "%(yellow)request body ->%s<-\n", body)
 	//		c.Request.Body = io.NopCloser(bytes.NewReader(body))
 	//	}
 
@@ -4103,43 +4118,45 @@ func peekAtBody(c *gin.Context) {
 
 func BindFormOrJSON(c *gin.Context, bindTo interface{}) (err error) {
 
+	perReqLog := tf.GetLogFilePtr(c)
 	peekAtBody(c)
 	if err = c.ShouldBind(bindTo); err != nil {
-		dbgo.Printf("%(red)In BindFormOrJSON at:%(LF) err=%s\n", err)
-		dbgo.Fprintf(logFilePtr, "In BindFormOrJSON at:%(LF) err=%s\n", err)
-		c.JSON(http.StatusNotAcceptable, LogJsonReturned(gin.H{ // 406
+		// dbgo.Printf("%(red)In BindFormOrJSON at:%(LF) err=%s\n", err)
+		dbgo.Fprintf(perReqLog, "%(red)In BindFormOrJSON at:%(LF) err=%s\n", err)
+		c.JSON(http.StatusNotAcceptable, LogJsonReturned(perReqLog, gin.H{ // 406
 			"status": "error",
 			"msg":    fmt.Sprintf("Error: %s", err),
 		}))
 		return
 	}
 
-	dbgo.Printf("%(cyan)Parameters: %s at %s\n", dbgo.SVarI(bindTo), dbgo.LF(2))
-	dbgo.Fprintf(logFilePtr, "Parameters: %s at %s\n", dbgo.SVarI(bindTo), dbgo.LF(2))
+	dbgo.Fprintf(perReqLog, "%(cyan)Parameters: %s at %s\n", dbgo.SVarI(bindTo), dbgo.LF(2))
+	// dbgo.Fprintf(perReqLog, "Parameters: %s at %s\n", dbgo.SVarI(bindTo), dbgo.LF(2))
 	return
 }
 
 func BindFormOrJSONOptional(c *gin.Context, bindTo interface{}) (err error) {
 
+	perReqLog := tf.GetLogFilePtr(c)
 	peekAtBody(c)
 	if err = c.ShouldBind(bindTo); err != nil {
-		dbgo.Printf("%(yellow)In BindFormOrJSONOptional at:%(LF) GET Query err=%s\n", err)
-		dbgo.Fprintf(logFilePtr, "In BindFormOrJSONOptional at:%(LF) GET Query err=%s\n", err)
+		dbgo.Fprintf(perReqLog, "%(yellow)In BindFormOrJSONOptional at:%(LF) GET Query err=%s\n", err)
+		// dbgo.Fprintf(perReqLog, "In BindFormOrJSONOptional at:%(LF) GET Query err=%s\n", err)
 		return
 	}
 
-	dbgo.Printf("# BindData %(cyan)Parameters: %s at %s\n", dbgo.SVarI(bindTo), dbgo.LF(2))
-	dbgo.Fprintf(logFilePtr, "# BindData: Parameters: %s at %s\n", dbgo.SVarI(bindTo), dbgo.LF(2))
+	// dbgo.Printf("# BindData %(cyan)Parameters: %s at %s\n", dbgo.SVarI(bindTo), dbgo.LF(2))
+	dbgo.Fprintf(perReqLog, "# BindData: Parameters: %s at %s\n", dbgo.SVarI(bindTo), dbgo.LF(2))
 	return
 }
 
-func LogJsonReturned(x interface{}) interface{} {
+func LogJsonReturned(perReqLog *os.File, x interface{}) interface{} {
 	if y, ok := x.(string); ok {
-		dbgo.Fprintf(os.Stdout, "%(cyan)Returns: %s at:%s\n", y, dbgo.LF(2))
-		dbgo.Fprintf(logFilePtr, "Returns: %s at:%s\n", y, dbgo.LF(2))
+		dbgo.Fprintf(perReqLog, "%(cyan)Returns: %s at:%s\n", y, dbgo.LF(2))
+		// dbgo.Fprintf(perReqLog, "Returns: %s at:%s\n", y, dbgo.LF(2))
 	} else {
-		dbgo.Fprintf(os.Stdout, "%(cyan)Returns: %s at:%s\n", dbgo.SVarI(x), dbgo.LF(2))
-		dbgo.Fprintf(logFilePtr, "Returns: %s at:%s\n", dbgo.SVarI(x), dbgo.LF(2))
+		dbgo.Fprintf(perReqLog, "%(cyan)Returns: %s at:%s\n", dbgo.SVarI(x), dbgo.LF(2))
+		// dbgo.Fprintf(perReqLog, "Returns: %s at:%s\n", dbgo.SVarI(x), dbgo.LF(2))
 	}
 	return x
 }
@@ -4409,24 +4426,24 @@ type RvValidUseToken struct {
 
 func CheckTmpAuthToken(c *gin.Context, AToken string) (UserId, AuthToken string, err error) {
 
+	perReqLog := tf.GetLogFilePtr(c)
 	var DBValidUseToken RvValidUseToken
 	var rv string
 
 	// Validate AToken (Temporary Token) and return an actual UserId and AuthToken.
 	// CREATE OR REPLACE FUNCTION q_auth_v1_valid_use_token ( p_token varchar ) RETURNS text
 	stmt := "q_auth_v1_valid_use_token ( $1 )"
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	//                                                1
 	rv, err = CallDatabaseJSONFunction(c, stmt, ".", AToken)
 	if err != nil {
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 	err = json.Unmarshal([]byte(rv), &DBValidUseToken)
 	if DBValidUseToken.Status != "success" {
 		DBValidUseToken.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(DBValidUseToken), AToken)
-		c.JSON(http.StatusBadRequest, LogJsonReturned(DBValidUseToken.StdErrorReturn))
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, DBValidUseToken.StdErrorReturn))
 		return
 	}
 
@@ -4442,6 +4459,7 @@ type RvCreateUseToken struct {
 
 func CreateTmpAuthToken(c *gin.Context, UserId string) (AToken string, err error) {
 
+	perReqLog := tf.GetLogFilePtr(c)
 	var DBCreateUseToken RvCreateUseToken
 	var rv string
 
@@ -4450,18 +4468,17 @@ func CreateTmpAuthToken(c *gin.Context, UserId string) (AToken string, err error
 	// AuthToken - this is the returned token that is the "Temporary Token"
 	// CREATE OR REPLACE FUNCTION q_auth_v1_create_use_token ( p_user_id uuid, p_token varchar ) RETURNS text
 	stmt := "q_auth_v1_create_use_token ( $1, $2 )"
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF): %s\n", stmt)
 	//                                                1
 	rv, err = CallDatabaseJSONFunction(c, stmt, ".", UserId, AToken)
 	if err != nil {
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 	err = json.Unmarshal([]byte(rv), &DBCreateUseToken)
 	if DBCreateUseToken.Status != "success" {
 		DBCreateUseToken.LogUUID = GenUUID()
 		log_enc.LogStoredProcError(c, stmt, "e", SVar(DBCreateUseToken), UserId)
-		c.JSON(http.StatusBadRequest, LogJsonReturned(DBCreateUseToken.StdErrorReturn))
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, DBCreateUseToken.StdErrorReturn))
 		return
 	}
 
@@ -4520,11 +4537,11 @@ type ApiAuthValidateToken struct {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/validate-token [post]
 func authHandleValidateToken(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
 	var pp ApiAuthValidateToken
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 
 	// validate inputs AmIKnown, if "" - then 401 - pass to q_auth_v1_refresh_token
 
@@ -4546,7 +4563,7 @@ func authHandleValidateToken(c *gin.Context) {
 			return
 		}
 
-		dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+		dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 		var rvStatus RvValidateTokenType
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if rvStatus.Status == "401" {
@@ -4554,9 +4571,9 @@ func authHandleValidateToken(c *gin.Context) {
 		}
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
-			// dbgo.Fprintf(logFilePtr, "%(LF) email >%s< AuthToken >%s<\n", pp.Email, AuthToken)
+			// dbgo.Fprintf(perReqLog, "%(LF) email >%s< AuthToken >%s<\n", pp.Email, AuthToken)
 			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-			c.JSON(http.StatusBadRequest, LogJsonReturned(rvStatus.StdErrorReturn)) // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 400
 			return
 		}
 
@@ -4568,8 +4585,8 @@ func authHandleValidateToken(c *gin.Context) {
 			if err != nil {
 				return
 			}
-			dbgo.Fprintf(logFilePtr, "!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, rvStatus.Email)
-			dbgo.Fprintf(os.Stderr, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, rvStatus.Email)
+			// dbgo.Fprintf(perReqLog, "!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, rvStatus.Email)
+			dbgo.Fprintf(perReqLog, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, rvStatus.Email)
 
 			c.Set("__auth_token__", rvStatus.AuthToken)
 
@@ -4591,7 +4608,7 @@ func authHandleValidateToken(c *gin.Context) {
 
 		var out ValidateTokenSuccess
 		copier.Copy(&out, &rvStatus)
-		c.JSON(http.StatusOK, LogJsonReturned(out))
+		c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 		return
 	}
 
@@ -4606,7 +4623,7 @@ no_auth:
 		Msg:      "401 not authorized",
 		Location: dbgo.LF(),
 	}
-	c.JSON(http.StatusUnauthorized, LogJsonReturned(out))
+	c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out))
 	return
 
 }
@@ -4615,8 +4632,8 @@ func UrlJoinPath(t string, s ...string) (rv string) {
 	var err error
 	rv, err = url.JoinPath(t, s...)
 	if err != nil {
-		dbgo.Fprintf(logFilePtr, "URL Join Error : ->%s<-\n An error occured in joining the path: %s at:%s\n", t, err, dbgo.LF(-2))
-		dbgo.Fprintf(os.Stderr, "%(red)URL Join Error : ->%s<-\n An error occured in joining the path: %s at:%s\n", t, err, dbgo.LF(-2))
+		// dbgo.Fprintf(perReqLog, "URL Join Error : ->%s<-\n An error occured in joining the path: %s at:%s\n", t, err, dbgo.LF(-2))
+		dbgo.Fprintf(logFilePtr, "%(red)URL Join Error : ->%s<-\n An error occured in joining the path: %s at:%s\n", t, err, dbgo.LF(-2))
 		rv = gCfg.BaseServerURL
 	}
 	return
@@ -4691,19 +4708,19 @@ func authHandlerRequires2fa(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 
 	time.Sleep(5000 * time.Millisecond) // Slow down to prevent searching for valid email
 
 	//                                   1                2                        3
 	// FUNCTION q_auth_v1_requires_2fa ( p_email varchar, p_hmac_password varchar, p_userdata_password varchar )
 	stmt := "q_auth_v1_requires_2fa ( $1, $2, $3 )"
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF) stmt: %s\n", stmt)
 	//                                                 1          2                        3
 	rv, err := CallDatabaseJSONFunction(c, stmt, ".!!", pp.Email, aCfg.EncryptionPassword, aCfg.UserdataPassword)
 	if err != nil {
 		return
 	}
-	dbgo.Fprintf(logFilePtr, "%(LF): rv=%s\n", rv)
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 
 	var rvStatus RvRequires2faType
 	err = json.Unmarshal([]byte(rv), &rvStatus)
@@ -4721,13 +4738,13 @@ func authHandlerRequires2fa(c *gin.Context) {
 		} else {
 			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
 		}
-		c.JSON(http.StatusUnauthorized, LogJsonReturned(rvStatus.StdErrorReturn)) // 401
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 401
 		return
 	}
 
 	var out Requires2faSuccess
 	copier.Copy(&out, &rvStatus)
-	c.JSON(http.StatusOK, LogJsonReturned(out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 }
 
 func RedisBrodcast(AuthToken string, data string) {
@@ -4746,11 +4763,12 @@ func authHandleAuthTokenDeleteAdmin(c *gin.Context) {
 		md.AddCounter("jwt_auth_failed_login_attempts", 1)
 		return
 	}
+	perReqLog := tf.GetLogFilePtr(c)
 
 	if pp.DeleteAct == "auth_token" || pp.DeleteAct == "" {
 		_, err := callme.CallAuthGetAllTokens(c, pp.AuthToken, pp.DeleteAct)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, LogJsonReturned(gin.H{ // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, gin.H{ // 400
 				"status": "error",
 				"msg":    fmt.Sprintf("From Redis Error: %s", err),
 			}))
@@ -4759,7 +4777,7 @@ func authHandleAuthTokenDeleteAdmin(c *gin.Context) {
 
 		err = rdb.Del(ctx, fmt.Sprintf("auth_token:%s", pp.AuthToken)).Err()
 		if err != nil {
-			c.JSON(http.StatusBadRequest, LogJsonReturned(gin.H{ // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, gin.H{ // 400
 				"status": "error",
 				"msg":    fmt.Sprintf("From Redis Error: %s", err),
 			}))
@@ -4770,7 +4788,7 @@ func authHandleAuthTokenDeleteAdmin(c *gin.Context) {
 	} else if pp.DeleteAct == "all" || pp.DeleteAct == "both" {
 		rv, err := callme.CallAuthGetAllTokens(c, pp.AuthToken, pp.DeleteAct)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, LogJsonReturned(gin.H{ // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, gin.H{ // 400
 				"status": "error",
 				"msg":    fmt.Sprintf("From Redis Error: %s", err),
 			}))
@@ -4780,7 +4798,7 @@ func authHandleAuthTokenDeleteAdmin(c *gin.Context) {
 		var tl []string
 		err = json.Unmarshal([]byte(rv.TokenList), &tl)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, LogJsonReturned(gin.H{ // 400
+			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, gin.H{ // 400
 				"status": "error",
 				"msg":    fmt.Sprintf("From Redis Error: %s", err),
 			}))
@@ -4790,7 +4808,7 @@ func authHandleAuthTokenDeleteAdmin(c *gin.Context) {
 		for _, AnAuthToken := range tl {
 			err := rdb.Del(ctx, fmt.Sprintf("auth_token:%s", AnAuthToken)).Err
 			if err != nil {
-				c.JSON(http.StatusBadRequest, LogJsonReturned(gin.H{ // 400
+				c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, gin.H{ // 400
 					"status": "error",
 					"msg":    fmt.Sprintf("From Redis Error: %s", err),
 				}))
@@ -4800,7 +4818,7 @@ func authHandleAuthTokenDeleteAdmin(c *gin.Context) {
 
 		return
 	} else {
-		c.JSON(http.StatusNotAcceptable, LogJsonReturned(gin.H{ // 406
+		c.JSON(http.StatusNotAcceptable, LogJsonReturned(perReqLog, gin.H{ // 406
 			"status": "error",
 			"msg":    "Error: DeleteAct must be '', 'all, 'both', 'auth_token'",
 		}))
@@ -4868,3 +4886,10 @@ func RedisGetCachedToken(AuthToken, UserdataPassword string) (v2 []*SQLUserIdPri
 }
 
 /* vim: set noai ts=4 sw=4: */
+
+/*
+./auth.go:4430:15: undefined: perReqLog
+./auth.go:4435:49: undefined: perReqLog
+./auth.go:4464:15: undefined: perReqLog
+./auth.go:4469:49: undefined: perReqLog
+*/

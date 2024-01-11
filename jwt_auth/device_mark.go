@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pschlump/HashStrings"
 	"github.com/pschlump/dbgo"
+	"github.com/pschlump/gintools/tf"
 	"github.com/pschlump/json"
 )
 
@@ -136,6 +137,7 @@ func UrlGetServer(s string) (rv string, err error) {
 
 // {Method: "GET", Path: "/api/v1/setup.js", Fx: authHandlerGetXsrfIdFile, UseLogin: PublicApiCall},                                        //
 func authHandlerGetXsrfIdFile(c *gin.Context) {
+	perReqLog := tf.GetLogFilePtr(c)
 	newId := GenUUID()
 	ref := ""
 	if len(c.Request.Header) > 0 {
@@ -144,7 +146,7 @@ func authHandlerGetXsrfIdFile(c *gin.Context) {
 			xfhost := c.Request.Header.Get("X-Forwarded-Host")
 			xfproto := c.Request.Header.Get("X-Forwarded-Proto")
 			ref = fmt.Sprintf("%s://%s/", xfproto, xfhost)
-			dbgo.Fprintf(os.Stderr, "%(cyan)In Handler at %(LF), ref:%s\n", ref)
+			dbgo.Fprintf(perReqLog, "%(cyan)In Handler at %(LF), ref:%s\n", ref)
 		}
 	} else {
 		dbgo.Fprintf(os.Stderr, "%(cyan)In Handler at %(LF), no header at all\n")
@@ -242,6 +244,7 @@ try {
 
 // {Method: "GET", Path: "/api/v1/setup", Fx: authHandlerGetXsrfIdFile, UseLogin: PublicApiCall},                                        //
 func authHandlerGetXsrfIdFileJSON(c *gin.Context) {
+	// 	perReqLog := tf.GetLogFilePtr(c)
 	newId := GenUUID()
 	ref := ""
 	if len(c.Request.Header) > 0 {
@@ -325,6 +328,7 @@ func authHandlerGetXsrfIdFileJSON(c *gin.Context) {
 // @Router /api/v1/id.json [get]
 func loginTrackingJsonHandler(c *gin.Context) {
 
+	// 	perReqLog := tf.GetLogFilePtr(c)
 	output := `{"id":"123"}`
 	// output_len = len(output)
 	var newId string

@@ -24,6 +24,7 @@ import (
 	"github.com/pschlump/MiscLib"
 	"github.com/pschlump/dbgo"
 	"github.com/pschlump/gintools/log_enc"
+	"github.com/pschlump/gintools/tf"
 	"github.com/pschlump/uuid"
 )
 
@@ -79,6 +80,7 @@ func logQueries(stmt string, err error, data []interface{}, elapsed time.Duratio
 }
 
 func logQueriesW(c *gin.Context, stmt string, err error, data []interface{}, elapsed time.Duration) {
+	perReqLog := tf.GetLogFilePtr(c)
 	e := "SQLStmtRun"
 	if err != nil {
 		e = "SQLError"
@@ -94,9 +96,9 @@ func logQueriesW(c *gin.Context, stmt string, err error, data []interface{}, ela
 	)
 	if logFilePtr != nil {
 		if err != nil {
-			fmt.Fprintf(logFilePtr, "Error: %s stmt: %s data: %v elapsed: %s called from: %s\n", err, stmt, dbgo.SVar(data), elapsed, dbgo.LF(3))
+			fmt.Fprintf(perReqLog, "Error: %s stmt: %s data: %v elapsed: %s called from: %s\n", err, stmt, dbgo.SVar(data), elapsed, dbgo.LF(3))
 		} else {
-			fmt.Fprintf(logFilePtr, "stmt: %s data: %v elapsed: %s\n", stmt, dbgo.SVar(data), elapsed)
+			fmt.Fprintf(perReqLog, "stmt: %s data: %v elapsed: %s\n", stmt, dbgo.SVar(data), elapsed)
 		}
 	}
 }

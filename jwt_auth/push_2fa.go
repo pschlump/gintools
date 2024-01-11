@@ -7,6 +7,7 @@ package jwt_auth
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/pschlump/dbgo"
+	"github.com/pschlump/gintools/tf"
 )
 
 // xyzzyPush2faCode -- Send 2fa to Email/SMS (for login) - bad.
@@ -52,7 +53,8 @@ func authHandle2faCodeToEmail(c *gin.Context) {
 // @Failure 500 {object} jwt_auth.StdErrorReturn
 // @Router /api/v1/auth/pust-2fa-client-app-confirm [post]
 func authHandle2faClientAppConfirm(c *gin.Context) {
-	dbgo.Fprintf(logFilePtr, "In handler at %(LF)\n")
+	perReqLog := tf.GetLogFilePtr(c)
+	dbgo.Fprintf(perReqLog, "In handler at %(LF)\n")
 }
 
 /* vim: set noai ts=4 sw=4: */

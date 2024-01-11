@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/pschlump/dbgo"
+	"github.com/pschlump/gintools/tf"
 	"github.com/pschlump/json"
 	"github.com/pschlump/uuid"
 	"golang.org/x/exp/constraints"
@@ -167,11 +168,12 @@ func XArgs(v ...interface{}) string {
 // GetUserId will return a UserID - if the user  is currently logged in then it is from __user_id__ in the context.  If
 // the user is not logged in then 0 will be returned.
 func GetUserId(c *gin.Context) (UserId string, err error) {
+	perReqLog := tf.GetLogFilePtr(c)
 	li := c.GetString("__is_logged_in__")
 	if li == "y" {
 		s := c.GetString("__user_id__")
 		if s == "" {
-			dbgo.Fprintf(logFilePtr, "%(LF): - Failed to get UserID\n")
+			dbgo.Fprintf(perReqLog, "%(LF): - Failed to get UserID\n")
 			err = fmt.Errorf("Not Logged In/Failed to get UserID\n")
 			return
 		}

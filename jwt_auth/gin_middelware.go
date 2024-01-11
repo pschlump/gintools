@@ -71,6 +71,8 @@ const (
 
 func CookieHeaderAuthMiddleware(ginSetupTable []GinLoginType) gin.HandlerFunc {
 
+	// perReqLog := tf.GetLogFilePtr(c)
+
 	findInTable := func(path, method string) *GinLoginType {
 		// dbgo.Printf("%(magenta)Looking for %s:%s\n", method, path)
 		for _, vv := range ginSetupTable {

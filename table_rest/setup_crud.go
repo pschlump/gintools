@@ -14,6 +14,7 @@ import (
 	"github.com/pschlump/dbgo"
 	"github.com/pschlump/gintools/jwt_auth"
 	"github.com/pschlump/gintools/log_enc"
+	"github.com/pschlump/gintools/tf"
 )
 
 /*
@@ -316,7 +317,7 @@ func InitTableREST(router *gin.Engine) {
 				} else if method == "POST" && len(xsp.POST_InputList) > 0 {
 					pname, err = ValidateInputParameters(c, xsp.POST_InputList)
 				} else {
-					dbgo.Printf("%(yellow)Validation of paramters skipped - no validaiton specified in handle.go: at:%(LF)\n")
+					dbgo.Fprintf(logFilePtr, "%(yellow)Validation of paramters skipped - no validaiton specified in handle.go: at:%(LF)\n")
 				}
 
 				if err != nil {
@@ -403,22 +404,23 @@ func GetMapStringBool(c *gin.Context, key string) (s map[string]bool) {
 
 func DumpParamsToLog(when string, c *gin.Context) {
 
-	fmt.Fprintf(os.Stderr, "\n%s\n", when)
+	perReqLog := tf.GetLogFilePtr(c)
+	fmt.Fprintf(perReqLog, "\n%s\n", when)
 
-	fmt.Fprintf(os.Stderr, "c.Keys\n")
-	fmt.Fprintf(os.Stderr, "%25s | %s\n", "Name", "Value")
-	fmt.Fprintf(os.Stderr, "%25s | %s\n", "-------------------------", "-------------------------------------------------------------")
+	fmt.Fprintf(perReqLog, "c.Keys\n")
+	fmt.Fprintf(perReqLog, "%25s | %s\n", "Name", "Value")
+	fmt.Fprintf(perReqLog, "%25s | %s\n", "-------------------------", "-------------------------------------------------------------")
 	for _, name := range jwt_auth.SortedMapKeys(c.Keys) {
 		val := c.Keys[name]
 		_, ok := val.(string)
 		if ok {
-			fmt.Fprintf(os.Stderr, "%25s | %s\n", name, strings.Replace(fmt.Sprintf("%s", val), "\n", "\n                            ", -1))
+			fmt.Fprintf(perReqLog, "%25s | %s\n", name, strings.Replace(fmt.Sprintf("%s", val), "\n", "\n                            ", -1))
 		} else {
 			valJSON := dbgo.SVarI(val)
-			fmt.Fprintf(os.Stderr, "%25s | %s\n", name, strings.Replace(fmt.Sprintf("%s", valJSON), "\n", "\n                            ", -1))
+			fmt.Fprintf(perReqLog, "%25s | %s\n", name, strings.Replace(fmt.Sprintf("%s", valJSON), "\n", "\n                            ", -1))
 		}
 	}
-	fmt.Fprintf(os.Stderr, "\n")
+	fmt.Fprintf(perReqLog, "\n")
 
 	return
 }
