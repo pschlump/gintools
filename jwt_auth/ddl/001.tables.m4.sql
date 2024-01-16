@@ -3,13 +3,15 @@
 -- MIT Licensed.  See LICENSE.mit file.
 -- BSD Licensed.  See LICENSE.bsd file.
 
-			-- xyzzyPartialReg
+-- xyzzyPartialReg
 
 -- xyzzyError100 - never true iff.
 -- xyzzy-Fix-Error-Message-to-be-clear
 
 -- FUNCTION q_auth_v1_login ( p_email varchar, p_pw varchar, p_am_i_known varchar, p_hmac_password varchar, p_userdata_password varchar, p_fingerprint varchar, p_sc_id varchar, p_hash_of_headers varchar, p_xsrf_id varchar ) RETURNS text
 
+-- stmt = "q_auth_v1_validate_2fa_token ( $1, $2, $3, $4, $5 )"
+-- FUNCTION q_auth_v1_validate_2fa_token ( p_email varchar, p_tmp_token varchar, p_2fa_secret varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
 
 m4_include(setup.m4)
 m4_include(ver.m4)
@@ -1770,7 +1772,7 @@ alter table q_qr_auth_tokens add column if not exists   sc_id				text 					;
 CREATE TABLE if not exists q_qr_auth_tokens (
 	auth_token_id 			uuid default uuid_generate_v4() primary key not null,
 	user_id 				uuid not null,
-	token			 		uuid not null,
+	token			 		uuid not null,			-- auth_token
 	sc_id					text, 					-- ScID				scid
 	api_encryption_key		text,
 	expires 				timestamp not null
@@ -1858,11 +1860,14 @@ CREATE OR REPLACE view q_qr_expired_token as
 -- This is the place to put temporary data during login - tmp_token will be passed from call to call.
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+alter table if exists q_qr_tmp_token add column if not exists auth_token 			uuid;
+
 CREATE TABLE if not exists q_qr_tmp_token (
 	tmp_token_id 		uuid default uuid_generate_v4() primary key not null,
 	user_id 			uuid not null,
 	token			 	uuid not null,
-	expires 			timestamp not null
+	auth_token		 	uuid not null,
+	expires 			timestamp not null	-- set to 20 min in future by trigger.
 );
 comment on table q_qr_tmp_token is 'registration temporary tokens - Copyright (C) Philip Schlump, 2008-2023. -- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()';
 
@@ -1874,6 +1879,7 @@ comment on table q_qr_tmp_token is 'registration temporary tokens - Copyright (C
 create unique index if not exists  q_qr_tmp_token_u1 on q_qr_tmp_token ( token );
 create index if not exists q_qr_tmp_token_p1 on q_qr_tmp_token ( user_id );
 create index if not exists q_qr_tmp_token_p2 on q_qr_tmp_token ( expires );
+create index if not exists q_qr_tmp_token_p3 on q_qr_tmp_token ( user_id, auth_token );
 
 DO $$
 BEGIN
@@ -5786,7 +5792,7 @@ BEGIN
 		end if;
 	end if;
 
--- xyzzy99 - must be a chagne to make somwre in this code
+
 
 	if not l_fail then
 		if l_email_validated = 'n' then
@@ -5897,13 +5903,6 @@ BEGIN
 	end if;
 
 	if not l_fail then
-		-- xyzzy9999
-		--select json_agg(t1.priv_name)::text
-		--	into l_privileges
-		--	from q_qr_user_to_priv as t1
-		--	where t1.user_id = l_user_id
-		--	;
-
 		select json_agg(t0.priv_name)::text
 		into l_privileges
 		from ( 
@@ -5963,9 +5962,12 @@ BEGIN
 		  		, email_verify_token = null
 			where user_id = l_user_id
 			;
+		if l_require_2fa = 'y' then
+			l_auth_token = NULL;
+		end if;
 		-- xyzzyPartialReg, add tmp_token, email to message so can complete registration.
 		l_tmp_token = uuid_generate_v4();
-		insert into q_qr_tmp_token ( user_id, token ) values ( l_user_id, l_tmp_token );
+		insert into q_qr_tmp_token ( user_id, token, auth_token ) values ( l_user_id, l_tmp_token, l_auth_token );
 		if l_debug_on then
 			insert into t_output ( msg ) values ( ' l_tmp_token ->'||coalesce(to_json(l_tmp_token)::text,'---null---')||'<-');
 		end if;
@@ -6016,6 +6018,7 @@ BEGIN
 					) returning id into l_device_track_id;
 
 				end if;
+
 			end if;
 
 			insert into q_qr_valid_xsrf_id (
@@ -7156,8 +7159,8 @@ BEGIN
 
 	if l_debug_on then
 		insert into t_output ( msg ) values ( 'In q_auth_v1_validate_2fa_token (v2)' );
-		insert into t_output ( msg ) values ( '  p_email ->'||coalesce(to_json(p_email)::text,'---null---')||'<-');
-		insert into t_output ( msg ) values ( '  p_tmp_token ->'||coalesce(to_json(p_tmp_token)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_email         ->'||coalesce(to_json(p_email)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_tmp_token     ->'||coalesce(to_json(p_tmp_token)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_hmac_password ->'||coalesce(to_json(p_hmac_password)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  ' );
 	end if;
@@ -7224,16 +7227,17 @@ BEGIN
 		l_data = '{"status":"error","msg":"You have made too many attempts.  Please contact an admin to reset.","code":"m4_count()","location":"m4___file__ m4___line__"}';
 		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'have made too many attempts.  Please contact an admin to reset.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 		l_fail = true;
-
 	end if;
 
 	if not l_fail then
+		-- if has not failed by this point then the user has validate and gets an 'l_auth_token'.
 		if l_debug_on then
 			insert into t_output ( msg ) values ( 'Seting the user up, acct_state = '||l_acct_state );
 		end if;
 		if l_email_validated = 'y' and l_acct_state = 'reg0' then
 			l_acct_state = 'reg1';
 		end if;
+		-- mark login_2fa_failures to 10, this is a count-down item.
 		update q_qr_users as t2
 			set setup_complete_2fa 	= 'y'
 			  , acct_state = l_acct_state
@@ -7250,6 +7254,12 @@ BEGIN
 			l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"m4_count()","location":"m4___file__ m4___line__"}';
 			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to create user/auth-token.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 		END;
+		-- xyzzyPartialReg
+		-- Set this for use in web-socket connections that need to use tmp_token to lookup auth_token, tmp_token lasts for 20 min.
+		update l_tmp_token
+			set auth_token = l_auth_token
+			where tmp_token = l_tmp_token
+			;
 	end if;
 
 	-- Count Failures - this is on an error -
@@ -8362,5 +8372,78 @@ CREATE OR REPLACE FUNCTION rel_description(
        ELSE $2||'.'||$1
             END)::regclass, 'pg_class');
  $f$ LANGUAGE SQL;
+
+
+
+
+
+
+
+
+
+CREATE OR REPLACE FUNCTION q_auth_v1_get_user_from_tmp_token ( p_tmp_token uuid, p_email varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+AS $$
+DECLARE
+	l_data					text;
+	l_fail					bool;
+	l_debug_on 				bool;
+
+	l_user_id				uuid;
+	l_sc_id					text;		-- ScID, scid
+	l_auth_token			text;
+BEGIN
+	-- Copyright (C) Write it Right, LLC, 2023.
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+
+	l_debug_on = q_get_config_bool ( 'debug' );
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->a_get_user_from_tmp_token <- m4___file__ m4___line__' );
+		insert into t_output ( msg ) values ( '		p_tmp_token      ->'||coalesce(to_json(p_tmp_token)::text,'""')||'<-');
+		insert into t_output ( msg ) values ( '		p_email          ->'||coalesce(to_json(p_email)::text,'""')||'<-');
+	end if;
+
+	-- insert into q_qr_tmp_token ( user_id, token ) values ( l_user_id, l_tmp_token );
+	-- insert into q_qr_auth_tokens ( token, user_id, sc_id ) values ( l_auth_token, l_user_id, p_sc_id );
+	select 
+			  t3.sc_id
+			, t3.token as auth_token
+			, t1.user_id
+		into l_sc_id, l_auth_token, l_user_id
+		from q_qr_tmp_token as t1
+			join q_qr_users as t2 on ( t1.user_id = t2.user_id )
+			join q_qr_auth_tokens as t3 on ( t1.user_id = t3.user_id and t1.auth_token = t3.token )
+		where t1.token = p_tmp_token
+	      and t2.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
+		;
+
+	if not found then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"failed to find the user based on tmp_token.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+	end if;
+
+	-- example output
+	-- 		{"status":"success", "auth_token":"b76a6228-d5c6-4079-820a-920ea494b00d", "user_id":"0ed721f8-2aed-42f2-8ad3-76bad390a4f4", "sc_id":"06ee6e25-3158-4f19-9335-38c9b3822389"}
+	if not l_fail then
+
+		l_data = '{"status":"success"'
+			||', "auth_token":' 		||coalesce(to_json(l_auth_token)::text,'""')
+			||', "user_id":' 			||coalesce(to_json(l_user_id)::text,'""')
+			||', "sc_id":' 				||coalesce(to_json(l_sc_id)::text,'""')
+			||'}';
+
+	end if;
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->a_get_user_from_tmp_token <- m4___file__ m4___line__ ***returns***' );
+		insert into t_output ( msg ) values ( ' 		l_data= '||l_data );
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
+
 
 -- vim: set noai ts=4 sw=4: 

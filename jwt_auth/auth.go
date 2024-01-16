@@ -1010,6 +1010,9 @@ type EmailConfirmSuccess struct {
 }
 
 // authHandlerEmailConfirm uses the token to lookup a user and confirms that the email that received the token is real.
+// if websockets are configured then a message will be send to the client:
+// 		addHandler("/cient/v1/email-validated", function(pth, parsedMsg ) {
+// containing the email, tmp_token and auth_token
 //
 // From: router.GET("/api/v1/auth/email-confirm", authHandlerEmailConfirm)
 
@@ -1061,10 +1064,15 @@ func authHandlerEmailConfirm(c *gin.Context) {
 
 		// xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
 		if gCfg.RedisUsePubSub == "yes" {
-			RedisBrodcast(rvEmailConfirm.AuthToken, fmt.Sprintf(`{"cmd":"/auth/email-confirm","auth_token":%q,"user_id":%q}`, rvEmailConfirm.AuthToken, rvEmailConfirm.UserId))
+			RedisBrodcast(rvEmailConfirm.AuthToken, fmt.Sprintf(`{"cmd":"/auth/email-confirm", "auth_token":%q, "user_id":%q, "email":%q, "tmp_token":%q}`, rvEmailConfirm.AuthToken, rvEmailConfirm.UserId, rvEmailConfirm.Email, rvEmailConfirm.TmpToken))
 		}
 
+		// Prevents redirect_to=yes from having any effect ============================================================================================================= <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 		return
+	} else {
+		if gCfg.RedisUsePubSub == "yes" {
+			RedisBrodcast(rvEmailConfirm.AuthToken, fmt.Sprintf(`{"cmd":"/auth/email-confirm-error", "user_id":%q, "email":%q, "tmp_token":%q}`, rvEmailConfirm.UserId, rvEmailConfirm.Email, rvEmailConfirm.TmpToken))
+		}
 	}
 
 	// handle redirect.
@@ -4748,6 +4756,27 @@ func authHandlerRequires2fa(c *gin.Context) {
 }
 
 func RedisBrodcast(AuthToken string, data string) {
+	/*
+		From: wsender/wsender.go:253
+		    var PubSubGeneralChannel = "ws:pub-sub-channel"
+
+		   	type Message struct {
+		   		Sender   string           `json:"sender,omitempty"` // auth_token for the sender
+		   		To       string           `json:"to,omitempty"`
+		   		Cmd      string           `json:"cmd,omitempty"`
+		   		Msg      string           `json:"msg,omitempty"`
+		   		Params   []xlib.NameValue `json:"params,omitempty"`
+		   		LineFile string           `json:"line_file,omitempty"` // Line/File where message is from
+		   		SvrName  string           `json:"origin,omitempty"`    // Server SvrName, so can check for echo
+		   	}
+
+		   	func (wsend *WsenderData) PublishToRedis(message Message) {
+		   		dbgo.Printf("Publish to %s %s\n", PubSubGeneralChannel, dbgo.SVar(message))
+		   		if err := wsend.rdb.Publish(wsend.ctx, PubSubGeneralChannel, dbgo.SVar(message)).Err(); err != nil {
+		   			log.Println(err)
+		   		}
+		   	}
+	*/
 }
 
 type ApiAuthTokenDeleteAdmin struct {
