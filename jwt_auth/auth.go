@@ -4883,14 +4883,19 @@ func RedisCacheAuthTokens(AuthToken, UserdataPassword string, v2 []*SQLUserIdPri
 	}
 	vX := v2[0]
 
-	//	dbgo.Printf("%(red)-------------------------------------------------------------------------------------------------------\n")
-	//	dbgo.Printf("%(yellow)-------------------------------------------------------------------------------------------------------\n")
-	//	dbgo.Printf("Redis Cache of ->%s<- for %d seconds: %s ---- %v\n", AuthToken, vX.SecondsTillExpires, dbgo.SVar(vX), time.Duration(vX.SecondsTillExpires)*time.Second)
-	//	dbgo.Printf("%(yellow)-------------------------------------------------------------------------------------------------------\n")
-	//	dbgo.Printf("%(red)-------------------------------------------------------------------------------------------------------\n")
+	// SHOULD BE:  NEW.expires := current_timestamp + interval '31 days';
+	dbgo.Printf("%(red)-------------------------------------------------------------------------------------------------------\n")
+	dbgo.Printf("%(yellow)-------------------------------------------------------------------------------------------------------\n")
+	dbgo.Printf("%(green)-------------------------------------------------------------------------------------------------------\n")
+	dbgo.Printf("Redis Cache of ->%s<- for %d seconds: %s ---- %v, should be: %v seconds 86400*31\n", AuthToken, vX.SecondsTillExpires, dbgo.SVar(vX), time.Duration(int64(vX.SecondsTillExpires)*int64(time.Second)), 86400*31)
+	dbgo.Printf("%(green)-------------------------------------------------------------------------------------------------------\n")
+	dbgo.Printf("%(yellow)-------------------------------------------------------------------------------------------------------\n")
+	dbgo.Printf("%(red)-------------------------------------------------------------------------------------------------------\n")
+
+	// time.Duration(timeout * float64(time.Second))
 
 	// Set in redis with key 'auth_token:UUID` and expires of vX.SecondsTillExpires
-	rdb.Set(ctx, fmt.Sprintf("auth_token:%s", AuthToken), dbgo.SVar(vX), time.Duration(vX.SecondsTillExpires)*time.Second)
+	rdb.Set(ctx, fmt.Sprintf("auth_token:%s", AuthToken), dbgo.SVar(vX), time.Duration(int64(vX.SecondsTillExpires)*int64(time.Second)))
 }
 
 func RedisGetCachedToken(AuthToken, UserdataPassword string) (v2 []*SQLUserIdPrivsType, has bool) {
@@ -4915,10 +4920,3 @@ func RedisGetCachedToken(AuthToken, UserdataPassword string) (v2 []*SQLUserIdPri
 }
 
 /* vim: set noai ts=4 sw=4: */
-
-/*
-./auth.go:4430:15: undefined: perReqLog
-./auth.go:4435:49: undefined: perReqLog
-./auth.go:4464:15: undefined: perReqLog
-./auth.go:4469:49: undefined: perReqLog
-*/

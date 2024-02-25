@@ -7885,7 +7885,7 @@ BEGIN
 			select t1.user_id as "user_id", json_agg(t3.priv_name)::text as "privileges", coalesce(t1.client_id::text,'')::text as client_id
 				 , pgp_sym_decrypt(t1.email_enc, p_userdata_password)::text as email
 				 , min(t2.expires) as expires
-				 , ceil(EXTRACT(EPOCH FROM min(t2.expires)))::bigint as seconds_till_expires
+				 , ceil(EXTRACT(EPOCH FROM min(t2.expires)))::bigint - ceil(extract(epoch from now()))::bigint as seconds_till_expires
 			from q_qr_users as t1
 				join q_qr_auth_tokens as t2 on ( t1.user_id = t2.user_id )
 				left join q_qr_user_to_priv as t3 on ( t1.user_id = t3.user_id )
