@@ -21,6 +21,7 @@ import (
 type RequestLogFile struct {
 	logFilePtr *os.File
 	createdAt  time.Time
+	refCount   int
 }
 
 var logFilePointerTable = make(map[string]*RequestLogFile)
@@ -44,6 +45,17 @@ func SetLogFile(requestId string, fp *os.File) {
 	logFilePointerTable[requestId] = &RequestLogFile{
 		logFilePtr: fp,
 		createdAt:  time.Now(),
+		refCount:   1,
+	}
+}
+
+func AddRefCount(requestId string) {
+	logFilePointerLock.Lock()
+	defer logFilePointerLock.Unlock()
+	lf, ok := logFilePointerTable[requestId]
+	if ok {
+		lf.refCount++
+		logFilePointerTable[requestId] = lf
 	}
 }
 
@@ -52,9 +64,13 @@ func CloseLogFile(requestId string) {
 	defer logFilePointerLock.Unlock()
 	lf, ok := logFilePointerTable[requestId]
 	if ok {
-		lf.logFilePtr.Close()
-		delete(logFilePointerTable, requestId)
-		return
+		lf.refCount--
+		logFilePointerTable[requestId] = lf
+		if lf.refCount <= 0 {
+			lf.logFilePtr.Close()
+			delete(logFilePointerTable, requestId)
+			return
+		}
 	}
 }
 

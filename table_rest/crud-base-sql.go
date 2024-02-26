@@ -50,6 +50,16 @@ func LogIt(s string, x ...interface{}) {
 	fmt.Fprintf(logFilePtr, "}\n")
 }
 
+func LogIt2(fp *os.File, s string, x ...interface{}) {
+	fmt.Fprintf(fp, "{ \"type\":%q", s)
+	for i := 0; i < len(x); i += 2 {
+		if i+1 < len(x) {
+			fmt.Fprintf(fp, ", %q: %q", x[i], x[i+1])
+		}
+	}
+	fmt.Fprintf(fp, "}\n")
+}
+
 // LogQueries is called with all statments to log them to a file.
 func logQueries(stmt string, err error, data []interface{}, elapsed time.Duration) {
 	// dbgo.Fprintf(os.Stderr, "%(yellow)At:%(LF)\n")
@@ -85,7 +95,7 @@ func logQueriesW(c *gin.Context, stmt string, err error, data []interface{}, ela
 	if err != nil {
 		e = "SQLError"
 	}
-	log_enc.LogIt(e,
+	log_enc.LogIt2(perReqLog, e,
 		"url", c.Request.RequestURI,
 		"method", c.Request.Method,
 		"stmt", stmt,
