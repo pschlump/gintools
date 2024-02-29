@@ -5,11 +5,12 @@ package data
 // BSD Licensed.  See LICENSE.bsd file.
 
 import (
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pschlump/gintools/awss3v2"
 	"github.com/pschlump/gintools/path_rewriter"
 )
+
+// "github.com/ethereum/go-ethereum/accounts/keystore"
+// "github.com/ethereum/go-ethereum/ethclient"
 
 type QRConfig struct {
 	QrBaseServerURL string `json:"qr_base_server_url" default:"http://localhost:8080/"`
@@ -64,18 +65,18 @@ type FontConfig struct {
 	FontPathFile string `json:"font_path_file" default:"/Users/philip/go/src/github.com/golang/freetype/testdata/luxisr.ttf"`
 }
 
-type EthConfigData struct {
-	URL_8545        string            `json:"geth_rpc_8545" default:"http://127.0.0.1:7545"`      // example: "http://192.168.0.200:8545".
-	ContractAddress map[string]string `json:"ContractAddress"`                                    // Contract names to contract addresses map
-	FromAddress     string            `json:"FromAddress"`                                        // Address of account to pull funds from - this is the signing account
-	KeyFilePassword string            `json:"key_file_password" default:"$ENV$Key_File_Password"` // Password to access KeyFile
-	KeyFile         string            `json:"key_file" default:"$ENV$Key_File"`                   // File name for pub/priv key for Address
-	UseEth          string            `json:"UseEth" default:"yes"`                               // Direclty call contract 'yes'
-
-	Client *ethclient.Client `json:"-"` // used in secalling contract
-
-	AccountKey *keystore.Key `json:"-"`
-}
+//type EthConfigData struct {
+//	URL_8545        string            `json:"geth_rpc_8545" default:"http://127.0.0.1:7545"`      // example: "http://192.168.0.200:8545".
+//	ContractAddress map[string]string `json:"ContractAddress"`                                    // Contract names to contract addresses map
+//	FromAddress     string            `json:"FromAddress"`                                        // Address of account to pull funds from - this is the signing account
+//	KeyFilePassword string            `json:"key_file_password" default:"$ENV$Key_File_Password"` // Password to access KeyFile
+//	KeyFile         string            `json:"key_file" default:"$ENV$Key_File"`                   // File name for pub/priv key for Address
+//	UseEth          string            `json:"UseEth" default:"yes"`                               // Direclty call contract 'yes'
+//
+//	Client *ethclient.Client `json:"-"` // used in secalling contract
+//
+//	AccountKey *keystore.Key `json:"-"`
+//}
 
 type GlobalConfigData struct {
 	BaseConfigType
@@ -87,7 +88,7 @@ type GlobalConfigData struct {
 	PathRewrite
 	FontConfig
 	ThumbnailType
-	EthConfigData
+	// EthConfigData
 
 	ItemAppURI string `json:"item_app_uri" default:"item_app"`
 }
