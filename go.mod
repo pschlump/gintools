@@ -1,6 +1,6 @@
 module github.com/pschlump/gintools
 
-go 1.21.4
+go 1.22.0
 
 require (
 	github.com/anaskhan96/go-vapidkeys v0.0.0-20171018095305-465221a2246d
@@ -16,11 +16,11 @@ require (
 	github.com/jinzhu/copier v0.3.5
 	github.com/prometheus/client_golang v1.14.0
 	github.com/pschlump/HashStrings v0.1.5
-	github.com/pschlump/MiscLib v1.0.3
+	github.com/pschlump/MiscLib v1.0.6
 	github.com/pschlump/ReadConfig v1.0.5
 	github.com/pschlump/dbgo v1.0.6
 	github.com/pschlump/filelib v1.0.9
-	github.com/pschlump/godebug v1.0.4
+	github.com/pschlump/godebug v1.0.5
 	github.com/pschlump/htotp v1.0.2
 	github.com/pschlump/json v1.12.0
 	github.com/pschlump/json5 v1.0.0
@@ -63,8 +63,8 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/makiuchi-d/gozxing v0.1.1 // indirect
-	github.com/mattn/go-colorable v0.1.12 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -74,7 +74,7 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
-	github.com/pschlump/ansi v1.0.1 // indirect
+	github.com/pschlump/ansi v1.0.4 // indirect
 	github.com/pschlump/gowords v1.0.1 // indirect
 	github.com/pschlump/picfloat v1.0.0 // indirect
 	github.com/pschlump/pictime v1.0.0 // indirect
