@@ -19,7 +19,6 @@ import (
 	"github.com/pschlump/dbgo"
 	"github.com/pschlump/filelib"
 	"github.com/pschlump/gintools/log_enc"
-	"github.com/pschlump/godebug"
 	"github.com/pschlump/mapstructure"
 	"github.com/pschlump/uuid"
 )
@@ -482,13 +481,13 @@ func copy_to_struct(from map[string]string, result interface{}) (unused []string
 		return
 	}
 
-	fmt.Printf("Unused keys: %s\n", godebug.SVarI(md.Unused))
+	fmt.Printf("Unused keys: %s\n", dbgo.SVarI(md.Unused))
 	for k := range md.Unused {
 		unused = append(unused, md.Unused[k])
 	}
 	// Output:
 	// Unused keys: []string{"email"}
-	fmt.Printf("Matched Data: %s\n", godebug.SVarI(result))
+	fmt.Printf("Matched Data: %s\n", dbgo.SVarI(result))
 	// Output:
 	//
 

@@ -11,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/pschlump/dbgo"
-	"github.com/pschlump/godebug"
 )
 
 // LogIt sends output to both the log file, logFilePtr, and to os.Stderr if we are running in
@@ -70,7 +69,7 @@ func LogSQLError(c *gin.Context, stmt string, err error, encPat string, data ...
 			"error", errToString(err),
 			// "data", EncryptLogData(encPat, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
 			"data", dbgo.SVar(data),
-			"AT", godebug.LF(-2),
+			"AT", dbgo.LF(-2),
 		)
 		return
 	}
@@ -84,7 +83,7 @@ func LogSQLError(c *gin.Context, stmt string, err error, encPat string, data ...
 		"request_id", requestId,
 		// "data", EncryptLogData(encPat, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
 		"data", dbgo.SVar(data),
-		"AT", godebug.LF(-2),
+		"AT", dbgo.LF(-2),
 	)
 	c.JSON(http.StatusBadRequest, gin.H{ // 400
 		"status": "error",
@@ -99,7 +98,7 @@ func LogSQLErrorNoErr(c *gin.Context, stmt string, err error, encPat string, dat
 			"error", errToString(err),
 			// "data", EncryptLogData(encPat, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
 			"data", dbgo.SVar(data),
-			"AT", godebug.LF(-2),
+			"AT", dbgo.LF(-2),
 		)
 		return
 	}
@@ -113,7 +112,7 @@ func LogSQLErrorNoErr(c *gin.Context, stmt string, err error, encPat string, dat
 		"request_id", requestId,
 		// "data", EncryptLogData(encPat, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
 		"data", dbgo.SVar(data),
-		"AT", godebug.LF(-2),
+		"AT", dbgo.LF(-2),
 	)
 }
 
@@ -124,7 +123,7 @@ func LogStoredProcError(c *gin.Context, stmt string, encPat string, data ...inte
 			"stmt", stmt,
 			// "data", EncryptLogData(encPat, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
 			"data", dbgo.SVar(data),
-			"AT", godebug.LF(-2),
+			"AT", dbgo.LF(-2),
 		)
 		return
 	}
@@ -136,7 +135,7 @@ func LogStoredProcError(c *gin.Context, stmt string, encPat string, data ...inte
 		// "data", EncryptLogData(encPat, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
 		"data", dbgo.SVar(data),
 		"request_id", requestId,
-		"AT", godebug.LF(-2),
+		"AT", dbgo.LF(-2),
 	)
 	SetJsonHdr(c)
 	c.Writer.WriteHeader(http.StatusBadRequest) // 400
@@ -151,7 +150,7 @@ func LogMiscError(c *gin.Context, err error, message string) {
 		"error", errToString(err),
 		"message", message,
 		"request_id", requestId,
-		"AT", godebug.LF(-2),
+		"AT", dbgo.LF(-2),
 	)
 	c.JSON(http.StatusBadRequest, gin.H{ // 400
 		"status": "error",
@@ -166,7 +165,7 @@ func LogS3Error(err error, message, RequestURI, Method, requestId string) {
 		"error", errToString(err),
 		"message", message,
 		"request_id", requestId,
-		"AT", godebug.LF(-2),
+		"AT", dbgo.LF(-2),
 	)
 }
 
@@ -178,7 +177,7 @@ func LogAttentionError(c *gin.Context, err error, message string) {
 		"error", errToString(err),
 		"message", message,
 		"request_id", requestId,
-		"AT", godebug.LF(-2),
+		"AT", dbgo.LF(-2),
 	)
 }
 
@@ -191,7 +190,7 @@ func LogInternalMiscError(c *gin.Context, err error, message string) {
 		"error", errToString(err),
 		"message", message,
 		"request_id", requestId,
-		"AT", godebug.LF(-2),
+		"AT", dbgo.LF(-2),
 	)
 	c.JSON(http.StatusInternalServerError, gin.H{ // 400
 		"status": "error",
@@ -208,7 +207,7 @@ func LogMiscWarn(c *gin.Context, err error, message string) {
 		"error", errToString(err),
 		"message", message,
 		"request_id", requestId,
-		"AT", godebug.LF(-2),
+		"AT", dbgo.LF(-2),
 	)
 }
 
@@ -221,7 +220,7 @@ func LogParamError(c *gin.Context, pn, msg string) {
 		"param_name", pn,
 		"msg", msg,
 		"request_id", requestId,
-		"AT", godebug.LF(-2),
+		"AT", dbgo.LF(-2),
 	)
 	c.JSON(http.StatusNotAcceptable, gin.H{ // 400
 		"status": "error",
@@ -237,7 +236,7 @@ func LogInvalidMethodError(c *gin.Context) {
 		"method", c.Request.Method,
 		"request_id", requestId,
 		"msg", "Invalid Method",
-		"AT", godebug.LF(-2),
+		"AT", dbgo.LF(-2),
 	)
 	c.JSON(http.StatusMethodNotAllowed, gin.H{ // 400
 		"status": "error",

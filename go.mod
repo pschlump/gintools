@@ -5,26 +5,24 @@ go 1.22.0
 require (
 	github.com/anaskhan96/go-vapidkeys v0.0.0-20171018095305-465221a2246d
 	github.com/aws/aws-sdk-go v1.49.0
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/disintegration/imaging v1.6.2
 	github.com/fatih/structtag v1.2.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/gofrs/uuid v4.0.0+incompatible
-	github.com/golang-jwt/jwt/v4 v4.4.2
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/jackc/pgproto3/v2 v2.3.0
 	github.com/jackc/pgx/v4 v4.16.1
 	github.com/jinzhu/copier v0.3.5
 	github.com/prometheus/client_golang v1.14.0
 	github.com/pschlump/HashStrings v0.1.5
 	github.com/pschlump/MiscLib v1.0.7
-	github.com/pschlump/ReadConfig v1.0.5
-	github.com/pschlump/dbgo v1.0.6
-	github.com/pschlump/filelib v1.0.9
-	github.com/pschlump/godebug v1.0.5
+	github.com/pschlump/ReadConfig v1.0.8
+	github.com/pschlump/dbgo v1.0.9
+	github.com/pschlump/filelib v1.0.12
 	github.com/pschlump/htotp v1.0.2
-	github.com/pschlump/json v1.12.0
+	github.com/pschlump/json v1.12.1
 	github.com/pschlump/json5 v1.0.0
-	github.com/pschlump/jsonSyntaxErrorLib v1.0.4
+	github.com/pschlump/jsonSyntaxErrorLib v1.0.8
 	github.com/pschlump/mapstructure v0.0.0-20220410160629-64b946ed6bda
 	github.com/pschlump/ms v1.0.4
 	github.com/pschlump/scany v0.3.1
@@ -73,9 +71,10 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
-	github.com/pschlump/ansi v1.0.6 // indirect
-	github.com/pschlump/go-colorable v0.0.22 // indirect
-	github.com/pschlump/go-isatty v0.0.22 // indirect
+	github.com/pschlump/ansi v1.0.9 // indirect
+	github.com/pschlump/go-colorable v0.0.24 // indirect
+	github.com/pschlump/go-isatty v0.0.24 // indirect
+	github.com/pschlump/godebug v1.0.4 // indirect
 	github.com/pschlump/gowords v1.0.1 // indirect
 	github.com/pschlump/picfloat v1.0.0 // indirect
 	github.com/pschlump/pictime v1.0.0 // indirect
@@ -88,7 +87,7 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df // indirect
 	google.golang.org/protobuf v1.28.1 // indirect

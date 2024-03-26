@@ -64,7 +64,7 @@ func SelData(db *pgxpool.Pool, q string, data ...interface{}) []map[string]inter
 	// func SelData(db *sql.DB, q string, data ...interface{}) []map[string]interface{} {
 	// 1 use "sel" to do the query
 	// func sel ( res http.ResponseWriter, req *http.Request, db *pgx.Conn, q string, data ...interface{} ) ( Rows *sql.Rows, err error ) {
-	// fmt.Printf("in SelData, %s\n", godebug.LF())
+	// fmt.Printf("in SelData, %s\n", dbgo.LF())
 
 	// dbgo.Fprintf(os.Stderr, "%(yellow)At:%(LF)\n")
 	// OLD: Rows, err := SelQ(db, q, data...)

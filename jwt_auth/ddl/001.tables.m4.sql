@@ -8446,4 +8446,76 @@ $$ LANGUAGE plpgsql;
 
 
 
+
+
+
+-- -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- CREATE TABLE if not exists q_qr_user_config (
+-- 	config_id 				uuid default uuid_generate_v4() not null primary key,
+-- 	user_id 				uuid not null,
+-- 	name					text not null,
+-- 	value					text not null,
+-- 	updated 				timestamp, 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
+-- 	created 				timestamp default current_timestamp not null 		-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
+-- );
+
+
+CREATE OR REPLACE FUNCTION q_auth_v1_get_user_config ( p_user_id uuid, p_param_name varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+AS $$
+DECLARE
+	l_data					text;
+	l_fail					bool;
+	l_debug_on 				bool;
+
+	l_user_id				uuid;
+	l_config_id             uuid;
+	l_value			        text;
+BEGIN
+	-- Copyright (C) Write it Right, LLC, 2023.
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+
+	l_debug_on = q_get_config_bool ( 'debug' );
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->a_get_user_from_tmp_token <- m4___file__ m4___line__' );
+		insert into t_output ( msg ) values ( '		p_user_id      ->'||coalesce(to_json(p_user_id)::text,'""')||'<-');
+		insert into t_output ( msg ) values ( '		p_param_name   ->'||coalesce(to_json(p_param_name)::text,'""')||'<-');
+	end if;
+
+	-- insert into q_qr_tmp_token ( user_id, token ) values ( l_user_id, l_tmp_token );
+	-- insert into q_qr_auth_tokens ( token, user_id, sc_id ) values ( l_auth_token, l_user_id, p_sc_id );
+	select 
+			  t1.value, t1.config_id
+		into l_value, l_config_id
+		from q_qr_user_config as t1
+		where t1.user_id = p_user_id 
+	      and t1.name = p_param_name
+		;
+
+	if not found then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"no configuration for this.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+	end if;
+
+	if not l_fail then
+
+		l_data = '{"status":"success"'
+			||', "value":' 		      	||coalesce(to_json(l_value)::text,'""')
+			||', "config_id":' 			||coalesce(to_json(l_config_id)::text,'""')
+			||'}';
+
+	end if;
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->a_get_user_config <- m4___file__ m4___line__ ***returns***' );
+		insert into t_output ( msg ) values ( ' 		l_data= '||l_data );
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
 -- vim: set noai ts=4 sw=4: 

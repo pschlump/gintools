@@ -23,7 +23,6 @@ import (
 	"github.com/pschlump/gintools/email"
 	"github.com/pschlump/gintools/jwt_auth"
 	"github.com/pschlump/gintools/version"
-	"github.com/pschlump/godebug"
 	"github.com/pschlump/htotp"
 	"github.com/pschlump/json"
 	"github.com/pschlump/scany/pgxscan"
@@ -463,7 +462,7 @@ func LogSQLErrorLoc(stmt string, err error, data ...interface{}) {
 		"stmt", stmt,
 		"error", fmt.Sprintf("%s", err),
 		"data", dbgo.SVar(data),
-		"AT", godebug.LF(-2),
+		"AT", dbgo.LF(-2),
 	)
 }
 

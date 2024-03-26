@@ -85,7 +85,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	jwt "github.com/golang-jwt/jwt/v4"
+	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/jinzhu/copier"
 	"github.com/pschlump/HashStrings"
 	"github.com/pschlump/dbgo"
@@ -260,7 +260,7 @@ CREATE TABLE if not exists q_qr_users (
 
 type JwtClaims struct {
 	AuthToken string `json:"auth_token"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 type StdErrorReturn struct {
