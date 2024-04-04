@@ -2601,12 +2601,15 @@ CREATE TRIGGER q_qr_token_registration_hist_ins_trig
 alter table if exists q_qr_client add column if not exists client_email text;
 alter table if exists q_qr_client add column if not exists designated_user_id uuid;
 alter table if exists q_qr_client add column if not exists token_registration_id	uuid;
+alter table if exists q_qr_client add column if not exists client_config			text;		-- JSON data thatis config per-client
+
 CREATE TABLE if not exists q_qr_client (
 	  client_id 			uuid default uuid_generate_v4() not null primary key
 	, client_name			text not null
 	, client_email 			text				-- for email dropdown list
 	, designated_user_id 	uuid
 	, token_registration_id	uuid
+	, client_config			text		-- JSON data thatis config per-client
 	, updated 				timestamp
 	, created 				timestamp default current_timestamp not null
 );
@@ -8460,7 +8463,7 @@ $$ LANGUAGE plpgsql;
 -- );
 
 
-CREATE OR REPLACE FUNCTION q_auth_v1_get_user_config ( p_user_id uuid, p_param_name varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+CREATE OR REPLACE FUNCTION q_auth_v1_get_1_user_config ( p_user_id uuid, p_param_name varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
 AS $$
 DECLARE
 	l_data					text;
