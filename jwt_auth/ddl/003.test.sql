@@ -378,8 +378,6 @@ BEGIN
 		from q_qr_users
 		where email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
 	;
-	delete from q_qr_auth_security_log
-		where user_id = l_user_id;
 	delete from q_qr_auth_log
 		where user_id = l_user_id;
 	delete from q_qr_one_time_password
@@ -405,7 +403,7 @@ BEGIN
 
 	l_bool = q_get_config_bool ( 'confg.test' );
 	if l_bool = true then
-		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:408 -- config not working' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:406 -- config not working' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -413,21 +411,21 @@ BEGIN
 	update q_qr_config set b_value = true, value = 'yes' where name = 'config.test';
 	GET DIAGNOSTICS v_cnt = ROW_COUNT;
 	if v_cnt != 1 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:416 -- config not working' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:414 -- config not working' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 
 	l_bool = q_get_config_bool ( 'config.test' );
 	if l_bool = false then
-		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:423 -- config not working' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:421 -- config not working' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 
 	l_bool = q_get_config_bool ( 'missing.test' );
 	if l_bool != false then
-		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:430 -- config not working' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:428 -- config not working' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -456,13 +454,13 @@ BEGIN
 	--  	Register Output:   {"status":"success", "user_id":4, "email_verify_token":"5ed065f3-7b59-477c-942a-5479bd22c2d7", "secret_2fa":"cf1756e5ef"}
 	insert into t_output ( msg ) values ( 'Register Output:   '||coalesce(to_json(l_r1)::text,'---null---'));
 	if l_status != '"success"' then
-		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:459 -- failed to register, expected ->"success"<- got ->'||l_status||'<-' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:457 -- failed to register, expected ->"success"<- got ->'||l_status||'<-' );
 		insert into t_output ( msg ) values ( '   '||l_r1 );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 	if l_cnt1 >= l_cnt2 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:465 -- failed to register new user.  Row count did not increase.' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:463 -- failed to register new user.  Row count did not increase.' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -476,7 +474,7 @@ BEGIN
 
 	select count(1) into l_cnt1 from q_qr_user_role;
 	if l_cnt1 = 0 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:479 -- missing data in q_qr_user_role' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:477 -- missing data in q_qr_user_role' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -498,7 +496,7 @@ BEGIN
 	insert into x_tmp_values ( name, value ) values ( 'l_auth_token', l_auth_token::text );
 	select count(1) into l_cnt_auth_tokens;
 	if not found or l_cnt_auth_tokens = 0 then
-		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:003.test.m4.sql Line No:501 -- missing data in q_qr_user_role' );
+		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:003.test.m4.sql Line No:499 -- missing data in q_qr_user_role' );
 	end if;
 
 	-- end -----------------------------------------------------------------------------------------------------------------------------------------
@@ -513,7 +511,7 @@ BEGIN
 
 	select count(1) into l_cnt_auth_tokens;
 	if not found or l_cnt_auth_tokens = 0 then
-		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:003.test.m4.sql Line No:516 -- missing data in q_qr_user_role' );
+		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:003.test.m4.sql Line No:514 -- missing data in q_qr_user_role' );
 	end if;
 
 	-- set this user to be an "admin"
@@ -530,13 +528,13 @@ BEGIN
 			select get_user_list( 'my long secret password', 'user info password' )
 		) as t1;
 	if l_cnt1 = 0 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:533 -- failed to create user' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:531 -- failed to create user' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 	select count(1) into l_cnt_auth_tokens;
 	if not found or l_cnt_auth_tokens = 0 then
-		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:003.test.m4.sql Line No:539 -- missing data in q_qr_user_role' );
+		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:003.test.m4.sql Line No:537 -- missing data in q_qr_user_role' );
 	end if;
 
 
@@ -561,8 +559,8 @@ BEGIN
 	insert into t_output ( msg ) values ( 'l_r2 = '||coalesce(l_r2, '---null---') );
 	select l_r2::jsonb -> 'status' into l_status;
 	if l_status != '"success"' then
-		insert into t_output ( msg ) values ( 'FAILED - registraiton validate email - validation of email File:003.test.m4.sql Line No:564' );
-		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton validate email - validation of email File:003.test.m4.sql Line No:565' );
+		insert into t_output ( msg ) values ( 'FAILED - registraiton validate email - validation of email File:003.test.m4.sql Line No:562' );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton validate email - validation of email File:003.test.m4.sql Line No:563' );
 	else
 		insert into t_output ( msg ) values ( 'PASS - registraiton validate email - validated email secret' );
 		insert into x_tmp_pass_fail ( name ) values ( 'PASS - registraiton validate email - validated email secret' );
@@ -577,8 +575,8 @@ BEGIN
 	insert into t_output ( msg ) values ( l_text );
 	select l_text::jsonb -> 'status' into l_status;
 	if l_status != '"success"' then
-		insert into t_output ( msg ) values ( 'FAILED - registraiton validate 2fa - validation of email File:003.test.m4.sql Line No:580' );
-		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton validate 2fa - validation of email File:003.test.m4.sql Line No:581' );
+		insert into t_output ( msg ) values ( 'FAILED - registraiton validate 2fa - validation of email File:003.test.m4.sql Line No:578' );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton validate 2fa - validation of email File:003.test.m4.sql Line No:579' );
 	else
 		insert into t_output ( msg ) values ( 'PASS - registraiton validate 2fa - validated 2fa secret' );
 		insert into x_tmp_pass_fail ( name ) values ( 'PASS - registraiton validate 2fa - validated 2fa secret' );
@@ -596,8 +594,8 @@ BEGIN
 	insert into t_output ( msg ) values ( l_text );
 	select l_text::jsonb -> 'status' into l_status;
 	if l_status != '"success"' then
-		insert into t_output ( msg ) values ( 'FAILED - registraiton test 5 - faile to login File:003.test.m4.sql Line No:599' );
-		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 5 - faile to login File:003.test.m4.sql Line No:600' );
+		insert into t_output ( msg ) values ( 'FAILED - registraiton test 5 - faile to login File:003.test.m4.sql Line No:597' );
+		insert into x_tmp_pass_fail ( name ) values ( 'FAILED - registraiton test 5 - faile to login File:003.test.m4.sql Line No:598' );
 	else
 		insert into t_output ( msg ) values ( 'PASS - registraiton/login test 5' );
 		insert into x_tmp_pass_fail ( name ) values ( 'PASS - registraiton/login test 5' );
@@ -611,7 +609,7 @@ BEGIN
 
 	select count(1) into l_cnt_auth_tokens;
 	if not found or l_cnt_auth_tokens = 0 then
-		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:003.test.m4.sql Line No:614 -- missing data in q_qr_user_role' );
+		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:003.test.m4.sql Line No:612 -- missing data in q_qr_user_role' );
 	end if;
 
 	-- test 1a ----------------------------------------------------------------------------------------------------------
@@ -622,7 +620,7 @@ BEGIN
 	select q_amdin_HasPriv ( l_user_id, 'May X' )
 		into l_bool;
 	if l_bool != false then
-		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:625 -- return true on non-existent privilege.  user_id='||l_user_id::text );
+		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:623 -- return true on non-existent privilege.  user_id='||l_user_id::text );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -631,14 +629,14 @@ BEGIN
 	select q_amdin_HasPriv ( l_user_id, 'May Change Password' )
 		into l_bool;
 	if l_bool != true then
-		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:634 -- return false on privilege that should exist.  user_id='||l_user_id::text );
+		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:632 -- return false on privilege that should exist.  user_id='||l_user_id::text );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 
 	select count(1) into l_cnt_auth_tokens;
 	if not found or l_cnt_auth_tokens = 0 then
-		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:003.test.m4.sql Line No:641 -- missing data in q_qr_user_role' );
+		insert into t_output ( msg ) values ( 'Missing - no auth_tokens: File:003.test.m4.sql Line No:639 -- missing data in q_qr_user_role' );
 	end if;
 
 
@@ -822,7 +820,7 @@ BEGIN
 						-- where email_hmac = q_auth_v1_hmac_encode ( 'bob2@example.com', 'my long secret password' )
 
 	if l_cnt2 != 2 then
-		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:825 -- should have 2 roles - got:'||l_cnt2::text );
+		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:823 -- should have 2 roles - got:'||l_cnt2::text );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -838,7 +836,7 @@ BEGIN
 		limit 1
 		;
 	if not found then
-		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:841 -- missing data in x_tmp_values, key=''l_auth_token'' -no rows found-' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:839 -- missing data in x_tmp_values, key=''l_auth_token'' -no rows found-' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
@@ -858,12 +856,12 @@ BEGIN
 		group by t1.user_id
 		;
 	if not found then
-		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:861 -- missing data in role/priv/token -no rows found-' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:859 -- missing data in role/priv/token -no rows found-' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;
 	if l_privilege::text = '[null]' then
-		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:866 -- missing data in role/priv/token - bad user id' );
+		insert into t_output ( msg ) values ( 'Test Failed: File:003.test.m4.sql Line No:864 -- missing data in role/priv/token - bad user id' );
 		l_fail = true;
 		n_err = n_err + 1;
 	end if;

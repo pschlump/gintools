@@ -177,7 +177,7 @@ BEGIN
 			where t1.role_name =  'role:user' 
 			;
 
-		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:m4___file__ Line No:m4___line__');
+		insert into qr_auth_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:m4___file__ Line No:m4___line__');
 
 		-- Generate OTP passwords - 20 of them.
 		l_otp_str = '[';

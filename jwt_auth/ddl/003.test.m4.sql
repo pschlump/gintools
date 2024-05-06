@@ -378,8 +378,6 @@ BEGIN
 		from q_qr_users
 		where email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
 	;
-	delete from q_qr_auth_security_log
-		where user_id = l_user_id;
 	delete from q_qr_auth_log
 		where user_id = l_user_id;
 	delete from q_qr_one_time_password

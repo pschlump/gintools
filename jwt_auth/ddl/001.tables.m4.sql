@@ -1042,10 +1042,6 @@ $$ LANGUAGE plpgsql;
 
 
 
-
-
-
-
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CREATE SEQUENCE if not exists t_order_seq
@@ -1054,6 +1050,10 @@ CREATE SEQUENCE if not exists t_order_seq
 	MAXVALUE 9223372036854775807
 	START 1
 	CACHE 1;
+
+
+
+
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1575,6 +1575,7 @@ $$ LANGUAGE plpgsql;
 
 
 
+alter table q_qr_user_config add column if not exists   client_cfg				text not null default 'n';		-- if 'y' then report to client.
 
 
 
@@ -1585,6 +1586,7 @@ CREATE TABLE if not exists q_qr_user_config (
 	user_id 				uuid not null,
 	name					text not null,
 	value					text not null,
+	client_cfg				text not null default 'n',		-- if 'y' then report to client.
 	updated 				timestamp, 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 				timestamp default current_timestamp not null 		-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
@@ -1946,15 +1948,16 @@ CREATE OR REPLACE view q_qr_expired_tmp_token as
 
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Depricated!
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-CREATE TABLE if not exists q_qr_auth_security_log (
-	security_log_id 	uuid default uuid_generate_v4() primary key not null,
-	user_id 			uuid not null,
-	activity			text,
-	location			text,
-	created 			timestamp default current_timestamp not null 						-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
-);
-comment on table q_qr_auth_security_log is 'Security event log - Copyright (C) Philip Schlump, 2008-2023. -- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()';
+--CREATE TABLE if not exists q_qr_auth_security_log (
+--		security_log_id 	uuid default uuid_generate_v4() primary key not null,
+--		user_id 			uuid not null,
+--		activity			text,
+--		location			text,
+--		created 			timestamp default current_timestamp not null 						-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
+--	);
+--comment on table q_qr_auth_security_log is 'Security event log - Copyright (C) Philip Schlump, 2008-2023. -- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()';
 
 
 
@@ -1962,12 +1965,17 @@ comment on table q_qr_auth_security_log is 'Security event log - Copyright (C) P
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+drop TABLE if exists q_qr_auth_security_log ;
+
+alter table if exists q_qr_auth_log add column if not exists seq 				bigint DEFAULT nextval('t_order_seq'::regclass) NOT NULL;
+
 CREATE TABLE if not exists q_qr_auth_log (
 	security_log_id 	uuid default uuid_generate_v4() primary key not null,
 	user_id 			uuid,
 	activity			text,
 	code				text,
 	location			text,
+    seq 				bigint DEFAULT nextval('t_order_seq'::regclass) NOT NULL,
 	created 			timestamp default current_timestamp not null 						-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
 comment on table q_qr_auth_log is 'Authentication log - Copyright (C) Philip Schlump, 2008-2023. -- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()';
@@ -3884,7 +3892,7 @@ BEGIN
 			end if;
 		end if;
 
-		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:m4___file__ Line No:m4___line__');
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'User Registered', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 
 		-- Generate OTP passwords - 20 of them.
 		l_otp_str = '[';
@@ -4206,7 +4214,7 @@ BEGIN
 			, l_admin_email
 		) returning user_id into l_user_id  ;
 
-		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:m4___file__ Line No:m4___line__');
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'User Registered', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 
 		-- Generate OTP passwords - 20 of them.
 		l_otp_str = '[';
@@ -4432,7 +4440,6 @@ BEGIN
 		if found then
 			l_fail = true;
 			l_data = '{"status":"error","msg":"Account already exists.  Please login or recover password.","code":"m4_count()","location":"m4___file__ m4___line__"}';
-			-- insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Account', 'File:m4___file__ Line No:m4___line__');
 			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Account.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 		end if;
 
@@ -4549,7 +4556,7 @@ BEGIN
 		--	where t1.role_name =  'role:admin'
 		--	;
 
-		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:m4___file__ Line No:m4___line__');
+		insert into q_qr_auth_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 
 		-- Generate OTP passwords - 20 of them.
 		l_otp_str = '[';
@@ -4668,7 +4675,6 @@ BEGIN
 	if not found then
 		l_fail = true;
 		l_data = '{"status":"error","msg":"No account with this email address exists.  Please register again.","code":"m4_count()","location":"m4___file__ m4___line__"}';
-		-- insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Account', 'File:m4___file__ Line No:m4___line__');
 		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'No account with this email address exists.  Please register again.","code":"m4_count()","location":"m4___file__ m4___line__"}' );
 	end if;
 
@@ -4706,7 +4712,7 @@ BEGIN
 			end if;
 		end if;
 
-		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Email Resend Registered', 'File:m4___file__ Line No:m4___line__');
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'User Email Resend Registered', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 
 	end if;
 
@@ -4831,7 +4837,6 @@ BEGIN
 	if found then
 		l_fail = true;
 		l_data = '{"status":"error","msg":"Account already exists.  Please login or recover password.","code":"m4_count()","location":"m4___file__ m4___line__"}';
-		-- insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Account', 'File:m4___file__ Line No:m4___line__');
 		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'User Attempt to Re-Register Same Account.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 	end if;
 
@@ -4911,7 +4916,7 @@ BEGIN
 		--	where t1.role_name =  'role:user'
 		--	;
 
-		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:m4___file__ Line No:m4___line__');
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'User Registered', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 
 		-- Generate OTP passwords - 20 of them.
 		l_otp_str = '[';
@@ -5072,7 +5077,7 @@ BEGIN
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 
-	delete from q_qr_auth_security_log where user_id = p_user_id;
+	delete from q_qr_auth_log where user_id = p_user_id;
 	delete from q_qr_auth_tokens where user_id = p_user_id;
 	delete from q_qr_one_time_password where user_id = p_user_id;
 	--delete from q_qr_user_role where user_id = p_user_id;
@@ -5081,7 +5086,7 @@ BEGIN
 	delete from q_qr_user_config where user_id = p_user_id;
 
 	delete from q_qr_n6_email_verify where email_verify_token = ( select email_verify_token from q_qr_users where user_id = p_user_id );
-	delete from q_qr_auth_security_log where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
+	delete from q_qr_auth_log where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
 	delete from q_qr_auth_tokens where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
 	delete from q_qr_one_time_password where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
 	--delete from q_qr_user_role where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
@@ -5523,6 +5528,7 @@ DECLARE
 	l_role_name				text;
 	l_is_new_device_msg		text;
 	l_device_track_id		uuid;
+	l_client_user_config	text;
 BEGIN
 	l_debug_on = q_get_config_bool ( 'debug' );
 
@@ -5666,9 +5672,14 @@ BEGIN
 					and parent_user_id is not null
 				)  or (
 					    account_type = 'token'
+					and password_hash = crypt(p_pw, password_hash)
 					and parent_user_id is not null
 				)
 		;
+
+		if found then
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Username/Password Found:'||p_email, 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+		end if;
 
 		if not found then -- BBB
 			select
@@ -5710,7 +5721,7 @@ BEGIN
 			if not found then
 				l_fail = true;
 				l_data = '{"status":"error","msg":"Invalid Username or Password","code":"m4_count()","location":"m4___file__ m4___line__"}'; -- return no such account or password
-				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Password', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Username(email) Not Found:'||p_email, 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 			end if;
 
 			if not l_fail then -- AAA
@@ -5742,7 +5753,7 @@ BEGIN
 				else
 					l_fail = true;
 					l_data = '{"status":"error","msg":"Invalid Username or Password","code":"m4_count()","location":"m4___file__ m4___line__"}'; -- return no such account or password
-					insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Password', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+					insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid one-time, or bad password:'||p_email, 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 				end if;
 
 			end if; -- AAA
@@ -5794,8 +5805,6 @@ BEGIN
 			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account is not a un/pw autetication method', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 		end if;
 	end if;
-
-
 
 	if not l_fail then
 		if l_email_validated = 'n' then
@@ -5968,19 +5977,28 @@ BEGIN
 		if l_require_2fa = 'y' then
 			l_auth_token = NULL;
 		end if;
-		-- xyzzyPartialReg, add tmp_token, email to message so can complete registration.
+		-- add tmp_token, email to message so can complete registration.
 		l_tmp_token = uuid_generate_v4();
 		insert into q_qr_tmp_token ( user_id, token, auth_token ) values ( l_user_id, l_tmp_token, l_auth_token );
 		if l_debug_on then
 			insert into t_output ( msg ) values ( ' l_tmp_token ->'||coalesce(to_json(l_tmp_token)::text,'---null---')||'<-');
 		end if;
 		if l_require_2fa = 'y' then
+			if l_debug_on then
+				insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... 2fa Required  m4___file__ m4___line__' );
+			end if;
 			l_auth_token = NULL;
-			insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'Login - Part 1 Success: '||l_tmp_token::text, 'File:m4___file__ Line No:m4___line__');
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Login - Part 1 Success tmp_token:'||l_tmp_token::text||' email:'||p_email, 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 		else
-			insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'Successful Login', 'File:m4___file__ Line No:m4___line__');
+			if l_debug_on then
+				insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... No 2fa login   m4___file__ m4___line__' );
+			end if;
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Login Success email:'||p_email, 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 			if l_is_new_device_login = 'y' then
 
+				if l_debug_on then
+					insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ...  is a new device m4___file__ m4___line__' );
+				end if;
 				insert into q_qr_device_track (
 					  fingerprint_data 
 					, sc_id 
@@ -5997,6 +6015,9 @@ BEGIN
 
 			else 
 
+				if l_debug_on then
+					insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... existing device m4___file__ m4___line__' );
+				end if;
 				update q_qr_device_track 
 					set n_login = n_login + 1			
 					  , am_i_known = p_am_i_known
@@ -6024,6 +6045,9 @@ BEGIN
 
 			end if;
 
+			if l_debug_on then
+				insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... insert into q_qr_valid_xref_id m4___file__ m4___line__' );
+			end if;
 			insert into q_qr_valid_xsrf_id (
 				  device_track_id
 				, user_id			
@@ -6035,6 +6059,23 @@ BEGIN
 			);
 
 		end if;
+
+		-- client_cfg				text not null default 'n',		-- if 'y' then report to client.
+		l_client_user_config = '[]';
+		SELECT json_agg(t1)
+			INTO l_client_user_config
+			FROM (
+					select t2.name, t2.value
+					from q_qr_user_config t2
+					where t2.user_id = l_user_id
+					  and t2.client_cfg = 'y'
+					order by 1
+				) as t1
+			;
+		if not found then
+			l_client_user_config = '[]';
+		end if;
+
 		l_data = '{"status":"success"'
 			||', "user_id":'     			||coalesce(to_json(l_user_id)::text,'""')
 			||', "auth_token":'  			||coalesce(to_json(l_auth_token)::text,'""')
@@ -6044,6 +6085,7 @@ BEGIN
 			||', "account_type":'			||coalesce(to_json(l_account_type)::text,'""')
 			||', "privileges":'  			||coalesce(l_privileges,'""')
 			||', "user_config":'  			||coalesce(l_user_config,'""')
+			||', "client_user_config":'  	||coalesce(l_client_user_config,'""')
 			||', "first_name":'  			||coalesce(to_json(l_first_name)::text,'""')
 			||', "last_name":'   			||coalesce(to_json(l_last_name)::text,'""')
 			||', "is_new_device_login":' 	||coalesce(to_json(l_is_new_device_login)::text,'"n"')
@@ -6052,9 +6094,16 @@ BEGIN
 			||', "is_new_device_msg":' 		||coalesce(to_json(l_is_new_device_msg)::text,'"--not-set--')
 			||'}';
 
+		if l_debug_on then
+			insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... data==success m4___file__ m4___line__' );
+		end if;
+
 	else
 		if l_user_id is not null then
-			insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'Login Failure', 'File:m4___file__ Line No:m4___line__');
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Login Failure email:'||p_email, 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+			if l_debug_on then
+				insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... --- has user_id, status=failed/error --- m4___file__ m4___line__' );
+			end if;
 			if l_failed_login_timeout is not null then
 				update q_qr_users
 					set login_failures = login_failures + 1
@@ -6498,7 +6547,7 @@ BEGIN
 		--	where t1.role_name =  'role:user'
 		--	;
 
-		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:m4___file__ Line No:m4___line__');
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'User Registered', 'File:m4___file__ Line No:m4___line__');
 	end if;
 
 	insert into q_qr_user_hierarchy ( user_id, parent_user_id ) values ( l_user_id, p_parent_user_id );
@@ -6692,7 +6741,7 @@ BEGIN
 		--	where t1.role_name =  'role:user'
 		--	;
 
-		insert into q_qr_auth_security_log ( user_id, activity, location ) values ( l_user_id, 'User Registered', 'File:m4___file__ Line No:m4___line__');
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'User Registered', 'File:m4___file__ Line No:m4___line__');
 	end if;
 
 	insert into q_qr_user_hierarchy ( user_id, parent_user_id ) values ( l_user_id, p_parent_user_id );
@@ -8521,4 +8570,131 @@ $$ LANGUAGE plpgsql;
 
 
 
+
+
+
+
+
+
+
+
+
+--	stmt := "q_auth_v1_get_acct_state ( $1, $2, $3 )"
+CREATE OR REPLACE FUNCTION q_auth_v1_get_acct_state ( p_email varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+AS $$
+DECLARE
+	l_data					text;
+	l_fail					bool;
+	l_debug_on 				bool;
+
+	l_acct_state	        text;
+	l_email_hmac			bytea;
+BEGIN
+	-- Copyright (C) Write it Right, LLC, 2023.
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+
+	l_debug_on = q_get_config_bool ( 'debug' );
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->a_get_user_from_tmp_token <- m4___file__ m4___line__' );
+		insert into t_output ( msg ) values ( '		p_email        ->'||coalesce(to_json(p_email)::text,'""')||'<-');
+	end if;
+
+	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
+	select 
+			  t1.acct_state
+		into l_acct_state
+		from q_qr_user as t1
+		where t1.email_hmac = l_email_hmac
+		;
+
+	if not found then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"no user for this email.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+	end if;
+
+	if not l_fail then
+
+		l_data = '{"status":"success"'
+			||', "acct_state":' 		      	||coalesce(to_json(l_acct_state)::text,'""')
+			||'}';
+
+	end if;
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->a_get_user_config <- m4___file__ m4___line__ ***returns***' );
+		insert into t_output ( msg ) values ( ' 		l_data= '||l_data );
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
+
+
+
+
+
+
+--	stmt := "q_auth_v1_update_acct_state ( $1, $2, $3, $4 )"
+CREATE OR REPLACE FUNCTION q_auth_v1_update_acct_state ( p_email varchar, p_acct_state varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+AS $$
+DECLARE
+	l_data					text;
+	l_fail					bool;
+	l_debug_on 				bool;
+
+	l_email_hmac			bytea;
+BEGIN
+	-- Copyright (C) Write it Right, LLC, 2023.
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+
+	l_debug_on = q_get_config_bool ( 'debug' );
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->a_get_user_from_tmp_token <- m4___file__ m4___line__' );
+		insert into t_output ( msg ) values ( '		p_email        ->'||coalesce(to_json(p_email)::text,'""')||'<-');
+		insert into t_output ( msg ) values ( '		p_acct_state   ->'||coalesce(to_json(p_acct_state)::text,'""')||'<-');
+	end if;
+
+	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
+	update q_qr_user as t1
+		set t1.acct_state = p_acct_state
+		where t1.email_hmac = l_email_hmac
+		;
+
+	if not found then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"no user for this email.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+	end if;
+
+	if not l_fail then
+
+		l_data = '{"status":"success"'
+			||', "acct_state":' 		      	||coalesce(to_json(p_acct_state)::text,'""')
+			||'}';
+
+	end if;
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->a_get_user_config <- m4___file__ m4___line__ ***returns***' );
+		insert into t_output ( msg ) values ( ' 		l_data= '||l_data );
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+-- set/get/update for q_qr_user_config
+-- client_cfg				text not null default 'n',		-- if 'y' then report to client.
+
+-- vim: set noai ts=4 sw=4: 
 -- vim: set noai ts=4 sw=4: 

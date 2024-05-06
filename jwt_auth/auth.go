@@ -178,9 +178,9 @@ var GinSetupTable = []GinLoginType{
 	{Method: "POST", Path: "/api/v1/auth/create-registration-token", Fx: authHandleCreateRegistrationToken, UseLogin: LoginRequired}, //
 	{Method: "POST", Path: "/api/v1/auth/get-registration-token", Fx: authHandleGetRegistrationToken, UseLogin: LoginRequired},       //
 	{Method: "POST", Path: "/api/v1/auth/auth-token-delete-admin", Fx: authHandleAuthTokenDeleteAdmin, UseLogin: LoginRequired},      //
+	{Method: "POST", Path: "/api/v1/auth/get-acct-state", Fx: authHandlerGetAcctState, UseLogin: LoginRequired},                      //
+	{Method: "POST", Path: "/api/v1/auth/update-acct-state", Fx: authHandlerUpdateAcctState, UseLogin: LoginRequired},                //
 
-	//{Method: "POST", Path: "/api/v1/auth/add-2fa-secret", Fx: authHandleAdd2faSecret, UseLogin: LoginRequired},               //
-	//{Method: "POST", Path: "/api/v1/auth/remove-2fa-secret", Fx: authHandleRemove2faSecret, UseLogin: LoginRequired},         //
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
@@ -3542,6 +3542,7 @@ func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
 	perReqLog := tf.GetLogFilePtr(c)
 	// dbgo.Fprintf(perReqLog, "    In GetAuthToken at:%(LF), aCfg.TokenHeaderVSCookie==%s\n", aCfg.TokenHeaderVSCookie)
 	dbgo.Fprintf(perReqLog, "    %(magenta)In GetAuthToken at:%(LF), aCfg.TokenHeaderVSCookie==%s%(reset)\n", aCfg.TokenHeaderVSCookie)
+	// dbgo.Fprintf(os.Stderr, "    %(magenta)In GetAuthToken at:%(LF), aCfg.TokenHeaderVSCookie==%s%(reset)\n", aCfg.TokenHeaderVSCookie) // t1t1xyzzy
 
 	// -----------------------------------------------------------------------------------------------------------------------
 	// Look for the auth token in multiple places.
@@ -3595,8 +3596,8 @@ func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
 		return
 	} else {
 
-		// dbgo.Fprintf(perReqLog, "    In GetAuthToken has is true at:%(LF)\n")
 		dbgo.Fprintf(perReqLog, "    %(magenta)In GetAuthToken has is true at:%(LF)%(reset)\n")
+		dbgo.Fprintf(os.Stderr, "    %(magenta)In GetAuthToken has is true at:%(LF)%(reset)\n") // t1t1xyzzy
 
 		// Parse and Validate the JWT Berrer
 		// Extract the auth_token
@@ -3721,7 +3722,7 @@ func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
 
 	}
 	// dbgo.Fprintf(perReqLog, "X-Authentication - at:%(LF)\n")
-	// dbgo.Fprintf(os.Stderr, "X-Authentication - at:%(LF)\n")
+	// dbgo.Fprintf(os.Stderr, "X-Authentication - at:%(LF) AuthToken=->%s<-\n", AuthToken) // t1t1xyzzy
 	return
 }
 
@@ -4917,6 +4918,152 @@ func RedisGetCachedToken(AuthToken, UserdataPassword string) (v2 []*SQLUserIdPri
 	has = true
 	v2[0] = &vX
 	return
+}
+
+// -------------------------------------------------------------------------------------------------------------------------
+
+// DB Reutrn Data
+type RvUpdateAcctStateType struct {
+	StdErrorReturn
+	AcctState string `json:"acct_state,omitempty"`
+}
+
+// Input for login
+type ApiUpdateAcctState struct {
+	Email     string `json:"email"         form:"email"       binding:"required,email"`
+	AcctState string `json:"acct_state"    form:"acct_state"       binding:"required"`
+}
+
+// Output returned
+type UpdateAcctStateSuccess struct {
+	Status    string `json:"status"`
+	AcctState string `json:"acct_state"`
+}
+
+// authHandlerUpdateAcctState updates the acct_state field in the q_qr_auth_users table for the current user.
+// After registraion it is reg0 or reg1.  This is repoted to the front end.
+
+// {Method: "POST", Path: "/api/v1/auth/update-acct-state", Fx: authHandlerUpdateAcctState, UseLogin: PublicApiCall},                                      // reutrn y/n if 2fa is used  for htis account
+
+// authHandleUpdateAcctState godoc
+// @Summary update the acct_stae field in the q_qr_auth_users table.
+// @Schemes
+// @Description Update the acct_state field in the q_qr_users_table.
+// @Tags auth
+// @Accept json,x-www-form-urlencoded
+// @Param   email           formData    string     true        "Email Address"
+// @Param   acct_state      formData    string     true        "Account State"
+// @Produce json
+// @Success 200 {object} jwt_auth.UpdateAcctStateSuccess
+// @Failure 400 {object} jwt_auth.StdErrorReturn
+// @Failure 401 {object} jwt_auth.StdErrorReturn
+// @Failure 406 {object} jwt_auth.StdErrorReturn
+// @Failure 500 {object} jwt_auth.StdErrorReturn
+// @Router /api/v1/auth/update-acct-state [post]
+func authHandlerUpdateAcctState(c *gin.Context) {
+	var err error
+	var pp ApiUpdateAcctState
+	if err := BindFormOrJSON(c, &pp); err != nil {
+		return
+	}
+	perReqLog := tf.GetLogFilePtr(c)
+
+	//                                        1                2                     3                        4
+	// FUNCTION q_auth_v1_update_acct_state ( p_email varchar, p_acct_state varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+	stmt := "q_auth_v1_update_acct_state ( $1, $2, $3, $4 )"
+	//                                                 1          2             3                        4
+	rv, err := CallDatabaseJSONFunction(c, stmt, "..!!", pp.Email, pp.AcctState, aCfg.EncryptionPassword, aCfg.UserdataPassword)
+	if err != nil {
+		return
+	}
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
+
+	var rvStatus RvUpdateAcctStateType
+	err = json.Unmarshal([]byte(rv), &rvStatus)
+	if rvStatus.Status != "success" {
+		rvStatus.LogUUID = GenUUID()
+
+		if logger != nil {
+			fields := []zapcore.Field{
+				zap.String("message", "Stored Procedure (q_auth_v1_update_acct_state) error return"),
+				zap.String("go_location", dbgo.LF()),
+			}
+			fields = AppendStructToZapLog(fields, rvStatus)
+			logger.Error("failed-to-failed-to-report-2fa-status", fields...)
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+		} else {
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+		}
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 401
+		return
+	}
+
+	var out UpdateAcctStateSuccess
+	copier.Copy(&out, &rvStatus)
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
+}
+
+// authHandlerGetAcctState gets the acct_state field in the q_qr_auth_users table for the current user.
+// After registraion it is reg0 or reg1.  This is repoted to the front end.
+
+// {Method: "POST", Path: "/api/v1/auth/get-acct-state", Fx: authHandlerGetAcctState, UseLogin: PublicApiCall},                                      // reutrn y/n if 2fa is used  for htis account
+
+// authHandleGetAcctState godoc
+// @Summary get the acct_stae field in the q_qr_auth_users table.
+// @Schemes
+// @Description Get the acct_state field in the q_qr_users_table.
+// @Tags auth
+// @Accept json,x-www-form-urlencoded
+// @Param   email           formData    string     true        "Email Address"
+// @Param   acct_state      formData    string     true        "Account State"
+// @Produce json
+// @Success 200 {object} jwt_auth.UpdateAcctStateSuccess
+// @Failure 400 {object} jwt_auth.StdErrorReturn
+// @Failure 401 {object} jwt_auth.StdErrorReturn
+// @Failure 406 {object} jwt_auth.StdErrorReturn
+// @Failure 500 {object} jwt_auth.StdErrorReturn
+// @Router /api/v1/auth/get-acct-state [post]
+func authHandlerGetAcctState(c *gin.Context) {
+	var err error
+	var pp ApiUpdateAcctState
+	if err := BindFormOrJSON(c, &pp); err != nil {
+		return
+	}
+	perReqLog := tf.GetLogFilePtr(c)
+
+	//                                     1                2                        3
+	// FUNCTION q_auth_v1_get_acct_state ( p_email varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+	stmt := "q_auth_v1_get_acct_state ( $1, $2, $3 )"
+	//                                                 1          2                        3
+	rv, err := CallDatabaseJSONFunction(c, stmt, ".!!", pp.Email, aCfg.EncryptionPassword, aCfg.UserdataPassword)
+	if err != nil {
+		return
+	}
+	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
+
+	var rvStatus RvUpdateAcctStateType
+	err = json.Unmarshal([]byte(rv), &rvStatus)
+	if rvStatus.Status != "success" {
+		rvStatus.LogUUID = GenUUID()
+
+		if logger != nil {
+			fields := []zapcore.Field{
+				zap.String("message", "Stored Procedure (q_auth_v1_update_acct_state) error return"),
+				zap.String("go_location", dbgo.LF()),
+			}
+			fields = AppendStructToZapLog(fields, rvStatus)
+			logger.Error("failed-to-failed-to-report-2fa-status", fields...)
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+		} else {
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+		}
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 401
+		return
+	}
+
+	var out UpdateAcctStateSuccess
+	copier.Copy(&out, &rvStatus)
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 }
 
 /* vim: set noai ts=4 sw=4: */
