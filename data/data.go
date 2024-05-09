@@ -109,8 +109,9 @@ type UploadConfig struct {
 // change JwtKey to  AuthJWTKey
 
 type BaseConfigType struct {
-	LogMode     string `json:"log_mode" default:"dev"`         // dev or prod
-	ReleaseMode string `json:"release_mode" default:"release"` // dev or release
+	LogMode         string `json:"log_mode" default:"dev"`         // dev or prod
+	ReleaseMode     string `json:"release_mode" default:"release"` // dev or release
+	UseSecureCookie string `json:"UseSecureCookie" default:"yes"`  // in base class
 
 	// do not change - do not edit next line.
 	Status string `json:"status" default:"success"`
@@ -229,6 +230,16 @@ type BaseConfigType struct {
 	CORS_Allowed    bool `json:"CORS_Allowed" default:"true"`     // see set_header.go
 	CORS_CheckTable bool `json:"CORS_CheckTable" default:"false"` // if false then all CORS are allowed. -- See set_header.go
 
+	// genError := os.Getenv("GEN_ERROR")
+	// rrorPassword := os.Getenv("ERROR_PASSWORD")
+	// See: lib5.go: 129, func ValidateHmacAuthKey(c *gin.Context, AuthKey string) bool {
+	// pw := os.Getenv("TEST_SEND_EMAIL_PASSWORD")
+	GenError              string `json:"GenError" default:"$ENV$GEN_ERROR"`
+	ErrorPassword         string `json:"ErrorPassword" default:"$ENV$ERROR_PASSWORD"`
+	ErrorName             string `json:"ErrorName" default:"$ENV$ERROR_NAME"`
+	TestSendEmailPassword string `json:"TestSendEmailPassword" default:"$ENV$TEST_SEND_EMAIL_PASSWORD"` // pw := os.Getenv("TEST_SEND_EMAIL_PASSWORD")
+	ErrorInt              int
+	ErrorString           string
 }
 
 type GlobalDataScopeType struct {

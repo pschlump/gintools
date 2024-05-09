@@ -5,7 +5,10 @@ package jwt_auth
 // BSD Licensed.  See LICENSE.bsd file.
 
 import (
+	"os"
+
 	"github.com/gin-gonic/gin"
+	"github.com/pschlump/dbgo"
 )
 
 // -------------------------------------------------------------------------------------------------------------------------------------
@@ -34,7 +37,12 @@ func SetCookie(cookieName, cookieValue string, c *gin.Context) {
 	// theCookie := GenCookie(cookieName, cookieValue, "/", Domain, Expires, MaxAge, IsTLS(c), IsTLS(c))
 	// http.SetCookie(c.Writer, theCookie)
 	// func (c *Context) SetCookie(name, value string, maxAge int, path, domain string, secure, httpOnly bool) {
-	c.SetCookie(cookieName, cookieValue, MaxAge, "/", Domain, IsTLS(c), IsTLS(c))
+	dbgo.Fprintf(os.Stderr, "%(magenta)IsTLS(c)=%v at:%(LF), gCfg.UseSecurieCooie=%(green)%s%(matenta) cookieName=%(yellow)%s%(magenta) cookieValue=%(yellow)%s\n", IsTLS(c), gCfg.UseSecureCookie, cookieName, cookieValue)
+	if gCfg.UseSecureCookie == "yes" {
+		c.SetCookie(cookieName, cookieValue, MaxAge, "/", Domain, true, true)
+	} else {
+		c.SetCookie(cookieName, cookieValue, MaxAge, "/", Domain, IsTLS(c), IsTLS(c))
+	}
 }
 
 func SetInsecureCookie(cookieName, cookieValue string, c *gin.Context) {
