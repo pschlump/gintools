@@ -8606,7 +8606,7 @@ BEGIN
 	select 
 			  t1.acct_state
 		into l_acct_state
-		from q_qr_user as t1
+		from q_qr_users as t1
 		where t1.email_hmac = l_email_hmac
 		;
 
@@ -8665,8 +8665,8 @@ BEGIN
 	end if;
 
 	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
-	update q_qr_user as t1
-		set t1.acct_state = p_acct_state
+	update q_qr_users as t1
+		set acct_state = p_acct_state
 		where t1.email_hmac = l_email_hmac
 		;
 

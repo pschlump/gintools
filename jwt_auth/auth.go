@@ -5003,6 +5003,11 @@ func authHandlerUpdateAcctState(c *gin.Context) {
 	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 }
 
+// Input for login
+type ApiGetAcctState struct {
+	Email string `json:"email"         form:"email"       binding:"required,email"`
+}
+
 // authHandlerGetAcctState gets the acct_state field in the q_qr_auth_users table for the current user.
 // After registraion it is reg0 or reg1.  This is repoted to the front end.
 
@@ -5025,7 +5030,7 @@ func authHandlerUpdateAcctState(c *gin.Context) {
 // @Router /api/v1/auth/get-acct-state [post]
 func authHandlerGetAcctState(c *gin.Context) {
 	var err error
-	var pp ApiUpdateAcctState
+	var pp ApiGetAcctState
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
