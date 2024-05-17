@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -179,6 +180,19 @@ func GetUserId(c *gin.Context) (UserId string, err error) {
 		}
 		UserId = s
 	}
+	return
+}
+
+// pp.Email = cleanupEmail ( pp.Email )
+func cleanupEmail(Email string) (rv string) {
+	rv = strings.ToLower(Email)
+	rv = strings.Trim(rv, " \t\n")
+	return
+}
+
+// pp.Pw = cleanupPw ( pp.Pw )
+func cleanupPw(Pw string) (rv string) {
+	rv = strings.Trim(Pw, " \t\n")
 	return
 }
 

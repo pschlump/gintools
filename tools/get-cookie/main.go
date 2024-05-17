@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -58,6 +59,12 @@ func main() {
 	}
 
 	flag.Parse() // Parse CLI arguments to this, --cfg <name>.json
+
+	// Cleanup:
+	// var Email = flag.String("email", "", "Login username (email).")
+	// var Password = flag.String("pass", "abcdefghij", "Password")
+	*Email = cleanupEmail(*Email)
+	*Password = cleanupPw(*Password)
 
 	fns := flag.Args()
 	if len(fns) != 0 {
@@ -116,7 +123,7 @@ func main() {
 	}
 
 	// jwt_auth.SetupConnectToJwtAuth(ctx, conn, &gCfg, logFilePtr, em, nil /*logger*/, nil /*metrics*/)
-	jwt_auth.SetupConnectToJwtAuth(ctx, conn, &(gCfg.BaseConfigType), &(gCfg.AppConfig), &(gCfg.QRConfig), logFilePtr, em, nil /*logger*/, nil /*metrics*/)
+	jwt_auth.SetupConnectToJwtAuth(ctx, conn, &(gCfg.BaseConfigType), &(gCfg.AppConfig), &(gCfg.QRConfig), logFilePtr, em, nil /*logger*/, nil /*metrics*/, nil /*redis-conn*/)
 
 	dbgo.Fprintf(os.Stderr, "%(green)Connected to DB\n")
 	dbgo.Fprintf(os.Stderr, "%(yellow)Connected to DB\n")
@@ -275,7 +282,8 @@ func main() {
 
 	// ----------------------------------------------------------------
 
-	jwtToken, err := jwt_auth.CreateJWTSignedCookieNoErr(auth_token, *Email)
+	// func CreateJWTSignedCookieNoErr(c *gin.Context, DBAuthToken, email_addr string) (rv string, err error) {
+	jwtToken, err := jwt_auth.CreateJWTSignedCookieNoErr(nil, auth_token, *Email)
 	if err != nil {
 		dbgo.Printf("Failed... error:%s at:%(LF)\n", err)
 		os.Exit(1)
@@ -527,3 +535,18 @@ var JsonTemplate = `{
 	, "jwt_token": "%{jwt_token%}"
 }
 `
+
+// pp.Email = cleanupEmail ( pp.Email )
+func cleanupEmail(Email string) (rv string) {
+	rv = strings.ToLower(Email)
+	rv = strings.Trim(rv, " \t\n")
+	return
+}
+
+// pp.Pw = cleanupPw ( pp.Pw )
+func cleanupPw(Pw string) (rv string) {
+	rv = strings.Trim(Pw, " \t\n")
+	return
+}
+
+/* vim: set noai ts=4 sw=4: */

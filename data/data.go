@@ -65,6 +65,12 @@ type FontConfig struct {
 	FontPathFile string `json:"font_path_file" default:"/Users/philip/go/src/github.com/golang/freetype/testdata/luxisr.ttf"`
 }
 
+type RedisLog struct {
+	RedisLogDatabase int    `json:"RedisLogDatabase" default:"0"`
+	UseRedisForLog   string `json:"UseRedisForLog" default:"no"`
+	RedisLogPrefix   string `json:"RedisLogPrefix" default:"log:"`
+}
+
 //type EthConfigData struct {
 //	URL_8545        string            `json:"geth_rpc_8545" default:"http://127.0.0.1:7545"`      // example: "http://192.168.0.200:8545".
 //	ContractAddress map[string]string `json:"ContractAddress"`                                    // Contract names to contract addresses map
@@ -89,6 +95,7 @@ type GlobalConfigData struct {
 	FontConfig
 	ThumbnailType
 	// EthConfigData
+	RedisLog
 
 	ItemAppURI string `json:"item_app_uri" default:"item_app"`
 }

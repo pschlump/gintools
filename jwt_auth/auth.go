@@ -364,6 +364,9 @@ func authHandleLogin(c *gin.Context) {
 		return
 	}
 
+	pp.Email = cleanupEmail(pp.Email)
+	pp.Pw = cleanupPw(pp.Pw)
+
 	if err := ValidateXsrfId(c, pp.XsrfId); err != nil {
 		md.AddCounter("jwt_auth_failed_login_attempts", 1)
 		return
@@ -657,6 +660,9 @@ func authHandleRegister(c *gin.Context) {
 		pp.AgreeEULA = "n"
 	}
 
+	pp.Email = cleanupEmail(pp.Email)
+	pp.Pw = cleanupPw(pp.Pw)
+
 	if IsXDBOn("authHandleRegister:error01") {
 		RegisterResp.LogUUID = GenUUID()
 		RegisterResp.Status = "error"
@@ -755,6 +761,8 @@ func authHandleGenerateQRForSecret(c *gin.Context) {
 		return
 	}
 
+	pp.Email = cleanupEmail(pp.Email)
+
 	totp := htotp.NewDefaultTOTP(pp.Secret) // totp := htotp.NewDefaultTOTP(RegisterResp.Secret2fa)
 	QRUrl := totp.ProvisioningUri(pp.Email /*username*/, gCfg.AuthRealm)
 	URLFor2faQR := MintQRPng(c, QRUrl)
@@ -827,6 +835,10 @@ func authHandleRegisterClientAdmin(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+
+	pp.Email = cleanupEmail(pp.Email)
+	pp.Pw = cleanupPw(pp.Pw)
+
 	perReqLog := tf.GetLogFilePtr(c)
 
 	if IsXDBOn("authHandleRegister:error01") {
@@ -1036,6 +1048,9 @@ func authHandlerEmailConfirm(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+
+	pp.Email = cleanupEmail(pp.Email)
+
 	perReqLog := tf.GetLogFilePtr(c)
 
 	rv, stmt, err := ConfirmEmailAccount(c, pp.EmailVerifyToken)
@@ -1229,6 +1244,11 @@ func authHandleChangePassword(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+
+	pp.Email = cleanupEmail(pp.Email)
+	pp.NewPw = cleanupPw(pp.NewPw)
+	pp.OldPw = cleanupPw(pp.OldPw)
+
 	perReqLog := tf.GetLogFilePtr(c)
 
 	if pp.NewPw == pp.OldPw {
@@ -1426,6 +1446,9 @@ func authHandleRecoverPassword01Setup(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+
+	pp.Email = cleanupEmail(pp.Email)
+
 	perReqLog := tf.GetLogFilePtr(c)
 
 	// create or replace function q_auth_v1_recover_password_01_setup ( p_un varchar, p_hmac_password varchar, p_userdata_password varchar )
@@ -1543,6 +1566,9 @@ func authHandleRecoverPassword02FetchInfo(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+
+	pp.Email = cleanupEmail(pp.Email)
+
 	perReqLog := tf.GetLogFilePtr(c)
 
 	// create or replace function q_auth_v1_recover_password_02_fetch_info ( p_un varchar, p_recovery_token varchar, p_hmac_password varchar, p_userdata_password varchar )
@@ -1616,6 +1642,11 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+
+	pp.Email = cleanupEmail(pp.Email)
+	pp.NewPw = cleanupPw(pp.NewPw)
+	pp.NewPwAgain = cleanupPw(pp.NewPwAgain)
+
 	perReqLog := tf.GetLogFilePtr(c)
 
 	// Check x2faPin for validity for this account.
@@ -2157,6 +2188,9 @@ func authHandleValidate2faToken(c *gin.Context) {
 		md.AddCounter("jwt_auth_failed_login_attempts", 1)
 		return
 	}
+
+	pp.Email = cleanupEmail(pp.Email)
+
 	perReqLog := tf.GetLogFilePtr(c)
 
 	// AmIKnown         string `json:"am_i_known" form:"am_i_known"` //
@@ -2483,6 +2517,9 @@ func authHandleRegisterUnPw(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+
+	pp.Email = cleanupEmail(pp.Email)
+
 	perReqLog := tf.GetLogFilePtr(c)
 	UserId, _, AuthToken := GetAuthToken(c)
 
@@ -2645,6 +2682,11 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+
+	pp.NewEmail = cleanupEmail(pp.NewEmail)
+	pp.OldEmail = cleanupEmail(pp.OldEmail)
+	pp.Pw = cleanupPw(pp.Pw)
+
 	UserId, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
@@ -2904,6 +2946,9 @@ func authHandleChangePasswordAdmin(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+
+	pp.Email = cleanupEmail(pp.Email)
+
 	UserID, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
@@ -3276,6 +3321,9 @@ func authHandleResendRegistrationEmail(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+
+	pp.Email = cleanupEmail(pp.Email)
+
 	perReqLog := tf.GetLogFilePtr(c)
 
 	var secret string
@@ -3679,7 +3727,7 @@ func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
 		//		`
 		// -----------------------------------------------------------------------------------------------------------------------
 		var has bool
-		if v2, has = RedisGetCachedToken(AuthToken, aCfg.UserdataPassword); has {
+		if v2, has = RedisGetCachedToken(AuthToken, aCfg.UserdataPassword, perReqLog); has {
 		} else {
 			stmt := `select user_id, privileges, client_id, email, seconds_till_expires from q_qr_validate_user_auth_token ( $1, $2 )`
 
@@ -3692,7 +3740,7 @@ func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
 				log_enc.LogSQLError(c, stmt, err, "e", AuthToken, aCfg.UserdataPassword)
 				return
 			}
-			RedisCacheAuthTokens(AuthToken, aCfg.UserdataPassword, v2)
+			RedisCacheAuthTokens(AuthToken, aCfg.UserdataPassword, v2, perReqLog)
 		}
 
 		// dbgo.Fprintf(os.Stderr, "%(green)%(LF) stmt ->%s<- data:%s %s\n", stmt, AuthToken, aCfg.UserdataPassword)
@@ -4717,6 +4765,9 @@ func authHandlerRequires2fa(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+
+	pp.Email = cleanupEmail(pp.Email)
+
 	perReqLog := tf.GetLogFilePtr(c)
 
 	time.Sleep(5000 * time.Millisecond) // Slow down to prevent searching for valid email
@@ -4793,6 +4844,9 @@ func authHandleAuthTokenDeleteAdmin(c *gin.Context) {
 		md.AddCounter("jwt_auth_failed_login_attempts", 1)
 		return
 	}
+
+	pp.Email = cleanupEmail(pp.Email)
+
 	perReqLog := tf.GetLogFilePtr(c)
 
 	if pp.DeleteAct == "auth_token" || pp.DeleteAct == "" {
@@ -4878,20 +4932,20 @@ func authHandleAuthTokenDeleteAdmin(c *gin.Context) {
 */
 // var rdb *redis.Client
 
-func RedisCacheAuthTokens(AuthToken, UserdataPassword string, v2 []*SQLUserIdPrivsType) {
+func RedisCacheAuthTokens(AuthToken, UserdataPassword string, v2 []*SQLUserIdPrivsType, perReqLog *os.File) {
 	if len(v2) <= 0 {
 		return
 	}
 	vX := v2[0]
 
 	// SHOULD BE:  NEW.expires := current_timestamp + interval '31 days';
-	dbgo.Printf("%(red)-------------------------------------------------------------------------------------------------------\n")
-	dbgo.Printf("%(yellow)-------------------------------------------------------------------------------------------------------\n")
-	dbgo.Printf("%(green)-------------------------------------------------------------------------------------------------------\n")
-	dbgo.Printf("Redis Cache of ->%s<- for %d seconds: %s ---- %v, should be: %v seconds 86400*31\n", AuthToken, vX.SecondsTillExpires, dbgo.SVar(vX), time.Duration(int64(vX.SecondsTillExpires)*int64(time.Second)), 86400*31)
-	dbgo.Printf("%(green)-------------------------------------------------------------------------------------------------------\n")
-	dbgo.Printf("%(yellow)-------------------------------------------------------------------------------------------------------\n")
-	dbgo.Printf("%(red)-------------------------------------------------------------------------------------------------------\n")
+	dbgo.Fprintf(perReqLog, "%(red)-------------------------------------------------------------------------------------------------------\n")
+	dbgo.Fprintf(perReqLog, "%(yellow)-------------------------------------------------------------------------------------------------------\n")
+	dbgo.Fprintf(perReqLog, "%(green)-------------------------------------------------------------------------------------------------------\n")
+	dbgo.Fprintf(perReqLog, "Redis Cache of ->%s<- for %d seconds: %s ---- %v, should be: %v seconds 86400*31\n", AuthToken, vX.SecondsTillExpires, dbgo.SVar(vX), time.Duration(int64(vX.SecondsTillExpires)*int64(time.Second)), 86400*31)
+	dbgo.Fprintf(perReqLog, "%(green)-------------------------------------------------------------------------------------------------------\n")
+	dbgo.Fprintf(perReqLog, "%(yellow)-------------------------------------------------------------------------------------------------------\n")
+	dbgo.Fprintf(perReqLog, "%(red)-------------------------------------------------------------------------------------------------------\n")
 
 	// time.Duration(timeout * float64(time.Second))
 
@@ -4899,7 +4953,7 @@ func RedisCacheAuthTokens(AuthToken, UserdataPassword string, v2 []*SQLUserIdPri
 	rdb.Set(ctx, fmt.Sprintf("auth_token:%s", AuthToken), dbgo.SVar(vX), time.Duration(int64(vX.SecondsTillExpires)*int64(time.Second)))
 }
 
-func RedisGetCachedToken(AuthToken, UserdataPassword string) (v2 []*SQLUserIdPrivsType, has bool) {
+func RedisGetCachedToken(AuthToken, UserdataPassword string, perReqLog *os.File) (v2 []*SQLUserIdPrivsType, has bool) {
 	has = false
 
 	// get from redis, if found then "has" set to true.
@@ -4966,6 +5020,9 @@ func authHandlerUpdateAcctState(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+
+	pp.Email = cleanupEmail(pp.Email)
+
 	perReqLog := tf.GetLogFilePtr(c)
 
 	//                                        1                2                     3                        4
@@ -5034,6 +5091,9 @@ func authHandlerGetAcctState(c *gin.Context) {
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
 	}
+
+	pp.Email = cleanupEmail(pp.Email)
+
 	perReqLog := tf.GetLogFilePtr(c)
 
 	//                                     1                2                        3
