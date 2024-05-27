@@ -1,3 +1,3 @@
-m4_define([[[m4_ver_version]]],[[[68f87a93d2c5c056f70d37ba0c7568cf358fafc3]]])m4_dnl
-m4_define([[[m4_ver_tag]]],[[[v1.0.54]]])m4_dnl
-m4_define([[[m4_ver_date]]],[[[Thu May  9 12:52:16 MDT 2024]]])m4_dnl
+m4_define([[[m4_ver_version]]],[[[278a6321502544a96e06d5f66ce97216e0d74e26]]])m4_dnl
+m4_define([[[m4_ver_tag]]],[[[v1.0.56]]])m4_dnl
+m4_define([[[m4_ver_date]]],[[[Sat May 18 06:11:39 MDT 2024]]])m4_dnl

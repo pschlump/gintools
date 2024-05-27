@@ -7647,6 +7647,7 @@ BEGIN
 
 	if not l_fail then
 		l_data = '{"status":"success"'
+			||', "email":'  				||coalesce(to_json(p_new_email)::text,'""')
 			||', "first_name":'  			||coalesce(to_json(l_first_name)::text,'""')
 			||', "last_name":'   			||coalesce(to_json(l_last_name)::text,'""')
 			||'}';
@@ -8069,18 +8070,6 @@ $$ LANGUAGE plpgsql;
 
 
 -- --------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- //	1. Change Name 			/api/v1/auth/change-name
--- //	2. Change Email Address	/api/v1/auth/change-email-addrss, .../can-chagne-email -> success/failed
--- 		// xyzzy770000 TODO --------------------------- change account info
--- // xyzzy770000 TODO --------------------------- change account info -- all info update by admin...
--- //		- stored proc needs to be implemented
--- //		- admin page
--- 
--- 		// create or replace function xyzzy ( p_un varchar, p_pw varchar, p_hmac_password varchar )
--- // UserId, first_name, last_name, PW, PW
--- 		stmt := "q_auth_v1_change_account_info ( $1, $2, $3, $4, $5 )"
---                                  1               2                     3                    4                        5
--- q_auth_v1_change_account_info (  p_user_id uuid, p_first_name varchar, p_last_name varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
 -- Update users name.
 -- --------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION q_auth_v1_change_account_info ( p_user_id uuid, p_first_name varchar, p_last_name varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
@@ -8159,15 +8148,6 @@ $$ LANGUAGE plpgsql;
 
 
 
---psql:001.tables.sql:2504: ERROR:  index "q_qr_role2_u1" is already associated with a constraint
---LINE 2:    ADD CONSTRAINT q_qr_role2_u1
---               ^
---QUERY:  ALTER TABLE q_qr_role2
---			ADD CONSTRAINT q_qr_role2_u1
---			UNIQUE USING INDEX q_qr_role2_u1
---CONTEXT:  PL/pgSQL function inline_code_block line 5 at SQL statement
-
---	l_junk = q_auth_v1_cleanup_old_data();
 
 	
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------

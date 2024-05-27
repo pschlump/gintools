@@ -102,4 +102,21 @@ func TestAppendStructToZapLog(t *testing.T) {
 
 var db8113 = false
 
+func TestEmailCleanup() {
+
+	orig := " Admin@WiR.com"
+	expect := "admin@wir.com"
+	got := cleanupEmail(orig)
+	if expect != got {
+		t.Errorf("cleanupEmail did not work, expected %s got %s\n", expect, got)
+	}
+
+	expect = "Admin@WiR.com"
+	got = cleanpPw(orig)
+	if expect != got {
+		t.Errorf("cleanupEmail did not work, expected %s got %s\n", expect, got)
+	}
+
+}
+
 /* vim: set noai ts=4 sw=4: */

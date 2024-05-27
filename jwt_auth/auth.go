@@ -4,6 +4,8 @@ package jwt_auth
 // MIT Licensed.  See LICENSE.mit file.
 // BSD Licensed.  See LICENSE.bsd file.
 
+// xyzzyLogoutForced - send message via websockt to log out all of this user.
+
 // xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
 
 //	1. Change Name 			/api/v1/auth/change-name
@@ -180,6 +182,8 @@ var GinSetupTable = []GinLoginType{
 	{Method: "POST", Path: "/api/v1/auth/auth-token-delete-admin", Fx: authHandleAuthTokenDeleteAdmin, UseLogin: LoginRequired},      //
 	{Method: "POST", Path: "/api/v1/auth/get-acct-state", Fx: authHandlerGetAcctState, UseLogin: LoginRequired},                      //
 	{Method: "POST", Path: "/api/v1/auth/update-acct-state", Fx: authHandlerUpdateAcctState, UseLogin: LoginRequired},                //
+
+	// change2faInfo
 
 }
 
@@ -1377,6 +1381,9 @@ func authHandleChangePassword(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus)) // 400
 			return
 		}
+
+		// xyzzyLogoutForced - send message via websockt to log out all of this user.
+		// err = rdb.Del(ctx, fmt.Sprintf("auth_token:%s", pp.AuthToken)).Err()
 
 		// send email about change
 		em.SendEmail("password_changed",
@@ -2657,6 +2664,14 @@ type ApiAuthChangeEmail struct {
 
 type RvChangeEmailAddressType struct {
 	StdErrorReturn
+	Email     string `json:"email,omitempty"`
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
+}
+
+type ChangeEmailSuccess struct {
+	Status    string `json:"status"`
+	Email     string `json:"email,omitempty"`
 	FirstName string `json:"first_name,omitempty"`
 	LastName  string `json:"last_name,omitempty"`
 }
@@ -2808,6 +2823,8 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 			return
 		}
 
+		// xyzzyLogoutForced - send message via websockt to log out all of this user.
+
 		// send email that Email Address Changed (to both old and new address)
 		em.SendEmail("email_address_changed_old_address",
 			"username", pp.OldEmail,
@@ -2834,9 +2851,7 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 			"reset_password_uri", gCfg.AuthPasswordRecoveryURI,
 		)
 
-		// xyzzy551 - Change Email NOT Tested
-
-		out := ReturnSuccess{Status: "success"}
+		out := ChangeEmailSuccess{Status: "success", Email: rvStatus.Email}
 		c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out)) // 200
 		return
 	} else {
@@ -2857,6 +2872,18 @@ type ApiAuthChangeAccountInfo struct {
 	FirstName string `json:"first_name" form:"first_name"   binding:"required"`
 	LastName  string `json:"last_name"  form:"last_name"    binding:"required"`
 	X2FaPin   string `json:"x2fa_pin"   form:"x2fa_pin"  `
+}
+
+type RvChangeNameType struct {
+	StdErrorReturn
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
+}
+
+type ChangeNameSuccess struct {
+	Status    string `json:"status"`
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
 }
 
 // authHandleChangeAccountInfo godoc
@@ -2894,9 +2921,7 @@ func authHandleChangeAccountInfo(c *gin.Context) {
 
 	DumpParamsToLog("After Auth - Top of Update Accoutn Info (first name, last-name)", c)
 
-	// xyzzy770000 TODO --------------------------- change account info
-
-	var rvStatus StdErrorReturn
+	var rvStatus RvChangeNameType
 	// UserId, first_name, last_name, PW, PW
 	//                                          1               2                     3                    4                        5
 	// FUNCTION q_auth_v1_change_account_info ( p_user_id uuid, p_first_name varchar, p_last_name varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
@@ -2907,7 +2932,7 @@ func authHandleChangeAccountInfo(c *gin.Context) {
 		return
 	}
 
-	out := ReturnSuccess{Status: "success"}
+	out := ChangeNameSuccess{Status: "success", FirstName: rvStatus.FirstName, LastName: rvStatus.LastName}
 	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out)) // 200
 	return
 
@@ -2973,6 +2998,8 @@ func authHandleChangePasswordAdmin(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus)) // 400
 			return
 		}
+
+		// xyzzyLogoutForced - send message via websockt to log out all of this user.
 
 		// send email about admin changging password
 		em.SendEmail("admin_password_changed",
@@ -4939,13 +4966,13 @@ func RedisCacheAuthTokens(AuthToken, UserdataPassword string, v2 []*SQLUserIdPri
 	vX := v2[0]
 
 	// SHOULD BE:  NEW.expires := current_timestamp + interval '31 days';
-	dbgo.Fprintf(perReqLog, "%(red)-------------------------------------------------------------------------------------------------------\n")
-	dbgo.Fprintf(perReqLog, "%(yellow)-------------------------------------------------------------------------------------------------------\n")
+	// dbgo.Fprintf(perReqLog, "%(red)-------------------------------------------------------------------------------------------------------\n")
+	// dbgo.Fprintf(perReqLog, "%(yellow)-------------------------------------------------------------------------------------------------------\n")
 	dbgo.Fprintf(perReqLog, "%(green)-------------------------------------------------------------------------------------------------------\n")
 	dbgo.Fprintf(perReqLog, "Redis Cache of ->%s<- for %d seconds: %s ---- %v, should be: %v seconds 86400*31\n", AuthToken, vX.SecondsTillExpires, dbgo.SVar(vX), time.Duration(int64(vX.SecondsTillExpires)*int64(time.Second)), 86400*31)
 	dbgo.Fprintf(perReqLog, "%(green)-------------------------------------------------------------------------------------------------------\n")
-	dbgo.Fprintf(perReqLog, "%(yellow)-------------------------------------------------------------------------------------------------------\n")
-	dbgo.Fprintf(perReqLog, "%(red)-------------------------------------------------------------------------------------------------------\n")
+	// dbgo.Fprintf(perReqLog, "%(yellow)-------------------------------------------------------------------------------------------------------\n")
+	// dbgo.Fprintf(perReqLog, "%(red)-------------------------------------------------------------------------------------------------------\n")
 
 	// time.Duration(timeout * float64(time.Second))
 
