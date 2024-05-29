@@ -13,6 +13,7 @@ package table_rest
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -50,7 +51,8 @@ func LogIt(s string, x ...interface{}) {
 	fmt.Fprintf(logFilePtr, "}\n")
 }
 
-func LogIt2(fp *os.File, s string, x ...interface{}) {
+// func LogIt2(fp *os.File, s string, x ...interface{}) {
+func LogIt2(fp io.WriteCloser, s string, x ...interface{}) {
 	fmt.Fprintf(fp, "{ \"type\":%q", s)
 	for i := 0; i < len(x); i += 2 {
 		if i+1 < len(x) {

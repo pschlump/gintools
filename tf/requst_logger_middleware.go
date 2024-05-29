@@ -14,12 +14,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/pschlump/dbgo"
-	"github.com/pschlump/filelib"
 	"github.com/pschlump/uuid"
 )
 
 type RequestLogFile struct {
-	logFilePtr *os.File
+	// logFilePtr *os.File
+	logFilePtr io.WriteCloser
 	createdAt  time.Time
 	refCount   int
 }
@@ -27,7 +27,8 @@ type RequestLogFile struct {
 var logFilePointerTable = make(map[string]*RequestLogFile)
 var logFilePointerLock sync.RWMutex
 
-func GetLogFile(requestId string) (fpOut *os.File) {
+// func GetLogFile(requestId string) (fpOut *os.File) {
+func GetLogFile(requestId string) (fpOut io.WriteCloser) {
 	logFilePointerLock.Lock()
 	defer logFilePointerLock.Unlock()
 	lf, ok := logFilePointerTable[requestId]
@@ -39,7 +40,8 @@ func GetLogFile(requestId string) (fpOut *os.File) {
 	return
 }
 
-func SetLogFile(requestId string, fp *os.File) {
+// func SetLogFile(requestId string, fp *os.File) {
+func SetLogFile(requestId string, fp io.WriteCloser) {
 	logFilePointerLock.Lock()
 	defer logFilePointerLock.Unlock()
 	logFilePointerTable[requestId] = &RequestLogFile{
@@ -91,7 +93,8 @@ func TimedCleanupLogFile() {
 	}
 }
 
-func GetLogFilePtr(c *gin.Context) (perReqLog *os.File) {
+// func GetLogFilePtr(c *gin.Context) (perReqLog *os.File) {
+func GetLogFilePtr(c *gin.Context) (perReqLog io.WriteCloser) {
 	if c == nil {
 		return logFilePtr
 	}
@@ -105,13 +108,16 @@ func RequestLogger(LogFileName string) gin.HandlerFunc {
 
 		uuidRequestId := GenUUID()
 
-		logFn := fmt.Sprintf("%s.RequestId_%s.log", LogFileName, uuidRequestId)
-		dbgo.Fprintf(os.Stderr, "%(cyan)Logging to: request_id=%s, file=%s\n", uuidRequestId, logFn)
+		// logFn := fmt.Sprintf("%s.RequestId_%s.log", LogFileName, uuidRequestId)
+		// dbgo.Fprintf(os.Stderr, "%(cyan)Logging to: request_id=%s, file=%s\n", uuidRequestId, logFn)
 		fmt.Fprintf(logFilePtr, "Logging to: request_id=%s\n", uuidRequestId)
 
-		f, err := filelib.Fopen(logFn, "w")
+		// f, err := filelib.Fopen(logFn, "w")
+
+		_, f, err := NewRedisLogger(uuidRequestId, rdb, ctx)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Unable to open file for [%s] error: %s\n", logFn, err)
+			// fmt.Fprintf(os.Stderr, "Unable to open file for [%s] error: %s\n", logFn, err)
+			fmt.Fprintf(os.Stderr, "Unable to open connection to logger RequestId=[%s] error: %s\n", uuidRequestId, err)
 			f = os.Stderr
 		}
 

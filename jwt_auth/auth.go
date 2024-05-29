@@ -79,6 +79,7 @@ func QrGroupRequestHandler(c *gin.Context) {
 import (
 	"crypto/sha256"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -4136,7 +4137,8 @@ func SqlRunStmt(c *gin.Context, stmt string, encPat string, data ...interface{})
 
 // Input : [{"priv_name":"May Change Password"}, {"priv_name":"May Password"}]
 // Outupt : {"May Change Password":true, "May Password":true}
-func ConvPrivs(perReqLog *os.File, Privileges string) (rv string, mr map[string]bool) {
+// func ConvPrivs(perReqLog *os.File, Privileges string) (rv string, mr map[string]bool) {
+func ConvPrivs(perReqLog io.WriteCloser, Privileges string) (rv string, mr map[string]bool) {
 
 	if Privileges == "" {
 		return
@@ -4159,7 +4161,8 @@ func ConvPrivs(perReqLog *os.File, Privileges string) (rv string, mr map[string]
 
 // Input : ["May Change Password", "May Do Whatever"]
 // Outupt : {"May Change Password":true, "May Do Whatever":true}
-func ConvPrivs2(perReqLog *os.File, Privileges []string) (rv string, mr map[string]bool) {
+// func ConvPrivs2(perReqLog *os.File, Privileges []string) (rv string, mr map[string]bool) {
+func ConvPrivs2(perReqLog io.WriteCloser, Privileges []string) (rv string, mr map[string]bool) {
 	// dbgo.Fprintf(perReqLog, "%(cyan)%(LF) -- ConvPrivs2(%s) ==\n", dbgo.SVar(Privileges))
 
 	mr = make(map[string]bool)
@@ -4234,7 +4237,8 @@ func BindFormOrJSONOptional(c *gin.Context, bindTo interface{}) (err error) {
 	return
 }
 
-func LogJsonReturned(perReqLog *os.File, x interface{}) interface{} {
+// func LogJsonReturned(perReqLog *os.File, x interface{}) interface{} {
+func LogJsonReturned(perReqLog io.WriteCloser, x interface{}) interface{} {
 	if y, ok := x.(string); ok {
 		dbgo.Fprintf(perReqLog, "%(cyan)Returns: %s at:%s\n", y, dbgo.LF(2))
 		// dbgo.Fprintf(perReqLog, "Returns: %s at:%s\n", y, dbgo.LF(2))
@@ -4959,7 +4963,8 @@ func authHandleAuthTokenDeleteAdmin(c *gin.Context) {
 */
 // var rdb *redis.Client
 
-func RedisCacheAuthTokens(AuthToken, UserdataPassword string, v2 []*SQLUserIdPrivsType, perReqLog *os.File) {
+// func RedisCacheAuthTokens(AuthToken, UserdataPassword string, v2 []*SQLUserIdPrivsType, perReqLog *os.File) {
+func RedisCacheAuthTokens(AuthToken, UserdataPassword string, v2 []*SQLUserIdPrivsType, perReqLog io.WriteCloser) {
 	if len(v2) <= 0 {
 		return
 	}
@@ -4980,7 +4985,8 @@ func RedisCacheAuthTokens(AuthToken, UserdataPassword string, v2 []*SQLUserIdPri
 	rdb.Set(ctx, fmt.Sprintf("auth_token:%s", AuthToken), dbgo.SVar(vX), time.Duration(int64(vX.SecondsTillExpires)*int64(time.Second)))
 }
 
-func RedisGetCachedToken(AuthToken, UserdataPassword string, perReqLog *os.File) (v2 []*SQLUserIdPrivsType, has bool) {
+// func RedisGetCachedToken(AuthToken, UserdataPassword string, perReqLog *os.File) (v2 []*SQLUserIdPrivsType, has bool) {
+func RedisGetCachedToken(AuthToken, UserdataPassword string, perReqLog io.WriteCloser) (v2 []*SQLUserIdPrivsType, has bool) {
 	has = false
 
 	// get from redis, if found then "has" set to true.

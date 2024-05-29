@@ -6,6 +6,7 @@ package log_enc
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 
@@ -42,7 +43,8 @@ func LogIt(s string, x ...interface{}) {
 	// dbgo.Fprintf(os.Stderr, "%(red)At:%(LF)\n")
 }
 
-func LogIt2(fp *os.File, s string, x ...interface{}) {
+// func LogIt2(fp *os.File, s string, x ...interface{}) {
+func LogIt2(fp io.WriteCloser, s string, x ...interface{}) {
 	fmt.Fprintf(fp, "{ \"type\":%q", s)
 	for i := 0; i < len(x); i += 2 {
 		if i+1 < len(x) {
