@@ -29,11 +29,12 @@ import (
 	"github.com/pschlump/uuid"
 )
 
-var logFilePtr *os.File = os.Stdout
+var logFilePtr io.WriteCloser = os.Stdout // var logFilePtr *os.File = os.Stdout
 
 var DbType = "Postgres" // var DbType = "SQLite"
 
-func SetupSQL(f *os.File) {
+// func SetupSQL(f *os.File) {
+func SetupSQL(f io.WriteCloser) {
 	logFilePtr = f
 	SetupProcCheck()
 }

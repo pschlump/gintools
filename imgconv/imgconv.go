@@ -11,6 +11,7 @@ import (
 	_ "image/jpeg"
 	"image/png"
 	_ "image/png"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -26,10 +27,11 @@ import (
 
 var splitPdf = "./cd-pdftoppm.sh"
 var tmpPathPdf = "./www/files"
-var logFilePtr = os.Stderr
+var logFilePtr io.WriteCloser = os.Stderr // var logFilePtr = os.Stderr
 var logger *zap.Logger
 
-func ConvPdfToPngSetup(ex, dir string, log *os.File, lgr *zap.Logger) {
+// func ConvPdfToPngSetup(ex, dir string, log *os.File, lgr *zap.Logger) {
+func ConvPdfToPngSetup(ex, dir string, log io.WriteCloser, lgr *zap.Logger) {
 	splitPdf = ex
 	tmpPathPdf = dir
 	logFilePtr = log

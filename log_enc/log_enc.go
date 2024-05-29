@@ -23,10 +23,11 @@ import (
 var gCfg *data.BaseConfigType
 var aCfg *data.AppConfig
 
-var logFilePtr *os.File = os.Stderr
+var logFilePtr io.WriteCloser = os.Stderr // var logFilePtr *os.File = os.Stderr
 
 // func SetupLogEnc(gcfg *data.GlobalConfigData, log *os.File) {
-func SetupLogEnc(gcfg *data.BaseConfigType, acfg *data.AppConfig, log *os.File) {
+// func SetupLogEnc(gcfg *data.BaseConfigType, acfg *data.AppConfig, log *os.File) {
+func SetupLogEnc(gcfg *data.BaseConfigType, acfg *data.AppConfig, log io.WriteCloser) {
 	logFilePtr = log
 	gCfg = gcfg
 	aCfg = acfg
@@ -180,7 +181,8 @@ func EncryptTextIndexable(key, xiv, text []byte) ([]byte, error) {
 	return ciphertext, nil
 }
 
-func ResetLogFile(newFp *os.File) {
+// func ResetLogFile(newFp *os.File) {
+func ResetLogFile(newFp io.WriteCloser) {
 	logFilePtr = newFp
 }
 

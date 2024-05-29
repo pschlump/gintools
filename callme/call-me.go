@@ -10,6 +10,7 @@ package callme
 // BSD Licensed
 
 import (
+	"io"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -17,14 +18,16 @@ import (
 )
 
 var gCfg *data.AppConfig
-var logFilePtr = os.Stderr
+var logFilePtr io.WriteCloser = os.Stderr // var logFilePtr = os.Stderr
 
-func SetupCallDb(x *data.AppConfig, fp *os.File) {
+// func SetupCallDb(x *data.AppConfig, fp *os.File) {
+func SetupCallDb(x *data.AppConfig, fp io.WriteCloser) {
 	gCfg = x
 	logFilePtr = fp
 }
 
-func ResetLogFile(fp *os.File) {
+// func ResetLogFile(fp *os.File) {
+func ResetLogFile(fp io.WriteCloser) {
 	logFilePtr = fp
 }
 

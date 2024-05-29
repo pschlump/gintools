@@ -9,7 +9,7 @@ package email
 
 import (
 	"fmt"
-	"os"
+	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -20,7 +20,7 @@ import (
 
 type AwsSesEmailSender struct {
 	// Log file to write logging to
-	emailLogFilePtr *os.File
+	emailLogFilePtr io.WriteCloser // emailLogFilePtr *os.File
 	// Really shoudl
 	// client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
 }
@@ -30,7 +30,8 @@ const (
 	CharSet = "UTF-8"
 )
 
-func NewEmailSenderAwsSes(f *os.File) (rv EmailSenderImplementation) {
+// func NewEmailSenderAwsSes(f *os.File) (rv EmailSenderImplementation) {
+func NewEmailSenderAwsSes(f io.WriteCloser) (rv EmailSenderImplementation) {
 	return &AwsSesEmailSender{
 		emailLogFilePtr: f,
 	}

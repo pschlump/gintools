@@ -11,6 +11,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"sync"
@@ -48,12 +49,13 @@ var ctx context.Context
 
 var gCfg *data.BaseConfigType
 var DbFlag map[string]bool = make(map[string]bool)
-var logFilePtr *os.File = os.Stderr
+var logFilePtr io.WriteCloser = os.Stderr // var logFilePtr *os.File = os.Stderr
 
 // Stats provide response time, status code count, etc.
 var Stats *stats.Stats
 
-func NewMetricsData(saveKey string, validKeys []MetricsTypeInfo, saveRateSeconds int, xgCfg *data.BaseConfigType, xdb map[string]bool, xlfp *os.File, xconn *pgxpool.Pool, xctx context.Context) (md *MetricsData) {
+// func NewMetricsData(saveKey string, validKeys []MetricsTypeInfo, saveRateSeconds int, xgCfg *data.BaseConfigType, xdb map[string]bool, xlfp *os.File, xconn *pgxpool.Pool, xctx context.Context) (md *MetricsData) {
+func NewMetricsData(saveKey string, validKeys []MetricsTypeInfo, saveRateSeconds int, xgCfg *data.BaseConfigType, xdb map[string]bool, xlfp io.WriteCloser, xconn *pgxpool.Pool, xctx context.Context) (md *MetricsData) {
 	logFilePtr = xlfp
 	gCfg = xgCfg
 	conn = xconn
@@ -382,7 +384,8 @@ func appStatusHandler() gin.HandlerFunc {
 }
 */
 
-func ResetLogFile(newFp *os.File) {
+// func ResetLogFile(newFp *os.File) {
+func ResetLogFile(newFp io.WriteCloser) {
 	logFilePtr = newFp
 }
 

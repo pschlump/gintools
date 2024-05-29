@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -19,7 +20,8 @@ import (
 )
 
 // var logFilePtr *os.File
-var logFilePtr *os.File = os.Stdout
+// var logFilePtr *os.File = os.Stdout
+var logFilePtr io.WriteCloser = os.Stdout
 
 // - check that the template has all necessary named-temlates in it. (Function)
 func ValidateTemplateHas(TemplateFn string, nameSet []string) (err error) {

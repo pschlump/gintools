@@ -8,6 +8,7 @@ package email
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/pschlump/dbgo"
@@ -17,10 +18,11 @@ import (
 
 type SendgridEmailSender struct {
 	// Log file to write logging to
-	emailLogFilePtr *os.File
+	emailLogFilePtr io.WriteCloser // emailLogFilePtr *os.File
 }
 
-func NewEmailSenderSendgrid(f *os.File) (rv EmailSenderImplementation) {
+// func NewEmailSenderSendgrid(f *os.File) (rv EmailSenderImplementation) {
+func NewEmailSenderSendgrid(f io.WriteCloser) (rv EmailSenderImplementation) {
 	return &SendgridEmailSender{
 		emailLogFilePtr: f,
 	}

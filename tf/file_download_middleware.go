@@ -2,6 +2,7 @@ package tf
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,7 +11,7 @@ import (
 	"github.com/pschlump/dbgo"
 )
 
-var logFilePtr *os.File = os.Stdout
+var logFilePtr io.WriteCloser = os.Stdout // var logFilePtr *os.File = os.Stdout
 var URLDownloadPath string
 
 func InFileDownloadList(s string) (fn string, found bool) {
@@ -39,7 +40,8 @@ func InFileDownloadList(s string) (fn string, found bool) {
 	return
 }
 
-func FileDownloadMiddleware(path string, fp *os.File) gin.HandlerFunc {
+// func FileDownloadMiddleware(path string, fp *os.File) gin.HandlerFunc {
+func FileDownloadMiddleware(path string, fp io.WriteCloser) gin.HandlerFunc {
 	URLDownloadPath = path
 	logFilePtr = fp
 	return func(c *gin.Context) {
@@ -52,7 +54,8 @@ func FileDownloadMiddleware(path string, fp *os.File) gin.HandlerFunc {
 	}
 }
 
-func ResetLogFile(newLf *os.File) {
+// func ResetLogFile(newLf *os.File) {
+func ResetLogFile(newLf io.WriteCloser) {
 	logFilePtr = newLf
 }
 

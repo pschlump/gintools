@@ -9,6 +9,7 @@ package metrics_test
 
 import (
 	"context"
+	"io"
 	"os"
 	"testing"
 
@@ -19,7 +20,9 @@ import (
 
 var gCfg data.BaseConfigType
 var DbFlag map[string]bool = make(map[string]bool)
-var logFilePtr *os.File = os.Stderr
+
+// var logFilePtr *os.File = os.Stderr
+var logFilePtr io.WriteCloser = os.Stderr
 
 var conn *pgxpool.Pool
 var ctx context.Context

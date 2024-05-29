@@ -5,7 +5,7 @@ package table_rest
 // BSD Licensed.  See LICENSE.bsd file.
 
 import (
-	"os"
+	"io"
 
 	"github.com/pschlump/gintools/data"
 )
@@ -22,7 +22,8 @@ func SetupCRUD(gcfg *data.BaseConfigType, acfg *data.AppConfig, ucfg *data.Uploa
 	uCfg = ucfg
 }
 
-func ResetLogFile(newFp *os.File) {
+// func ResetLogFile(newFp *os.File) {
+func ResetLogFile(newFp io.WriteCloser) {
 	logFilePtr = newFp
 }
 

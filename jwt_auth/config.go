@@ -6,6 +6,7 @@ package jwt_auth
 
 import (
 	"context"
+	"io"
 	"os"
 	"sync"
 
@@ -26,7 +27,7 @@ var gCfg *data.BaseConfigType
 var aCfg *data.AppConfig
 var qCfg *data.QRConfig
 
-var logFilePtr *os.File = os.Stderr
+var logFilePtr io.WriteCloser = os.Stderr // var logFilePtr *os.File = os.Stderr
 
 var XDbOnLock = sync.RWMutex{}
 var XDbOn = make(map[string]bool)
@@ -42,7 +43,8 @@ var logger *zap.Logger
 // func NewMetricsData(saveKey string, validKeys []MetricsTypeInfo, saveRateSeconds int, xgCfg *data.BaseConfigType, xdb map[string]bool, xlfp *os.File, xconn *pgxpool.Pool, xctx context.Context) (md *MetricsData) {
 // func SetupConnectToJwtAuth(xctx context.Context, xconn *pgxpool.Pool, gcfg *data.GlobalConfigData, log *os.File, xem email.EmailSender, lgr *zap.Logger, xmd *metrics.MetricsData) {
 
-func SetupConnectToJwtAuth(xctx context.Context, xconn *pgxpool.Pool, gcfg *data.BaseConfigType, acfg *data.AppConfig, qcfg *data.QRConfig, log *os.File, xem email.EmailSender, lgr *zap.Logger, xmd *metrics.MetricsData, xrdb *redis.Client) {
+// func SetupConnectToJwtAuth(xctx context.Context, xconn *pgxpool.Pool, gcfg *data.BaseConfigType, acfg *data.AppConfig, qcfg *data.QRConfig, log *os.File, xem email.EmailSender, lgr *zap.Logger, xmd *metrics.MetricsData, xrdb *redis.Client) {
+func SetupConnectToJwtAuth(xctx context.Context, xconn *pgxpool.Pool, gcfg *data.BaseConfigType, acfg *data.AppConfig, qcfg *data.QRConfig, log io.WriteCloser, xem email.EmailSender, lgr *zap.Logger, xmd *metrics.MetricsData, xrdb *redis.Client) {
 	logFilePtr = log
 	gCfg = gcfg
 	aCfg = acfg
@@ -111,7 +113,8 @@ func SetupConnectToJwtAuth(xctx context.Context, xconn *pgxpool.Pool, gcfg *data
 	md.AddMetricsKeys(validKeys)
 }
 
-func ResetLogFile(newFp *os.File) {
+// func ResetLogFile(newFp *os.File) {
+func ResetLogFile(newFp io.WriteCloser) {
 	logFilePtr = newFp
 	callme.ResetLogFile(newFp)
 }

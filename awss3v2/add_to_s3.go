@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 
@@ -33,7 +34,7 @@ type AwsS3Cfg struct {
 }
 
 var gCfg *AwsS3Cfg
-var logFilePtr *os.File
+var logFilePtr io.WriteCloser // var logFilePtr *os.File
 var uploader *s3manager.Uploader
 var downloader *s3manager.Downloader
 
@@ -41,11 +42,13 @@ func init() {
 	logFilePtr = os.Stderr
 }
 
-func ResetLogFile(newFp *os.File) {
+// func ResetLogFile(newFp *os.File) {
+func ResetLogFile(newFp io.WriteCloser) {
 	logFilePtr = newFp
 }
 
-func Setup(gcfg *AwsS3Cfg, lfp *os.File) (err error) {
+// func Setup(gcfg *AwsS3Cfg, lfp *os.File) (err error) {
+func Setup(gcfg *AwsS3Cfg, lfp io.WriteCloser) (err error) {
 
 	gCfg = gcfg
 	logFilePtr = lfp

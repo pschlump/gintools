@@ -38,19 +38,23 @@ func CheckRedisWorking() (err error) {
 }
 
 var PubSubLogKey = "log:pub-sub-channel:"
+var PubSubLogIAmAliveKey = "log:-i-am-live-"
+var PubSubLogIAmAliveValue = "yes"
 
 type LogMessage struct {
-	Cmd      string `json:"Cmd,omitempty"`
-	Data     string `json:"Data,omitempty"`
-	ReqId    string `json:"ReqId,omitempty"`
-	FileName string `json:"FileName,omitempty"`
+	Cmd        string `json:"Cmd,omitempty"`
+	Data       string `json:"Data,omitempty"`
+	ReqId      string `json:"ReqId,omitempty"`
+	FileName   string `json:"FileName,omitempty"`
+	ServerName string `json:"ServerName,omitempty"`
 }
 
 type RedisLogger struct {
-	rdb      *redis.Client
-	ctx      context.Context
-	ReqId    string
-	FileName string
+	rdb        *redis.Client
+	ctx        context.Context
+	ReqId      string
+	FileName   string
+	ServerName string
 }
 
 func NewRedisLogger(ReqId string, rdb *redis.Client, ctx context.Context) (lm *RedisLogger, wp io.WriteCloser, err error) {
@@ -58,27 +62,29 @@ func NewRedisLogger(ReqId string, rdb *redis.Client, ctx context.Context) (lm *R
 		fmt.Printf("Failed to publish, open, to the log pubsub channel, %s: error:%s\n", PubSubLogKey, err)
 	}
 	x := &RedisLogger{
-		rdb:   rdb,
-		ctx:   ctx,
-		ReqId: ReqId,
+		rdb:        rdb,
+		ctx:        ctx,
+		ReqId:      ReqId,
+		ServerName: serverName,
 	}
 	return x, x, nil
 }
 func NewRedisLoggerFile(FileName string, rdb *redis.Client, ctx context.Context) (lm *RedisLogger, wp io.WriteCloser, err error) {
 	if err := rdb.Publish(ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "open", FileName: FileName})).Err(); err != nil {
-		fmt.Printf("Failed to publish, open, to the log pubsub channel, %s: error:%s\n", PubSubLogKey, err)
+		fmt.Printf("Failed to publish, open/file, to the log pubsub channel, %s: error:%s\n", PubSubLogKey, err)
 	}
 	x := &RedisLogger{
-		rdb:      rdb,
-		ctx:      ctx,
-		FileName: FileName,
+		rdb:        rdb,
+		ctx:        ctx,
+		FileName:   FileName,
+		ServerName: serverName,
 	}
 	return x, x, nil
 }
 
 func (ee RedisLogger) Write(p []byte) (int, error) {
 	fmt.Printf("Write >%s<, ReqId >%s<-\n", p, ee.ReqId)
-	if err := rdb.Publish(ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "data", Data: string(p), ReqId: ee.ReqId})).Err(); err != nil {
+	if err := rdb.Publish(ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "data", Data: string(p), ReqId: ee.ReqId, FileName: ee.FileName})).Err(); err != nil {
 		fmt.Printf("Failed to publish to the log pubsub channel, %s: error:%s\n", PubSubLogKey, err)
 		return 0, err
 	}
@@ -86,7 +92,7 @@ func (ee RedisLogger) Write(p []byte) (int, error) {
 }
 
 func (ee RedisLogger) Close() (err error) {
-	if err = rdb.Publish(ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "close", ReqId: ee.ReqId})).Err(); err != nil {
+	if err = rdb.Publish(ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "close", ReqId: ee.ReqId, FileName: ee.FileName})).Err(); err != nil {
 		fmt.Printf("Failed to publish, close, to the log pubsub channel, %s: error:%s\n", PubSubLogKey, err)
 	}
 	return
@@ -104,18 +110,6 @@ func (ee RedisLogger) Command(cmd string) (err error) {
 		fmt.Printf("Failed to publish, %s, to the log pubsub channel, %s: error:%s\n", cmd, PubSubLogKey, err)
 	}
 	return
-}
-
-func xyzzyTest() {
-	// x1, wr, err := NewRedisLogger("--email-log--", rdb, ctx)
-	x1, wr, err := NewRedisLogger("", rdb, ctx)
-	if err != nil {
-	}
-	_ = x1
-	dbgo.Fprintf(wr, "Test Test Test 1 - e\n")
-	dbgo.Fprintf(wr, "Best Best Best 2 - e\n")
-	// x1.Close()
-	wr.Close()
 }
 
 /* vim: set noai ts=4 sw=4: */

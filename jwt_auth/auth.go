@@ -4138,6 +4138,7 @@ func SqlRunStmt(c *gin.Context, stmt string, encPat string, data ...interface{})
 // Input : [{"priv_name":"May Change Password"}, {"priv_name":"May Password"}]
 // Outupt : {"May Change Password":true, "May Password":true}
 // func ConvPrivs(perReqLog *os.File, Privileges string) (rv string, mr map[string]bool) {
+// func ConvPrivs(perReqLog io.WriteCloser, Privileges string) (rv string, mr map[string]bool) {
 func ConvPrivs(perReqLog io.WriteCloser, Privileges string) (rv string, mr map[string]bool) {
 
 	if Privileges == "" {

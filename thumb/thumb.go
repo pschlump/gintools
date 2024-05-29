@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -25,12 +26,13 @@ import (
 )
 
 var DbOn map[string]bool
-var logFilePtr *os.File
+var logFilePtr io.WriteCloser // var logFilePtr *os.File
 var gCfg *data.ThumbnailType
 var xCfg *data.BaseConfigType
 var logger *zap.Logger
 
-func SetupThumbnail(router *gin.Engine, cfg *data.ThumbnailType, xcfg *data.BaseConfigType, dbF map[string]bool, f *os.File, lfp *zap.Logger) {
+// func SetupThumbnail(router *gin.Engine, cfg *data.ThumbnailType, xcfg *data.BaseConfigType, dbF map[string]bool, f *os.File, lfp *zap.Logger) {
+func SetupThumbnail(router *gin.Engine, cfg *data.ThumbnailType, xcfg *data.BaseConfigType, dbF map[string]bool, f io.WriteCloser, lfp *zap.Logger) {
 	DbOn = dbF
 	logFilePtr = f
 	gCfg = cfg
@@ -361,7 +363,8 @@ func GetImageDimension(imagePath string) (width int, height int) {
 	return image.Width, image.Height
 }
 
-func ResetLogFile(newFp *os.File) {
+// func ResetLogFile(newFp *os.File) {
+func ResetLogFile(newFp io.WriteCloser) {
 	logFilePtr = newFp
 }
 

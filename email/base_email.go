@@ -9,6 +9,7 @@ package email
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 
@@ -35,7 +36,8 @@ type EmailSender interface {
 	LogError(rowID, msg string, err error)
 	LogSuccess(rowID string)
 	SetupHandlerApi(router *gin.Engine, urlPath, key string)
-	ResetLogFile(newFp *os.File)
+	// ResetLogFile(newFp *os.File)
+	ResetLogFile(newFp io.WriteCloser)
 }
 
 type EmailSenderImplementation interface {
@@ -52,7 +54,8 @@ type GenericEmailSender struct {
 	// Debug flags like prevent send of email for testing
 	DbFlag map[string]bool
 	// Log file to write logging to
-	emailLogFilePtr *os.File
+	// emailLogFilePtr *os.File
+	emailLogFilePtr io.WriteCloser
 
 	// Logging and Metrics
 	md     *metrics.MetricsData
@@ -71,7 +74,8 @@ type GenericEmailSender struct {
 }
 
 // func NewEmailSender(senderType string, gcfg *data.BaseConfigType, db map[string]bool, f *os.File, conn *pgxpool.Pool, ctx context.Context, lgr *zap.Logger, xmd *metrics.MetricsData) (rv GenericEmailSender) {
-func NewEmailSender(senderType string, gcfg *data.BaseConfigType, db map[string]bool, f *os.File, conn *pgxpool.Pool, ctx context.Context, lgr *zap.Logger, xmd *metrics.MetricsData) (rv EmailSender) {
+// func NewEmailSender(senderType string, gcfg *data.BaseConfigType, db map[string]bool, f *os.File, conn *pgxpool.Pool, ctx context.Context, lgr *zap.Logger, xmd *metrics.MetricsData) (rv EmailSender) {
+func NewEmailSender(senderType string, gcfg *data.BaseConfigType, db map[string]bool, f io.WriteCloser, conn *pgxpool.Pool, ctx context.Context, lgr *zap.Logger, xmd *metrics.MetricsData) (rv EmailSender) {
 
 	if xmd != nil {
 		validKeys := []metrics.MetricsTypeInfo{
@@ -131,7 +135,8 @@ func NewEmailSender(senderType string, gcfg *data.BaseConfigType, db map[string]
 	return &xv
 }
 
-func (em *GenericEmailSender) ResetLogFile(newFp *os.File) {
+// func (em *GenericEmailSender) ResetLogFile(newFp *os.File) {
+func (em *GenericEmailSender) ResetLogFile(newFp io.WriteCloser) {
 	em.emailLogFilePtr = newFp
 }
 
