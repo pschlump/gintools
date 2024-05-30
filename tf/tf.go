@@ -8,12 +8,12 @@ import (
 
 var ctx context.Context
 var rdb *redis.Client
-var serverName string = ""
+var clusterName string = ""
 
-func SetupTf(xctx context.Context, xrdb *redis.Client, xServerName string) {
+func SetupTf(xctx context.Context, xrdb *redis.Client, ClusterName string) {
 	ctx = xctx
 	rdb = xrdb
-	serverName = xServerName
+	clusterName = ClusterName
 }
 
 func Xtf() error {

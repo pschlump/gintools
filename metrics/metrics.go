@@ -24,6 +24,7 @@ import (
 	"github.com/pschlump/dbgo"
 	"github.com/pschlump/gintools/data"
 	"github.com/pschlump/scany/pgxscan"
+	"github.com/redis/go-redis/v9"
 	"github.com/thoas/stats"
 )
 
@@ -44,8 +45,12 @@ var timeout chan string = make(chan string, 2)
 var nTicks int = 0
 var ch chan string = make(chan string, 1)
 
+var rdb *redis.Client
 var conn *pgxpool.Pool
 var ctx context.Context
+
+var usePg = true
+var useRedis = false
 
 var gCfg *data.BaseConfigType
 var DbFlag map[string]bool = make(map[string]bool)
@@ -61,6 +66,56 @@ func NewMetricsData(saveKey string, validKeys []MetricsTypeInfo, saveRateSeconds
 	conn = xconn
 	ctx = xctx
 	DbFlag = xdb
+	useRedis = false
+	if conn != nil {
+		usePg = true
+	} else {
+		usePg = false
+	}
+
+	md = &MetricsData{
+		Data:              make(map[string]float64),
+		SaveRateSeconds:   saveRateSeconds,
+		SaveKey:           saveKey,
+		prometheusCounter: make(map[string]*prometheus.Desc),
+	}
+	for _, kk := range validKeys {
+		md.Data[kk.Key] = 0
+		md.prometheusCounter[kk.Key] = prometheus.NewDesc(kk.Key, kk.Desc, nil, nil)
+	}
+
+	// ------------------------------------------------------------------------------
+	// create periodic timed data save.  If "memory" then no save
+	// ------------------------------------------------------------------------------
+	go timedDispatch(md)
+
+	// ticker on channel - send once a minute
+	go func(n int) {
+		for {
+			time.Sleep(time.Duration(n) * time.Second)
+			timeout <- "timeout"
+			nTicks++
+		}
+	}(saveRateSeconds)
+
+	Stats = stats.New()
+
+	md.GetData()
+	return
+}
+
+func NewMetricsDataRedis(saveKey string, validKeys []MetricsTypeInfo, saveRateSeconds int, xgCfg *data.BaseConfigType, xdb map[string]bool, xlfp io.WriteCloser, xrdb *redis.Client, xctx context.Context) (md *MetricsData) {
+	logFilePtr = xlfp
+	gCfg = xgCfg
+	rdb = xrdb
+	ctx = xctx
+	DbFlag = xdb
+	usePg = false
+	if rdb != nil {
+		useRedis = true
+	} else {
+		useRedis = false
+	}
 
 	md = &MetricsData{
 		Data:              make(map[string]float64),
@@ -128,24 +183,40 @@ func (md *MetricsData) GetData() {
 	if md == nil {
 		return
 	}
-	stmt := `select data::text as "x" from t_key_value where key = $1`
-	dt, err := SqlRunStmt(stmt, md.SaveKey)
-	if err != nil {
-		fmt.Fprintf(logFilePtr, "Error on stmt ->%s<- data ->%s<- Select: %s\n", stmt, XData(md.SaveKey), err)
-		return
-	}
-	fmt.Fprintf(logFilePtr, "Success on stmt ->%s<- data ->%s<- results %s\n", stmt, XData(md.SaveKey), dbgo.SVarI(dt))
-	if len(dt) == 0 {
-		return
-	}
-	if len(dt) != 1 {
-		fmt.Fprintf(logFilePtr, "Invalid length for data: %d, should be 1\n", len(dt))
-		return
-	}
-	err = json.Unmarshal([]byte(dt[0]["x"].(string)), &md.Data)
-	if err != nil {
-		fmt.Fprintf(logFilePtr, "Unmarshal error: %s data ->%s<-\n", err, dt[0]["x"])
-		return
+	if usePg {
+		stmt := `select data::text as "x" from t_key_value where key = $1`
+		dt, err := SqlRunStmt(stmt, md.SaveKey)
+		if err != nil {
+			fmt.Fprintf(logFilePtr, "Error on stmt ->%s<- data ->%s<- Select: %s\n", stmt, XData(md.SaveKey), err)
+			return
+		}
+		fmt.Fprintf(logFilePtr, "Success on stmt ->%s<- data ->%s<- results %s\n", stmt, XData(md.SaveKey), dbgo.SVarI(dt))
+		if len(dt) == 0 {
+			return
+		}
+		if len(dt) != 1 {
+			fmt.Fprintf(logFilePtr, "Invalid length for data: %d, should be 1\n", len(dt))
+			return
+		}
+		err = json.Unmarshal([]byte(dt[0]["x"].(string)), &md.Data)
+		if err != nil {
+			fmt.Fprintf(logFilePtr, "Unmarshal error: %s data ->%s<-\n", err, dt[0]["x"])
+			return
+		}
+	} else if useRedis {
+		t := rdb.Get(ctx, md.SaveKey)
+		if t.Err() != nil {
+			t := rdb.Set(ctx, md.SaveKey, "{}", 0)
+			if t.Err() != nil {
+				fmt.Fprintf(logFilePtr, "Error on Redis set/get data Error: %s\n", t.Err())
+			}
+		} else {
+			err := json.Unmarshal([]byte(t.Val()), &md.Data)
+			if err != nil {
+				fmt.Fprintf(logFilePtr, "Unmarshal error: %s data ->%s<-\n", err, t.Val())
+				return
+			}
+		}
 	}
 }
 
@@ -153,18 +224,25 @@ func (md *MetricsData) SaveData() {
 	if md == nil {
 		return
 	}
-	stmt := `
-		INSERT INTO t_key_value ( key, data ) 
-			VALUES ( $1, $2::jsonb )
-			On CONFLICT on CONSTRAINT t_key_value_uniq1
-			DO
-			   UPDATE SET data = $2::jsonb
-	`
-	// On CONFLICT(key) DO NOTHING
-	_, err := SqlRunStmt(stmt, md.SaveKey, dbgo.SVar(md.Data))
-	if err != nil {
-		fmt.Fprintf(logFilePtr, "Invalid insert ->%s<- data:%s error:%s\n", stmt, XData(md.SaveKey, dbgo.SVar(md.Data)), err)
-		return
+	if usePg {
+		stmt := `
+			INSERT INTO t_key_value ( key, data ) 
+				VALUES ( $1, $2::jsonb )
+				On CONFLICT on CONSTRAINT t_key_value_uniq1
+				DO
+				   UPDATE SET data = $2::jsonb
+		`
+		// On CONFLICT(key) DO NOTHING
+		_, err := SqlRunStmt(stmt, md.SaveKey, dbgo.SVar(md.Data))
+		if err != nil {
+			fmt.Fprintf(logFilePtr, "Invalid insert ->%s<- data:%s error:%s\n", stmt, XData(md.SaveKey, dbgo.SVar(md.Data)), err)
+			return
+		}
+	} else if useRedis {
+		err := rdb.Set(ctx, md.SaveKey, dbgo.SVarI(md.Data), 0).Err()
+		if err != nil {
+			fmt.Fprintf(logFilePtr, "Invalid set  data:%s error:%s\n", dbgo.SVar(md.Data), err)
+		}
 	}
 }
 
@@ -337,6 +415,9 @@ func (md *MetricsData) Collect(ch chan<- prometheus.Metric) {
 
 // SqlRunStmt will run a single statemt and return the data as an array of maps
 func SqlRunStmt(stmt string, data ...interface{}) (rv []map[string]interface{}, err error) {
+	if usePg == false {
+		return
+	}
 	if conn == nil {
 		dbgo.Fprintf(logFilePtr, "Connection is nil -- no database connected -- :%(LF)\n")
 		return
