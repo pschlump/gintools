@@ -103,7 +103,7 @@ func GetLogFilePtr(c *gin.Context) (perReqLog io.WriteCloser) {
 	return
 }
 
-func RequestLogger(LogFileName string) gin.HandlerFunc {
+func RequestLogger(LogFileName, AuthKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		uuidRequestId := GenUUID()
@@ -114,7 +114,7 @@ func RequestLogger(LogFileName string) gin.HandlerFunc {
 
 		// f, err := filelib.Fopen(logFn, "w")
 
-		_, f, err := NewRedisLogger(uuidRequestId, rdb, ctx)
+		_, f, err := NewRedisLogger(uuidRequestId, AuthKey, rdb, ctx)
 		if err != nil {
 			// fmt.Fprintf(os.Stderr, "Unable to open file for [%s] error: %s\n", logFn, err)
 			fmt.Fprintf(os.Stderr, "Unable to open connection to logger RequestId=[%s] error: %s\n", uuidRequestId, err)

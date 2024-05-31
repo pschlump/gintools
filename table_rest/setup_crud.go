@@ -317,7 +317,9 @@ func InitTableREST(router *gin.Engine) {
 				} else if method == "POST" && len(xsp.POST_InputList) > 0 {
 					pname, err = ValidateInputParameters(c, xsp.POST_InputList)
 				} else {
-					dbgo.Fprintf(logFilePtr, "%(yellow)Validation of paramters skipped - no validaiton specified in handle.go: at:%(LF)\n")
+					if db812 {
+						dbgo.Fprintf(logFilePtr, "%(yellow)Validation of paramters skipped - no validaiton specified in handle.go: at:%(LF)\n")
+					}
 				}
 
 				if err != nil {
@@ -390,8 +392,9 @@ func ValidatePrivs2(c *gin.Context, RequiredAuthPrivs []string) error {
 		}
 	}
 
-	// dbgo.Fprintf(os.Stderr, "%(cyan) at:%(LF) - login not required - privilege passed\n")
-	dbgo.Fprintf(logFilePtr, "{\"msg\":\"at:%(LF) - login not required - privilege passed\"}\n")
+	if db812 {
+		dbgo.Fprintf(logFilePtr, "{\"msg\":\"at:%(LF) - login not required - privilege passed\"}\n")
+	}
 	return nil // All privilege tests passed, return success
 }
 
@@ -424,5 +427,7 @@ func DumpParamsToLog(when string, c *gin.Context) {
 
 	return
 }
+
+const db812 = false
 
 /* vim: set noai ts=4 sw=4: */
