@@ -99,7 +99,11 @@ func GetLogFilePtr(c *gin.Context) (perReqLog io.WriteCloser) {
 		return logFilePtr
 	}
 	requestId, _ := c.Get("__request_id__")
-	perReqLog = GetLogFile(requestId.(string))
+	if requestId != nil {
+		perReqLog = GetLogFile(requestId.(string))
+	} else {
+		perReqLog = os.Stderr
+	}
 	return
 }
 

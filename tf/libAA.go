@@ -53,7 +53,9 @@ func ValidateAuthKeyHmac(AuthKey, Pw string) bool {
 		return false
 	}
 
-	dbgo.Fprintf(os.Stderr, "%(green)Have valid AuthKey value (should have been authenticated also) %(LF)\n")
+	if db8 {
+		dbgo.Fprintf(os.Stderr, "%(green)Have valid AuthKey value (should have been authenticated also) %(LF)\n")
+	}
 	return true
 }
 
@@ -80,7 +82,9 @@ type RedisLogger struct {
 }
 
 func NewRedisLogger(ReqId, AuthKey string, rdb *redis.Client, ctx context.Context) (lm *RedisLogger, wp io.WriteCloser, err error) {
-	dbgo.Fprintf(os.Stderr, "%(greenw)NewRedisLogger%(magenta) clusterName=%s %(yellow)At:%(LF)\n", clusterName)
+	if db44 {
+		dbgo.Fprintf(os.Stderr, "%(greenw)NewRedisLogger%(magenta) clusterName=%s %(yellow)At:%(LF)\n", clusterName)
+	}
 	if err := rdb.Publish(ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "open", ReqId: ReqId, ClusterName: clusterName, AuthKey: AuthKey})).Err(); err != nil {
 		fmt.Printf("Failed to publish, open, to the log pubsub channel, %s: error:%s\n", PubSubLogKey, err)
 	}
@@ -94,7 +98,9 @@ func NewRedisLogger(ReqId, AuthKey string, rdb *redis.Client, ctx context.Contex
 	return x, x, nil
 }
 func NewRedisLoggerFile(FileName, AuthKey string, rdb *redis.Client, ctx context.Context) (lm *RedisLogger, wp io.WriteCloser, err error) {
-	dbgo.Fprintf(os.Stderr, "%(greenw)NewRedisLogger%(magenta) clusterName=%s %(yellow)At:%(LF)\n", clusterName)
+	if db44 {
+		dbgo.Fprintf(os.Stderr, "%(greenw)NewRedisLogger%(magenta) clusterName=%s %(yellow)At:%(LF)\n", clusterName)
+	}
 	if err := rdb.Publish(ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "open", FileName: FileName, ClusterName: clusterName, AuthKey: AuthKey})).Err(); err != nil {
 		fmt.Printf("Failed to publish, open/file, to the log pubsub channel, %s: error:%s\n", PubSubLogKey, err)
 	}
@@ -141,5 +147,8 @@ func (ee RedisLogger) Command(cmd string) (err error) {
 	}
 	return
 }
+
+const db8 = false
+const db44 = false
 
 /* vim: set noai ts=4 sw=4: */

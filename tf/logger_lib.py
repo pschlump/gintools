@@ -3,23 +3,112 @@
 import sys
 import inspect
 import json
+import redis
 from db.db import debug_print 
 from colors.colors import red, green, yellow, magenta, cyan, white, reset
 
-def connecToRedis( host, port, auth, database ) :
-    print ( f"host={host} port={port} quth={quth} databsase={databsase}" )
+def connecToRedis( xhost, xport, auth, xdatabase ) :
+    print ( f"host={xhost} port={xport} auth={auth} databsase={xdatabase}" )
+    r = redis.Redis(host=xhost, port=xport, decode_responses=True, password=auth)
+    publisher = r.PublisherClient()
+    rv = {
+       'Conn': r,
+       'Key':  "log:pub-sub-channel:",
+       'PubSubClient': publisher
+    }
+    return rv
 
-def openLogConnection ( ) :
-    print ( "xyzzy" )
+def openLogConnection ( r, cluster_name, auth_key ) :
 
-def sendLogConnection ( ) :
-    print ( "xyzzy" )
+    """
+    type LogMessage struct {
+        Cmd         string `json:"Cmd,omitempty"`
+        Data        string `json:"Data,omitempty"`
+        ReqId       string `json:"ReqId,omitempty"`
+        FileName    string `json:"FileName,omitempty"`
+        ClusterName string `json:"ClusterName,omitempty"`
+        AuthKey     string `json:"AuthKey,omitempty"`
+    }
+    """
 
-def closeLogConnection ( ) :
-    print ( "xyzzy" )
+    record = {
+        'Cmd': 'open',
+        'ClusterName': cluster_name
+        'AuthKey': auth_key
+    }
+
+    data = json.dumps(record).encode("utf-8")
+    publisher = r['PubSubClient']
+    topic_path = r['Key']
+    future = publisher.publish(topic_path, data)
+    print(f'published message id {future.result()}')
+
+
+def sendLogConnection ( r, msg, req_id, file_name, cluster_name, auth_key ) :
+
+    topic_path = "log:pub-sub-channel:"
+
+    publisher = pubsub_v1.PublisherClient()
+
+    record = {
+        'Cmd': 'data',
+        'Data': msg,
+        'ReqId': req_id,
+        'FileName': file_name,
+        'ClusterName': cluster_name,
+        'AuthKey': auth_key
+    }
+
+    data = json.dumps(record).encode("utf-8")
+    publisher = r['PubSubClient']
+    topic_path = r['Key']
+    future = publisher.publish(topic_path, data)
+    print(f'published message id {future.result()}')
+
+
+def closeLogConnection ( r, cluster_name, auth_key ) :
+
+    topic_path = "log:pub-sub-channel:"
+
+    publisher = pubsub_v1.PublisherClient()
+
+    record = {
+        'Cmd': 'close',
+        'ClusterName': cluster_name
+        'AuthKey': auth_key
+    }
+
+    data = json.dumps(record).encode("utf-8")
+    publisher = r['PubSubClient']
+    topic_path = r['Key']
+    future = publisher.publish(topic_path, data)
+    print(f'published message id {future.result()}')
 
 
 
+
+
+
+def readCfg( data_json ):
+    db_print_data = False
+
+    try:
+        f = open(data_json)
+        data = json.load(f)
+        print('Loaded data')
+        if db_print_data:
+            print(json.dumps(data, indent=4)) 
+        return data
+    except FileNotFoundError:
+        print(f'Unable to read:{data_json}, file not found')
+    except:
+        print(f'Unable to read:{data_json}')
+
+    return 
+
+
+
+# ------------------------------------------------------------------------------------------------------
 #
 # Testing
 #
@@ -27,13 +116,13 @@ def closeLogConnection ( ) :
 # (also you can use this to send messages to the logger from the command line)
 #
 # python logger_lib.py 
+#       --cfg "./cfg.json"      JSON config file for things like --host,--port,--auth,--database,--auth-key
 #       --host [hostIP|domain-name] --port [port-number:6] --auth [redis-password] --database N 
 #       --auth-key [key]
 #       --req-id R 
 #       --file-name F
 #       --cluser-name C
 #       --msg "message"
-#       --cfg "./cfg.json"      JSON config file for things like --host,--port,--auth,--database,--auth-key
 #
 if __name__ == "__main__":
 
@@ -44,6 +133,12 @@ if __name__ == "__main__":
     arg_cfg = "./cfg.json"
 
     cfg_read = False
+
+    arg_auth_key = ""
+    arg_req_id = ""
+    arg_file_name = ""
+    arg_cluster_name = ""
+    arg_msg = ""
 
 	# RedisConnectPort string `json:"redis_port" default:"6379"`
     if len(sys.argv) > 1:
@@ -61,26 +156,100 @@ if __name__ == "__main__":
             elif vv == "--cfg" and ii+2 < len(sys.argv):
                 arg_cfg = sys.argv[ii+2]
                 cfg_read = True
-                # xyzzy - read cfg.json file and set values.
+                # read cfg.json file and set values.
+                gCfg = readCfg( arg_cfg )
+                if "RedisHost" in gCfg:
+                    arg_host = gCfg["RedisHost"]
+                if "RedisPort" in gCfg:
+                    arg_host = gCfg["RedisPort"]
+                if "RedisAuth" in gCfg:
+                    arg_host = gCfg["RedisAuth"]
+                if "RedisDatabase" in gCfg:
+                    arg_host = gCfg["RedisDatabase"]
+
+            elif vv == "--auth-key" and ii+2 < len(sys.argv):
+                arg_auth_key = sys.argv[ii+2]
+            elif vv == "--req-id" and ii+2 < len(sys.argv):
+                arg_req_id = sys.argv[ii+2]
+            elif vv == "--cluster-name" and ii+2 < len(sys.argv):
+                arg_cluster_name = sys.argv[ii+2]
+            elif vv == "--file-name" and ii+2 < len(sys.argv):
+                arg_file_name = sys.argv[ii+2]
+            elif vv == "--msg" and ii+2 < len(sys.argv):
+                arg_msg = sys.argv[ii+2]
+
+    """{
+        , "RedisDatabase": 0
+        , "ClusterName": "victoria.local:redis-log"
+        , "LoggerAuthPassword": "$ENV$LOGGER_AUTH_PW"
+        , "UseRedis": "yes"
+        , "RedisAuthEnabled": "no"
+        , "RedisHost": "$ENV$REDIS_HOST"
+        , "RedisPort": "$ENV$REDIS_PORT"
+        , "RedisAuth": "$ENV$REDIS_AUTH"
+        , "UseRedisForLog": "no"
+    }"""
 
     if not cfg_read  :
+        # read cfg.json file and set values.
         print ( f"readin in {arg_cfg}" )
+        gCfg = readCfg( arg_cfg )
+        if "RedisHost" in gCfg:
+            arg_host = gCfg["RedisHost"]
+        if "RedisPort" in gCfg:
+            arg_host = gCfg["RedisPort"]
+        if "RedisAuth" in gCfg:
+            arg_host = gCfg["RedisAuth"]
+        if "RedisDatabase" in gCfg:
+            arg_host = gCfg["RedisDatabase"]
+
 
     print ( f"host= {arg_host}" )
     print ( f"port= {arg_port}" )
     print ( f"auth= {arg_auth}" )
     print ( f"database= {arg_database}" )
 
-#    # cmd=0 style=1 data=2 id=3 output=4
-#    if len(sys.argv) != 7:
-#        print ( f'Invalid arguments, should be 6, got {len(sys.argv)-1}' )
-#        exit(1)
-#
-#    style_name = sys.argv[1]        # Simple-Resume
-#    data_json = sys.argv[2]         # Data to read in
-#    document_id = sys.argv[3]       #
-#    output_fn = sys.argv[4]         #
-#    request_id = sys.argv[5]        #
-#    template_name = sys.argv[6]     #
-#
-#    db_print_data = False
+    conn = connecToRedis( arg_host, arg_port, arg_auth, arg_database ) 
+    print ( f"{green}Successfully connected to Redis" )
+
+    if arg_msg != "":
+        if arg_req_id == "" and arg_file_name == "":
+            print ( "Must supply one of --req-id UUID or --file-name FN when sending a message" )
+            exit(1)
+
+        openLogConnection ( conn, arg_cluster_name, arg_auth_key ) 
+        sendLogConnection ( conn, arg_cluster_name, arg_auth_key, arg_req_id, arg_file_name, arg_msg ) 
+        closeLogConnection ( conn, arg_cluster_name, arg_auth_key ) 
+
+    else :
+        print ( "Did not do anything, try --msg option" )
+        exit(1)
+
+
+    """
+
+	---------------------------------------------------------------------------------------
+		topic_path = 'your-topic-id'
+
+		publisher = pubsub_v1.PublisherClient()
+
+		record = {
+			'Key1': 'Value1',
+			'Key2': 'Value2',
+			'Key3': 'Value3',
+			'Key4': 'Value4'
+		}
+
+		data = json.dumps(record).encode("utf-8")
+		future = publisher.publish(topic_path, data)
+		print(f'published message id {future.result()}')
+
+	---------------------------------------------------------------------------------------
+		const data = {
+		   name: 'John Doe',
+		   age: 0
+		};
+
+		publisher.publish('<channel_name>', JSON.stringify(data));
+
+    """

@@ -1,5 +1,5 @@
 {
-	, "RedisDatabase": 0
+	  "RedisDatabase": 0
 	, "ClusterName": "victoria.local:redis-log"
 	, "LoggerAuthPassword": "$ENV$LOGGER_AUTH_PW"
 	, "UseRedis": "yes"
