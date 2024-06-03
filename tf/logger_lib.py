@@ -4,17 +4,23 @@ import sys
 import inspect
 import json
 import redis
+
 from db.db import debug_print 
 from colors.colors import red, green, yellow, magenta, cyan, white, reset
 
+db1 = True
+
 def connecToRedis( xhost, xport, auth, xdatabase ) :
-    print ( f"host={xhost} port={xport} auth={auth} databsase={xdatabase}" )
-    r = redis.Redis(host=xhost, port=xport, decode_responses=True, password=auth)
-    publisher = r.PublisherClient()
+    global db1
+    if db1:
+        print ( f"host={xhost} port={xport} auth={auth} databsase={xdatabase}, just before connect" )
+    if auth != "":
+        r = redis.Redis(host=xhost, port=xport, decode_responses=True, password=auth)
+    else:
+        r = redis.Redis(host=xhost, port=xport, decode_responses=True)
     rv = {
        'Conn': r,
        'Key':  "log:pub-sub-channel:",
-       'PubSubClient': publisher
     }
     return rv
 
@@ -33,14 +39,13 @@ def openLogConnection ( r, cluster_name, auth_key ) :
 
     record = {
         'Cmd': 'open',
-        'ClusterName': cluster_name
+        'ClusterName': cluster_name,
         'AuthKey': auth_key
     }
 
     data = json.dumps(record).encode("utf-8")
-    publisher = r['PubSubClient']
     topic_path = r['Key']
-    future = publisher.publish(topic_path, data)
+    future = r.publish(topic_path, data)
     print(f'published message id {future.result()}')
 
 
@@ -60,9 +65,8 @@ def sendLogConnection ( r, msg, req_id, file_name, cluster_name, auth_key ) :
     }
 
     data = json.dumps(record).encode("utf-8")
-    publisher = r['PubSubClient']
     topic_path = r['Key']
-    future = publisher.publish(topic_path, data)
+    future = r.publish(topic_path, data)
     print(f'published message id {future.result()}')
 
 
@@ -74,14 +78,13 @@ def closeLogConnection ( r, cluster_name, auth_key ) :
 
     record = {
         'Cmd': 'close',
-        'ClusterName': cluster_name
+        'ClusterName': cluster_name,
         'AuthKey': auth_key
     }
 
     data = json.dumps(record).encode("utf-8")
-    publisher = r['PubSubClient']
     topic_path = r['Key']
-    future = publisher.publish(topic_path, data)
+    future = r.publish(topic_path, data)
     print(f'published message id {future.result()}')
 
 
@@ -204,18 +207,27 @@ if __name__ == "__main__":
             arg_host = gCfg["RedisDatabase"]
 
 
+    if arg_host == "" or arg_host == 0:
+        arg_host = "127.0.0.1"
+    if arg_port == "":
+        arg_port = "6379"
+
     print ( f"host= {arg_host}" )
     print ( f"port= {arg_port}" )
     print ( f"auth= {arg_auth}" )
     print ( f"database= {arg_database}" )
 
     conn = connecToRedis( arg_host, arg_port, arg_auth, arg_database ) 
-    print ( f"{green}Successfully connected to Redis" )
+    print ( f"{green}Successfully connected to Redis{reset}" )
+
 
     if arg_msg != "":
         if arg_req_id == "" and arg_file_name == "":
             print ( "Must supply one of --req-id UUID or --file-name FN when sending a message" )
             exit(1)
+
+        #debug_print ( f"{green}Yep early exit for testing" )
+        #exit(0)
 
         openLogConnection ( conn, arg_cluster_name, arg_auth_key ) 
         sendLogConnection ( conn, arg_cluster_name, arg_auth_key, arg_req_id, arg_file_name, arg_msg ) 
@@ -226,30 +238,3 @@ if __name__ == "__main__":
         exit(1)
 
 
-    """
-
-	---------------------------------------------------------------------------------------
-		topic_path = 'your-topic-id'
-
-		publisher = pubsub_v1.PublisherClient()
-
-		record = {
-			'Key1': 'Value1',
-			'Key2': 'Value2',
-			'Key3': 'Value3',
-			'Key4': 'Value4'
-		}
-
-		data = json.dumps(record).encode("utf-8")
-		future = publisher.publish(topic_path, data)
-		print(f'published message id {future.result()}')
-
-	---------------------------------------------------------------------------------------
-		const data = {
-		   name: 'John Doe',
-		   age: 0
-		};
-
-		publisher.publish('<channel_name>', JSON.stringify(data));
-
-    """
