@@ -2,7 +2,7 @@
 
 #
 # From:  https://redis-py.readthedocs.io/en/stable/advanced_features.html
-# Description: listens to a changel 'my-c' for messages. Prints them.
+# Description: publish 4 messages to 'my-c' channel.
 #
 
 import sys

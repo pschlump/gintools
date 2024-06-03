@@ -11,6 +11,79 @@ from colors.colors import red, green, yellow, magenta, cyan, white, reset
 
 db1 = True
 
+class RedisLogger:
+
+    def __init__( self ):
+        self.ClusterName = ""
+        self.AuthKey = os.environ["LOGGER_AUTH_KEY"]
+        self.Key = "log:pub-sub-channel:"
+        self.Conn = null
+
+    def ConnectToRedis ( self, host, port, auth, database ):
+        global db1
+        if db1:
+            print ( f"host={host} port={port} auth={auth} databsase={database}, just before connect" )
+        if auth != "":
+            self.Conn = redis.Redis(host=host, port=port, decode_responses=True, password=auth)
+        else:
+            self.Conn = redis.Redis(host=host, port=port, decode_responses=True)
+
+    def OpenLogConnection ( self, cluster_name ):
+
+        self.ClusterName = cluster_name
+
+        record = {
+            'Cmd': 'open',
+            'ClusterName': self.ClusterName,
+            'AuthKey': self.AuthKey,
+            'Key': self.Key
+        }
+
+        data = json.dumps(record).encode("utf-8")
+        self.Conn.publish(self.Key, data)
+
+    def sendLogConnection ( self, msg, req_id, file_name ) :
+
+        if msg == "":
+            return
+
+        record = {
+            'Cmd': 'data',
+            'Data': msg,
+            'AuthKey': self.AuthKey
+        }
+        if req_id != "":
+            record['ReqId'] = req_id
+        if file_name != "":
+            record['FileName'] = file_name
+        if self.ClusterName != "":
+            record['ClusterName'] = self.ClusterName
+
+        data = json.dumps(record).encode("utf-8")
+        self.Conn.publish(self.Key, data)
+
+    def closeLogConnection ( r, cluster_name, auth_key ) :
+
+        record = {
+            'Cmd': 'close',
+            'ClusterName': self.ClusterName,
+            'AuthKey': self.AuthKey
+        }
+
+        data = json.dumps(record).encode("utf-8")
+        self.Conn.publish(self.Key, data)
+
+
+    
+
+
+
+
+
+
+
+
+
 # r = redis.Redis(host="127.0.0.1", port="6379", decode_responses=True)
 # r.publish( 'my-c','from python' )
 
