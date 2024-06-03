@@ -17,7 +17,7 @@ class RedisLogger:
         self.ClusterName = ""
         self.AuthKey = os.environ["LOGGER_AUTH_KEY"]
         self.Key = "log:pub-sub-channel:"
-        self.Conn = null
+        self.Conn = ""
 
     def ConnectToRedis ( self, host, port, auth, database ):
         global db1
@@ -42,7 +42,7 @@ class RedisLogger:
         data = json.dumps(record).encode("utf-8")
         self.Conn.publish(self.Key, data)
 
-    def sendLogConnection ( self, msg, req_id, file_name ) :
+    def SendLogConnection ( self, msg, req_id, file_name ) :
 
         if msg == "":
             return
@@ -62,7 +62,7 @@ class RedisLogger:
         data = json.dumps(record).encode("utf-8")
         self.Conn.publish(self.Key, data)
 
-    def closeLogConnection ( r, cluster_name, auth_key ) :
+    def CloseLogConnection ( self ) :
 
         record = {
             'Cmd': 'close',
@@ -78,105 +78,34 @@ class RedisLogger:
 
 
 
+db_print_data = False
+gCfg = {}
 
-
-
-
-
-
-# r = redis.Redis(host="127.0.0.1", port="6379", decode_responses=True)
-# r.publish( 'my-c','from python' )
-
-def connecToRedis( xhost, xport, auth, xdatabase ) :
-    global db1
-    if db1:
-        print ( f"host={xhost} port={xport} auth={auth} databsase={xdatabase}, just before connect" )
-    if auth != "":
-        r = redis.Redis(host=xhost, port=xport, decode_responses=True, password=auth)
-    else:
-        r = redis.Redis(host=xhost, port=xport, decode_responses=True)
-    rv = {
-       'Conn': r,
-       'Key':  "log:pub-sub-channel:",
-    }
-    return rv
-
-def openLogConnection ( conn, cluster_name, auth_key ) :
-
-    """
-    type LogMessage struct {
-        Cmd         string `json:"Cmd,omitempty"`
-        Data        string `json:"Data,omitempty"`
-        ReqId       string `json:"ReqId,omitempty"`
-        FileName    string `json:"FileName,omitempty"`
-        ClusterName string `json:"ClusterName,omitempty"`
-        AuthKey     string `json:"AuthKey,omitempty"`
-    }
-    """
-
-    topic_path = "log:pub-sub-channel:"
-
-    record = {
-        'Cmd': 'open',
-        'ClusterName': cluster_name,
-        'AuthKey': auth_key,
-        'Key': topic_path
-    }
-
-    data = json.dumps(record).encode("utf-8")
-    topic_path = conn['Key']
-    r = conn['Conn']
-    r.publish(topic_path, data)
-
-
-def sendLogConnection ( r, msg, req_id, file_name, cluster_name, auth_key ) :
-
-    if msg == "":
-        return
-
-    record = {
-        'Cmd': 'data',
-        'Data': msg,
-        'AuthKey': auth_key
-    }
-    if req_id != "":
-        record['ReqId'] = req_id
-    if file_name != "":
-        record['FileName'] = file_name
-    if cluster_name != "":
-        record['ClusterName'] = cluster_name
-
-    data = json.dumps(record).encode("utf-8")
-    topic_path = conn['Key']
-    r = conn['Conn']
-    r.publish(topic_path, data)
-
-
-def closeLogConnection ( r, cluster_name, auth_key ) :
-
-    record = {
-        'Cmd': 'close',
-        'ClusterName': cluster_name,
-        'AuthKey': auth_key
-    }
-
-    data = json.dumps(record).encode("utf-8")
-    topic_path = conn['Key']
-    r = conn['Conn']
-    r.publish(topic_path, data)
-
-
-
-
-
-
-def readCfg( data_json ):
-    db_print_data = False
+def readCfg( cfg_fn, data_dflt ):
+    global db_print_data 
 
     try:
-        f = open(data_json)
+        f = open(cfg_fn)
         data = json.load(f)
         print('Loaded data')
+        if db_print_data:
+            print(json.dumps(data, indent=4)) 
+
+        for kk in data_dflt:
+            if kk not in data :
+                data[kk] = data_dflt[kk]
+
+        for kk in data:
+            debug_print ( f"2nc loop: kk={kk}, data[kk]={data[kk]}" )
+            if isinstance(data[kk], int):
+                pass
+            elif len(data[kk]) > 5 and data[kk][0:5] == "$ENV$" :
+                debug_print ( f"data[{kk}] start siwth $ENV$" )
+                if data[kk][5:] in os.environ:
+                    debug_print ( f"data[{kk}] is set in environment" )
+                    data[kk] = os.environ[data[kk][5:]]
+                    debug_print ( f"data[{kk}]={data[kk]}" )
+
         if db_print_data:
             print(json.dumps(data, indent=4)) 
         return data
@@ -207,13 +136,13 @@ def readCfg( data_json ):
 #
 if __name__ == "__main__":
 
-    arg_host = "127.0.0.1"
-    arg_port = "6379"
-    arg_auth = ""
-    arg_database = "0"
-    arg_cfg = "./cfg.json"
+    rc = RedisLogger()
 
-    cfg_read = False
+    arg_host = ""
+    arg_port = ""
+    arg_auth = ""
+    arg_database = ""
+    arg_cfg = "./cfg.json"
 
     arg_auth_key = ""
     arg_req_id = ""
@@ -236,18 +165,6 @@ if __name__ == "__main__":
                 arg_database = sys.argv[ii+2]
             elif vv == "--cfg" and ii+2 < len(sys.argv):
                 arg_cfg = sys.argv[ii+2]
-                cfg_read = True
-                # read cfg.json file and set values.
-                gCfg = readCfg( arg_cfg )
-                if "RedisHost" in gCfg:
-                    arg_host = gCfg["RedisHost"]
-                if "RedisPort" in gCfg:
-                    arg_host = gCfg["RedisPort"]
-                if "RedisAuth" in gCfg:
-                    arg_host = gCfg["RedisAuth"]
-                if "RedisDatabase" in gCfg:
-                    arg_host = gCfg["RedisDatabase"]
-
             elif vv == "--auth-key" and ii+2 < len(sys.argv):
                 arg_auth_key = sys.argv[ii+2]
             elif vv == "--req-id" and ii+2 < len(sys.argv):
@@ -259,47 +176,30 @@ if __name__ == "__main__":
             elif vv == "--msg" and ii+2 < len(sys.argv):
                 arg_msg = sys.argv[ii+2]
 
-    """{
-        , "RedisDatabase": 0
-        , "ClusterName": "victoria.local:redis-log"
-        , "LoggerAuthPassword": "$ENV$LOGGER_AUTH_PW"
-        , "UseRedis": "yes"
-        , "RedisAuthEnabled": "no"
-        , "RedisHost": "$ENV$REDIS_HOST"
-        , "RedisPort": "$ENV$REDIS_PORT"
-        , "RedisAuth": "$ENV$REDIS_AUTH"
-        , "UseRedisForLog": "no"
-    }"""
+    data_dflt = {
+        "RedisHost": "127.0.0.1",
+        "RedisPort": "6379",
+        "RedisAuth": "",
+        "RedisDatabase": "0"
+    }
 
-    if not cfg_read  :
-        # read cfg.json file and set values.
-        print ( f"readin in {arg_cfg}" )
-        gCfg = readCfg( arg_cfg )
-        if "RedisHost" in gCfg:
-            arg_host = gCfg["RedisHost"]
-        if "RedisPort" in gCfg:
-            arg_host = gCfg["RedisPort"]
-        if "RedisAuth" in gCfg:
-            arg_host = gCfg["RedisAuth"]
-        if "RedisDatabase" in gCfg:
-            arg_host = gCfg["RedisDatabase"]
+    gCfg = readCfg( arg_cfg, data_dflt )
 
+    if arg_host != "":
+        gCfg["RedisHost"] = arg_host
+    if arg_port != "":
+        gCfg["RedisPort"] = arg_port
+    if arg_auth != "":
+        gCfg["RedisAuth"] = arg_auth
+    if arg_database != "":
+        gCfg["RedisAuth"] = arg_database
+    if arg_cluster_name != "":
+        gCfg["ClusterName"] = arg_cluster_name
 
-    if arg_host == "" or arg_host == 0:
-        arg_host = "127.0.0.1"
-    if arg_port == "":
-        arg_port = "6379"
-    if arg_auth_key == "":
-        arg_auth_key = os.environ["LOGGER_AUTH_KEY"]
+    print("gCfg after args, init", json.dumps(gCfg, indent=4)) 
 
-    print ( f"host= {arg_host}" )
-    print ( f"port= {arg_port}" )
-    print ( f"auth= {arg_auth}" )
-    print ( f"database= {arg_database}" )
-
-    conn = connecToRedis( arg_host, arg_port, arg_auth, arg_database ) 
+    rc.ConnectToRedis ( gCfg["RedisHost"], gCfg["RedisPort"], gCfg["RedisAuth"], gCfg["RedisDatabase"] )
     print ( f"{green}Successfully connected to Redis{reset}" )
-
 
     if arg_msg != "":
         if arg_req_id == "" and arg_file_name == "":
@@ -309,14 +209,14 @@ if __name__ == "__main__":
         #debug_print ( f"{green}Yep early exit for testing" )
         #exit(0)
 
-        # def openLogConnection ( conn, cluster_name, auth_key ) :
-        openLogConnection ( conn, arg_cluster_name, arg_auth_key ) 
-        print ( f"{green}opened logger cluster={arg_cluster_name} auth_key={arg_auth_key}{reset}" )
-        # def sendLogConnection ( r, msg, req_id, file_name, cluster_name, auth_key ) :
-        sendLogConnection ( conn, arg_msg + "\n", arg_req_id, arg_file_name, arg_cluster_name, arg_auth_key )
+        # def OpenLogConnection ( self, cluster_name ):
+        rc.OpenLogConnection ( gCfg["ClusterName"] )
+        print ( f"{green}opened logger cluster={arg_cluster_name}{reset}" )
+        # def SendLogConnection ( self, msg, req_id, file_name ) :
+        rc.SendLogConnection ( arg_msg + "\n", arg_req_id, arg_file_name )
         print ( f"{green}message sent to logger{reset}" )
-        # def closeLogConnection ( r, cluster_name, auth_key ) :
-        closeLogConnection ( conn, arg_cluster_name, arg_auth_key ) 
+        # def CloseLogConnection ( self ) :
+        rc.CloseLogConnection ()
         print ( f"{green}close logger{reset}" )
 
     else :

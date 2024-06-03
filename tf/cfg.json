@@ -7,5 +7,5 @@
 	, "RedisHost": "$ENV$REDIS_HOST"
 	, "RedisPort": "$ENV$REDIS_PORT"
 	, "RedisAuth": "$ENV$REDIS_AUTH"
-	, "UseRedisForLog": "no"
+	, "UseRedisForLog": "yes"
 }
