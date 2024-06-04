@@ -18,8 +18,7 @@ import (
 )
 
 type RequestLogFile struct {
-	// logFilePtr *os.File
-	logFilePtr io.WriteCloser
+	logFilePtr io.WriteCloser // logFilePtr *os.File
 	createdAt  time.Time
 	refCount   int
 }
@@ -107,7 +106,7 @@ func GetLogFilePtr(c *gin.Context) (perReqLog io.WriteCloser) {
 	return
 }
 
-func RequestLogger(LogFileName, AuthKey string) gin.HandlerFunc {
+func (ttf *TfType) RequestLogger(LogFileName, AuthKey, clusterName string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		uuidRequestId := GenUUID()
@@ -118,7 +117,7 @@ func RequestLogger(LogFileName, AuthKey string) gin.HandlerFunc {
 
 		// f, err := filelib.Fopen(logFn, "w")
 
-		_, f, err := NewRedisLogger(uuidRequestId, AuthKey, rdb, ctx)
+		_, f, err := ttf.NewRedisLogger(uuidRequestId, AuthKey, clusterName)
 		if err != nil {
 			// fmt.Fprintf(os.Stderr, "Unable to open file for [%s] error: %s\n", logFn, err)
 			fmt.Fprintf(os.Stderr, "Unable to open connection to logger RequestId=[%s] error: %s\n", uuidRequestId, err)

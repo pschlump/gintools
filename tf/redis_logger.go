@@ -14,19 +14,33 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+type TfType struct {
+	Ctx         context.Context
+	Rdb         *redis.Client
+	ClusterName string
+}
+
+func NewSetupTf(ctx context.Context, rdb *redis.Client, ClusterName string) (ex *TfType) {
+	return &TfType{
+		Ctx:         ctx,
+		Rdb:         rdb,
+		ClusterName: ClusterName,
+	}
+}
+
 // CheckRedisWorking does a test set and get to redis client
 // rdb is setup as global in main.go
 // this is called in main.go if UseRedis == "yes" in local cfg
-func CheckRedisWorking(ctx context.Context, rdb *redis.Client) (err error) {
+func (ttf *TfType) CheckRedisWorking() (err error) {
 	testkey := "wir_setup:testkey:" + strconv.FormatInt(time.Now().Unix(), 10)
 	testval := "test content for redis setup"
 
-	err = rdb.Set(ctx, testkey, testval, 900*time.Second).Err()
+	err = ttf.Rdb.Set(ttf.Ctx, testkey, testval, 900*time.Second).Err()
 	if err != nil {
 		return err
 	}
 
-	val, err := rdb.Get(ctx, testkey).Result()
+	val, err := ttf.Rdb.Get(ttf.Ctx, testkey).Result()
 	if err != nil {
 		return err
 	}
@@ -81,32 +95,32 @@ type RedisLogger struct {
 	AuthKey     string `json:"AuthKey,omitempty"`
 }
 
-func NewRedisLogger(ReqId, AuthKey string, rdb *redis.Client, ctx context.Context) (lm *RedisLogger, wp io.WriteCloser, err error) {
+func (ttf *TfType) NewRedisLogger(ReqId, AuthKey, clusterName string) (lm *RedisLogger, wp io.WriteCloser, err error) {
 	if db44 {
-		dbgo.Fprintf(os.Stderr, "%(greenw)NewRedisLogger%(magenta) clusterName=%s %(yellow)At:%(LF)\n", clusterName)
+		dbgo.Fprintf(os.Stderr, "%(greenw)NewRedisLogger%(magenta) clusterName=%s %(yellow)At:%(LF)\n", ttf.ClusterName)
 	}
-	if err := rdb.Publish(ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "open", ReqId: ReqId, ClusterName: clusterName, AuthKey: AuthKey})).Err(); err != nil {
+	if err := ttf.Rdb.Publish(ttf.Ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "open", ReqId: ReqId, ClusterName: clusterName, AuthKey: AuthKey})).Err(); err != nil {
 		fmt.Printf("Failed to publish, open, to the log pubsub channel, %s: error:%s\n", PubSubLogKey, err)
 	}
 	x := &RedisLogger{
-		rdb:         rdb,
-		ctx:         ctx,
+		rdb:         ttf.Rdb,
+		ctx:         ttf.Ctx,
 		ReqId:       ReqId,
 		ClusterName: clusterName,
 		AuthKey:     AuthKey,
 	}
 	return x, x, nil
 }
-func NewRedisLoggerFile(FileName, AuthKey string, rdb *redis.Client, ctx context.Context) (lm *RedisLogger, wp io.WriteCloser, err error) {
+func (ttf *TfType) NewRedisLoggerFile(FileName, AuthKey, clusterName string) (lm *RedisLogger, wp io.WriteCloser, err error) {
 	if db44 {
 		dbgo.Fprintf(os.Stderr, "%(greenw)NewRedisLogger%(magenta) clusterName=%s %(yellow)At:%(LF)\n", clusterName)
 	}
-	if err := rdb.Publish(ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "open", FileName: FileName, ClusterName: clusterName, AuthKey: AuthKey})).Err(); err != nil {
+	if err := ttf.Rdb.Publish(ttf.Ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "open", FileName: FileName, ClusterName: clusterName, AuthKey: AuthKey})).Err(); err != nil {
 		fmt.Printf("Failed to publish, open/file, to the log pubsub channel, %s: error:%s\n", PubSubLogKey, err)
 	}
 	x := &RedisLogger{
-		rdb:         rdb,
-		ctx:         ctx,
+		rdb:         ttf.Rdb,
+		ctx:         ttf.Ctx,
 		FileName:    FileName,
 		ClusterName: clusterName,
 		AuthKey:     AuthKey,
@@ -116,11 +130,11 @@ func NewRedisLoggerFile(FileName, AuthKey string, rdb *redis.Client, ctx context
 
 func (ee RedisLogger) Write(p []byte) (int, error) {
 	// fmt.Printf("Write >%s<, ReqId >%s<-\n", p, ee.ReqId)
-	if rdb == nil {
+	if ee.rdb == nil {
 		fmt.Fprintf(os.Stderr, "%s\n", p)
 		return len(p), nil
 	}
-	if err := rdb.Publish(ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "data", Data: string(p), ReqId: ee.ReqId, FileName: ee.FileName, ClusterName: clusterName, AuthKey: ee.AuthKey})).Err(); err != nil {
+	if err := ee.rdb.Publish(ee.ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "data", Data: string(p), ReqId: ee.ReqId, FileName: ee.FileName, ClusterName: ee.ClusterName, AuthKey: ee.AuthKey})).Err(); err != nil {
 		fmt.Printf("Failed to publish to the log pubsub channel, %s: error:%s\n", PubSubLogKey, err)
 		return 0, err
 	}
@@ -128,21 +142,21 @@ func (ee RedisLogger) Write(p []byte) (int, error) {
 }
 
 func (ee RedisLogger) Close() (err error) {
-	if err = rdb.Publish(ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "close", ReqId: ee.ReqId, FileName: ee.FileName, ClusterName: clusterName, AuthKey: ee.AuthKey})).Err(); err != nil {
+	if err = ee.rdb.Publish(ee.ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "close", ReqId: ee.ReqId, FileName: ee.FileName, ClusterName: ee.ClusterName, AuthKey: ee.AuthKey})).Err(); err != nil {
 		fmt.Printf("Failed to publish, close, to the log pubsub channel, %s: error:%s\n", PubSubLogKey, err)
 	}
 	return
 }
 
 func (ee RedisLogger) Flush() (err error) {
-	if err = rdb.Publish(ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "flush", ReqId: ee.ReqId, AuthKey: ee.AuthKey})).Err(); err != nil {
+	if err = ee.rdb.Publish(ee.ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "flush", ReqId: ee.ReqId, AuthKey: ee.AuthKey})).Err(); err != nil {
 		fmt.Printf("Failed to publish, flush, to the log pubsub channel, %s: error:%s\n", PubSubLogKey, err)
 	}
 	return err
 }
 
 func (ee RedisLogger) Command(cmd string) (err error) {
-	if err = rdb.Publish(ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: cmd, ReqId: ee.ReqId, AuthKey: ee.AuthKey})).Err(); err != nil {
+	if err = ee.rdb.Publish(ee.ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: cmd, ReqId: ee.ReqId, AuthKey: ee.AuthKey})).Err(); err != nil {
 		fmt.Printf("Failed to publish, %s, to the log pubsub channel, %s: error:%s\n", cmd, PubSubLogKey, err)
 	}
 	return
