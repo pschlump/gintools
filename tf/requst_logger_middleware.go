@@ -113,6 +113,7 @@ func (ttf *TfType) RequestLogger(LogFileName, AuthKey, clusterName string) gin.H
 
 		// logFn := fmt.Sprintf("%s.RequestId_%s.log", LogFileName, uuidRequestId)
 		// dbgo.Fprintf(os.Stderr, "%(cyan)Logging to: request_id=%s, file=%s\n", uuidRequestId, logFn)
+		dbgo.Fprintf(os.Stderr, "%(cyan)Logging to: request_id=%s\n", uuidRequestId)
 		fmt.Fprintf(logFilePtr, "Logging to: request_id=%s\n", uuidRequestId)
 
 		// f, err := filelib.Fopen(logFn, "w")

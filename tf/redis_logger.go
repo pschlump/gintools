@@ -96,8 +96,8 @@ type RedisLogger struct {
 }
 
 func (ttf *TfType) NewRedisLogger(ReqId, AuthKey, clusterName string) (lm *RedisLogger, wp io.WriteCloser, err error) {
-	if db44 {
-		dbgo.Fprintf(os.Stderr, "%(greenw)NewRedisLogger%(magenta) clusterName=%s %(yellow)At:%(LF)\n", ttf.ClusterName)
+	if db440 {
+		dbgo.Fprintf(os.Stderr, "%(greenw)NewRedisLogger%(magenta) ReqId=%s AuthKey=%s clusterName=%s %(yellow)At:%(LF)\n", ReqId, AuthKey, clusterName)
 	}
 	if err := ttf.Rdb.Publish(ttf.Ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "open", ReqId: ReqId, ClusterName: clusterName, AuthKey: AuthKey})).Err(); err != nil {
 		fmt.Printf("Failed to publish, open, to the log pubsub channel, %s: error:%s\n", PubSubLogKey, err)
@@ -113,7 +113,7 @@ func (ttf *TfType) NewRedisLogger(ReqId, AuthKey, clusterName string) (lm *Redis
 }
 func (ttf *TfType) NewRedisLoggerFile(FileName, AuthKey, clusterName string) (lm *RedisLogger, wp io.WriteCloser, err error) {
 	if db44 {
-		dbgo.Fprintf(os.Stderr, "%(greenw)NewRedisLogger%(magenta) clusterName=%s %(yellow)At:%(LF)\n", clusterName)
+		dbgo.Fprintf(os.Stderr, "%(greenw)NewRedisLoggerFile%(magenta) clusterName=%s %(yellow)At:%(LF)\n", clusterName)
 	}
 	if err := ttf.Rdb.Publish(ttf.Ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "open", FileName: FileName, ClusterName: clusterName, AuthKey: AuthKey})).Err(); err != nil {
 		fmt.Printf("Failed to publish, open/file, to the log pubsub channel, %s: error:%s\n", PubSubLogKey, err)
@@ -164,5 +164,6 @@ func (ee RedisLogger) Command(cmd string) (err error) {
 
 const db8 = false
 const db44 = false
+const db440 = true
 
 /* vim: set noai ts=4 sw=4: */
