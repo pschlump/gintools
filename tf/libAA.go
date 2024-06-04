@@ -17,7 +17,7 @@ import (
 // CheckRedisWorking does a test set and get to redis client
 // rdb is setup as global in main.go
 // this is called in main.go if UseRedis == "yes" in local cfg
-func CheckRedisWorking() (err error) {
+func CheckRedisWorking(ctx context.Context, rdb *redis.Client) (err error) {
 	testkey := "wir_setup:testkey:" + strconv.FormatInt(time.Now().Unix(), 10)
 	testval := "test content for redis setup"
 

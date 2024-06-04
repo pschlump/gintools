@@ -15,7 +15,3 @@ func SetupTf(xctx context.Context, xrdb *redis.Client, ClusterName string) {
 	rdb = xrdb
 	clusterName = ClusterName
 }
-
-func Xtf() error {
-	return nil
-}
