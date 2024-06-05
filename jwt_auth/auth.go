@@ -157,6 +157,7 @@ var GinSetupTable = []GinLoginType{
 	{Method: "POST", Path: "/api/v1/auth/generate-qr-for-secret", Fx: authHandleGenerateQRForSecret, UseLogin: PublicApiCall},                    //
 	{Method: "GET", Path: "/api/v1/auth/requires-2fa", Fx: authHandlerRequires2fa, UseLogin: PublicApiCall},                                      // reutrn y/n if 2fa is used  for htis account
 	{Method: "POST", Path: "/api/v1/auth/requires-2fa", Fx: authHandlerRequires2fa, UseLogin: PublicApiCall},                                     // reutrn y/n if 2fa is used  for htis account
+	{Method: "POST", Path: "/api/v1/auth/set-email-remap", Fx: authHandlerSetEmailRedirect, UseLogin: PublicApiCall},                             //
 
 	{Method: "GET", Path: "/api/v1/auth/logout", Fx: authHandleLogout, UseLogin: LoginOptional},  // just logout - destroy auth-token
 	{Method: "POST", Path: "/api/v1/auth/logout", Fx: authHandleLogout, UseLogin: LoginOptional}, // just logout - destroy auth-token
@@ -5104,7 +5105,7 @@ type ApiGetAcctState struct {
 
 // {Method: "POST", Path: "/api/v1/auth/get-acct-state", Fx: authHandlerGetAcctState, UseLogin: PublicApiCall},                                      // reutrn y/n if 2fa is used  for htis account
 
-// authHandleGetAcctState godoc
+// authHandlerGetAcctState godoc
 // @Summary get the acct_stae field in the q_qr_auth_users table.
 // @Schemes
 // @Description Get the acct_state field in the q_qr_users_table.
@@ -5162,6 +5163,60 @@ func authHandlerGetAcctState(c *gin.Context) {
 
 	var out UpdateAcctStateSuccess
 	copier.Copy(&out, &rvStatus)
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
+}
+
+type ApiSetEmailRedirect struct {
+	EmailFrom string `json:"email_from"      form:"email_from"     binding:"required,email"`
+	EmailTo   string `json:"email_to"        form:"email_to"       binding:"required,email"`
+	AuthKey   string `json:"auth_key"        form:"auth_key"       binding:"required"`
+}
+
+type SetEmailRedirectSuccess struct {
+	Status string `json:"status"`
+}
+
+// authHandlerSetEmailRedirect godoc
+// @Summary get the acct_stae field in the q_qr_auth_users table.
+// @Schemes
+// @Description Get the acct_state field in the q_qr_users_table.
+// @Tags auth
+// @Accept json,x-www-form-urlencoded
+// @Param   email_from         formData    string     true        "Email Address"
+// @Param   email_to           formData    string     true        "Email Address"
+// @Produce json
+// @Success 200 {object} jwt_auth.UpdateAcctStateSuccess
+// @Failure 400 {object} jwt_auth.StdErrorReturn
+// @Failure 401 {object} jwt_auth.StdErrorReturn
+// @Failure 406 {object} jwt_auth.StdErrorReturn
+// @Failure 500 {object} jwt_auth.StdErrorReturn
+// @Router /api/v1/auth/set-email-remap [post]
+func authHandlerSetEmailRedirect(c *gin.Context) {
+	var pp ApiSetEmailRedirect
+	if err := BindFormOrJSON(c, &pp); err != nil {
+		return
+	}
+
+	if !ValidateHmacAuthKey(c, pp.AuthKey) {
+		return
+	}
+
+	pp.EmailFrom = cleanupEmail(pp.EmailFrom)
+	pp.EmailTo = cleanupEmail(pp.EmailTo)
+
+	perReqLog := tf.GetLogFilePtr(c)
+
+	if gCfg.RedirectEmailSendTo == nil {
+		gCfg.RedirectEmailSendTo = make(map[string]string)
+	}
+
+	gCfg.RedirectEmailSendTo[pp.EmailFrom] = pp.EmailTo
+
+	dbgo.Fprintf(perReqLog, "Email Remap is now %s\n", dbgo.SVarI(gCfg.RedirectEmailSendTo))
+
+	out := SetEmailRedirectSuccess{
+		Status: "success",
+	}
 	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 }
 

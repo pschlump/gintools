@@ -252,19 +252,23 @@ func (em *GenericEmailSender) SendEmailMapdata(template_name string, mdata map[s
 	}
 
 	dbgo.Printf("%(LF)\n")
-	if em.gCfg.RedirectEmailSendTo != "" {
+	if em.gCfg.RedirectEmailSendTo == nil {
+		em.gCfg.RedirectEmailSendTo = make(map[string]string)
+	}
+
+	if to, ok := em.gCfg.RedirectEmailSendTo[toAddress]; ok {
 		if em.logger != nil {
 			fields := []zapcore.Field{
 				zap.String("message", "Redirecting Email"),
 				zap.String("originalAddress", toAddress),
-				zap.String("sentTo", em.gCfg.RedirectEmailSendTo),
+				zap.String("sentTo", to),
 			}
 			em.logger.Info("email_sender_redirect_email_to_address", fields...)
 		} else {
-			dbgo.Fprintf(os.Stderr, "Redirecting ->%s<- to ->%s<-\n", toAddress, em.gCfg.RedirectEmailSendTo)
+			dbgo.Fprintf(os.Stderr, "Redirecting ->%s<- to ->%s<-\n", toAddress, to)
 		}
-		dbgo.Fprintf(em.emailLogFilePtr, "Redirecting ->%s<- to ->%s<-\n", toAddress, em.gCfg.RedirectEmailSendTo)
-		toAddress = em.gCfg.RedirectEmailSendTo
+		dbgo.Fprintf(em.emailLogFilePtr, "Redirecting ->%s<- to ->%s<-\n", toAddress, to)
+		toAddress = to
 	}
 
 	dbgo.Printf("%(LF)\n")
@@ -351,11 +355,11 @@ func (em *GenericEmailSender) SendEmailMapdata(template_name string, mdata map[s
 			dbgo.Fprintf(os.Stderr, "%(LF)Invalid data in set of patterns for redirecting email %s, %s\n", em.gCfg.NoEmailSendListRe, err)
 			dbgo.Fprintf(em.emailLogFilePtr, "%(LF)Invalid data in set of patterns for redirecting email %s, %s\n", em.gCfg.NoEmailSendListRe, err)
 		} else {
-			dbgo.Printf("%(LF) address %s redirected to %s\n", toAddress, em.gCfg.RedirectEmailSendTo)
-			dbgo.Fprintf(os.Stderr, "%(LF) address %s redirected to %s\n", toAddress, em.gCfg.RedirectEmailSendTo)
-			dbgo.Fprintf(em.emailLogFilePtr, "%(LF) address %s redirected to %s\n", toAddress, em.gCfg.RedirectEmailSendTo)
+			dbgo.Printf("%(LF) address %s redirected to %s\n", toAddress, em.gCfg.NoEmailSendListDestination)
+			dbgo.Fprintf(os.Stderr, "%(LF) address %s redirected to %s\n", toAddress, em.gCfg.NoEmailSendListDestination)
+			dbgo.Fprintf(em.emailLogFilePtr, "%(LF) address %s redirected to %s\n", toAddress, em.gCfg.NoEmailSendListDestination)
 
-			toAddress = em.gCfg.RedirectEmailSendTo
+			toAddress = em.gCfg.NoEmailSendListDestination
 
 			stmt := `
 				update q_qr_email_log 

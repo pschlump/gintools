@@ -173,9 +173,10 @@ type BaseConfigType struct {
 
 	// End CORS Related Stuff -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-	RedirectEmailSendTo string   `json:"redirect_email_send_to"` // If set this sends all outgoing email to a test account.
-	NoEmailSendList     []string `json:"no_email_send_list"`     // List to not send email to for testing purposes
-	NoEmailSendListRe   []string `json:"no_email_send_list_re"`  // regular expresison List to not send email to for testing purposes
+	RedirectEmailSendTo        map[string]string `json:"RedirectEmailSendTo"`   // If set this sends all outgoing email to a test account.
+	NoEmailSendList            []string          `json:"no_email_send_list"`    // List to not send email to for testing purposes
+	NoEmailSendListRe          []string          `json:"no_email_send_list_re"` // regular expresison List to not send email to for testing purposes
+	NoEmailSendListDestination string            `json:"no_email_send_to"`      // if it matches above, then send to this address
 
 	// debug flags:	 Comma seperated values in the config file.
 	DebugFlag string `json:"db_flag"`
