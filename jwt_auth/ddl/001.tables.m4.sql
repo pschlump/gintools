@@ -155,7 +155,7 @@ CREATE TABLE if not exists q_qr_device_track (
 	, header_hash		text 					-- hashOfHeaders	hoh
 	, am_i_known		text 					-- AmIKnown
 	, valid_user_id		uuid 					-- Valid  User that has successfuly loged in on this device.
-	, state_data		text 
+	, state_data		text
 	, updated 			timestamp
 	, created 			timestamp default current_timestamp not null
 );
@@ -184,7 +184,7 @@ DROP TRIGGER if exists q_qr_manifest_version_expire_trig
 
 
 -- trigger to set expires
-CREATE OR REPLACE FUNCTION q_qr_device_track_expires() RETURNS trigger 
+CREATE OR REPLACE FUNCTION q_qr_device_track_expires() RETURNS trigger
 AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
@@ -234,7 +234,7 @@ create index if not exists q_qr_valid_xsrf_id_h1 on q_qr_valid_xsrf_id using has
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- function set_user_has_loged_in ( fingerprint_data varchar, state_of_login varchar, p_user_id uuid )
--- state_of_login == 'un/pw' -- they have 
+-- state_of_login == 'un/pw' -- they have
 -- state_of_login == '2fa-valid' -- they have done the 2fa - so this is a valid row
 
 CREATE TABLE if not exists q_qr_308_redirect (
@@ -365,7 +365,7 @@ BEGIN
 		insert into t_output ( msg ) values ( '		p_user_id ->'||coalesce(to_json(p_user_id)::text,'---null---')||'<-');
 	end if;
 
-	select id, state_data 
+	select id, state_data
 		into l_id, l_state
 		from q_qr_device_track
 		where fingerprint_data = p_fingerprint_data
@@ -434,7 +434,7 @@ $$ LANGUAGE plpgsql;
 -- remove all other fingerpirnts that are from this device but not from this user.
 -- Not used yet
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- xyzzy8 - fingerprint 
+-- xyzzy8 - fingerprint
 CREATE OR REPLACE FUNCTION q_auth_v1_login_cleanup_fingerprint_data ( p_fingerprint_data varchar, p_state varchar, p_user_id uuid, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
 AS $$
 DECLARE
@@ -507,7 +507,7 @@ BEGIN
 	end if;
 
 	select 1 into l_junk
-		from q_qr_valid_xsrf_id 
+		from q_qr_valid_xsrf_id
 		where xsrf_id = p_id
 		;
 
@@ -567,14 +567,14 @@ BEGIN
 	end if;
 
 	select 1 into l_junk
-		from q_qr_valid_referer 
+		from q_qr_valid_referer
 		where referer = p_ref
 		;
 
-	if found then 
+	if found then
 		select 1
 			into l_junk
-			from q_qr_valid_xsrf_id 
+			from q_qr_valid_xsrf_id
 			where xsrf_id = p_id
 			;
 		if not found then
@@ -674,7 +674,7 @@ CREATE TABLE if not exists q_qr_email_send (
 	  email_send_id	uuid DEFAULT uuid_generate_v4() not null primary key
 	, user_id			uuid					-- if available
 	, state				text default 'pending' not null check ( state in ( 'pending', 'sent', 'error' ) )
-	, template_name		text not null			-- "./tmpl/Name.tmpl" 
+	, template_name		text not null			-- "./tmpl/Name.tmpl"
 	, email_data		text not null
 	, error_info		text
 	, error_log_id		uuid
@@ -718,7 +718,7 @@ comment on table q_qr_validate_startup is 'Check database has correct encryption
 
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Function to setup checking of encryption passwords.  
+-- Function to setup checking of encryption passwords.
 -- Call this once per install of the database.
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION q_auth_v1_setup_startup_one_time ( p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
@@ -736,7 +736,7 @@ BEGIN
 
 	begin
 		insert into q_qr_validate_startup ( once_id, validation_value_hmac, validation_value_enc ) values
-			( 1 
+			( 1
 		 	, q_auth_v1_hmac_encode ( 'test@test.com', p_hmac_password )
 		    , pgp_sym_encrypt('test@test.com', p_userdata_password)
 			);
@@ -802,9 +802,9 @@ BEGIN
 	end if;
 
 	begin
-		select 'found' 
+		select 'found'
 			into l_junk
-			from q_qr_validate_startup 
+			from q_qr_validate_startup
 			where  once_id = 1
 			 and validation_value_hmac = q_auth_v1_hmac_encode ( 'test@test.com', p_hmac_password )
 			 and pgp_sym_decrypt(validation_value_enc, p_userdata_password) = 'test@test.com'
@@ -1139,8 +1139,8 @@ BEGIN
 
 --	begin
 
-		insert into q_qr_uploaded_files ( id, original_file_name, content_type, size, file_hash, group_id, local_file_path, image_confirmed, url_path, user_id ) 
-			values ( p_id, p_original_file_name, p_content_type, l_size, p_file_hash, p_group_id::uuid, p_local_file_path, p_image_confirmed, p_url_path, l_user_id ) 
+		insert into q_qr_uploaded_files ( id, original_file_name, content_type, size, file_hash, group_id, local_file_path, image_confirmed, url_path, user_id )
+			values ( p_id, p_original_file_name, p_content_type, l_size, p_file_hash, p_group_id::uuid, p_local_file_path, p_image_confirmed, p_url_path, l_user_id )
 			;
 
 --	exception
@@ -1285,7 +1285,7 @@ m4_updTrig(q_qr_saved_state)
 
 -- trigger to set expires
 
-CREATE OR REPLACE FUNCTION q_qr_saved_state_expires() RETURNS trigger 
+CREATE OR REPLACE FUNCTION q_qr_saved_state_expires() RETURNS trigger
 AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
@@ -1379,7 +1379,7 @@ CREATE TABLE if not exists q_qr_users (
 	end_date				timestamp,
 	privileges				text,												-- Copy of the privilages associated with role_name (if role_name changes then this sould be updated) (denormalized data) -- not used in login/auth
 	x_user_config 			jsonb default '{}'::json not null,
-	role_name 				text not null,												
+	role_name 				text not null,
 	org_name				text,												-- Used for testing - name of the Admin that this user is tied to
 	n6_flag					text default '' not null,							-- used to mark if user was registered with n6 or n8 flag.
 	updated 				timestamp, 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
@@ -1452,7 +1452,7 @@ comment on table q_qr_n6_email_verify is 'n6/n8 keys - Copyright (C) Philip Schl
 CREATE UNIQUE INDEX if not exists  q_qr_n6_email_verify_u1 on q_qr_n6_email_verify ( n6_token );
 DROP INDEX if exists q_qr_n6_email_verify_u2;
 CREATE INDEX if not exists  q_qr_n6_email_verify_p1 on q_qr_n6_email_verify ( email_verify_token );
-create index if not exists q_qr_n6_verify_p2 on q_qr_n6_email_verify ( created );	
+create index if not exists q_qr_n6_verify_p2 on q_qr_n6_email_verify ( created );
 
 
 
@@ -1640,7 +1640,7 @@ m4_updTrig(q_qr_user_config)
 
 -- xyzzy400 - must create user with this user_id!
 
--- insert into q_qr_user_config ( user_id, name, value ) values 
+-- insert into q_qr_user_config ( user_id, name, value ) values
 -- 	  ( '71fee0ec-5697-4d45-9759-5a6db492adc1'::uuid, 'display-mode',    		'light' )
 -- 	, ( '71fee0ec-5697-4d45-9759-5a6db492adc2'::uuid, 'show-upload-button', 	'true'  )
 -- 	;
@@ -1804,7 +1804,7 @@ END $$;
 
 
 
-CREATE OR REPLACE FUNCTION q_qr_auth_token_expires() RETURNS trigger 
+CREATE OR REPLACE FUNCTION q_qr_auth_token_expires() RETURNS trigger
 AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
@@ -1901,7 +1901,7 @@ END $$;
 
 
 
-CREATE OR REPLACE FUNCTION q_qr_tmp_token_expires() RETURNS trigger 
+CREATE OR REPLACE FUNCTION q_qr_tmp_token_expires() RETURNS trigger
 AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
@@ -2131,14 +2131,14 @@ drop TABLE if exists q_qr_user_role ;
 -- 		from q_qr_user_to_priv as t1
 -- 	) as t2
 -- 	;
--- 
+--
 -- SELECT json_agg(row_to_json(t2))
 --       FROM (
 -- 		select t1.priv_name, true as istrue
 -- 		from q_qr_user_to_priv as t1
 --       ) t2
 -- 	;
--- 
+--
 -- SELECT json_agg(row_to_json(t2))
 --       FROM (
 -- 		select t1.priv_name
@@ -2217,10 +2217,10 @@ CREATE OR REPLACE view q_qr_user_to_priv as
 
 -- select role_name, json_object_keys(allowed::json) from q_qr_role2 where role_name = 'role:user';
 CREATE OR REPLACE view q_qr_priv2 as
-	select jsonb_object_keys(allowed) as priv_name 
-	from q_qr_role2 
+	select jsonb_object_keys(allowed) as priv_name
+	from q_qr_role2
 	group by priv_name
-	; 
+	;
 
 
 
@@ -2248,7 +2248,7 @@ CREATE OR REPLACE view q_qr_priv2 as
 --         |                 |                  |                                                 |      |            |          |        |          |                   |          | END;                                                   +|
 --         |                 |                  |                                                 |      |            |          |        |          |                   |          |                                                         |
 -- (1 row)
--- 
+--
 CREATE OR REPLACE FUNCTION q_admin_HasPriv ( p_user_id uuid, p_priv_needed varchar ) RETURNS bool
 AS $$
 DECLARE
@@ -2260,7 +2260,7 @@ BEGIN
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 	l_data = false;
-			
+
 	select role_name
 		into l_role_name
 		from q_qr_users
@@ -2275,7 +2275,7 @@ BEGIN
 			;
 
 	end if;
-												
+
 	RETURN l_data;
 END;
 $$ LANGUAGE plpgsql;
@@ -2288,17 +2288,19 @@ DECLARE
 	l_found text;
 	l_role_name text;
 BEGIN
-	-- Copyright (C) Philip Schlump, 2008-2023.
+	-- Copyright (C) Philip Schlump, 2008-2024.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 	l_data = '{"status":"failed"}';			-- no such privilage granted.
-			
+
 	select role_name
 		into l_role_name
 		from q_qr_users
 		where user_id = p_user_id
 		;
-	if found then
+	if not found then
+		l_data = '{"status":"error","msg":"User not found.  Invalid user_id."}';			-- no such privilage granted.
+	else
 
 		select allowed ? p_priv_needed
 			into l_allowed
@@ -2308,14 +2310,63 @@ BEGIN
 		if found then
 			if l_allowed then
 				l_data = '{"status":"success"}';
+			else
+				l_data = '{"status":"failed","msg":"Not Authorized"}';
 			end if;
 		end if;
 
 	end if;
-												
+
 	RETURN l_data;
 END;
 $$ LANGUAGE plpgsql;
+
+--dev--CREATE OR REPLACE FUNCTION q_qr_admin_AddPriv_user_id ( p_user_id uuid, p_priv_needed varchar ) RETURNS text
+--dev--AS $$
+--dev--DECLARE
+--dev--	l_data text;
+--dev--	l_allowed bool;
+--dev--	l_found text;
+--dev--	l_role_name text;
+--dev--	l_allowed_json jsonb;
+--dev--BEGIN
+--dev--	-- Copyright (C) Philip Schlump, 2008-2023.
+--dev--	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+--dev--	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+--dev--	l_data = '{"status":"failed"}';			-- no such privilage granted.
+--dev--
+--dev--	select role_name
+--dev--		into l_role_name
+--dev--		from q_qr_users
+--dev--		where user_id = p_user_id
+--dev--		;
+--dev--	if not found then
+--dev--		l_data = '{"status":"error","msg":"invalid user id, not found"}';			-- no such privilage granted.
+--dev--	else
+--dev--
+--dev--		select allowed ? p_priv_needed
+--dev--			into l_allowed
+--dev--			from q_qr_role2
+--dev--			where role_name = l_role_name
+--dev--			;
+--dev--		if found then
+--dev--			if l_allowed then
+--dev--				l_data = '{"status":"success","msg":"already has this privilage."}';
+--dev--			end if;
+--dev--		else
+--dev--			select allowed
+--dev--				into l_allowed_json
+--dev--				from q_qr_role2
+--dev--				where role_name = l_role_name
+--dev--				;
+--dev--			l_allowed_json = jsonb_insert ( l_allowed_json, NULL, '{ "a":"b" }' );
+--dev--		end if;
+--dev--
+--dev--	end if;
+--dev--
+--dev--	RETURN l_data;
+--dev--END;
+--dev--$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION q_qr_admin_HasPriv_email ( p_email text, p_priv_needed varchar, p_hmac_password varchar ) RETURNS text
 AS $$
@@ -2329,7 +2380,7 @@ BEGIN
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 	l_data = '{"status":"failed"}';			-- no such privilage granted.
-			
+
 	select role_name
 		into l_role_name
 		from q_qr_users
@@ -2349,7 +2400,7 @@ BEGIN
 		end if;
 
 	end if;
-												
+
 	RETURN l_data;
 END;
 $$ LANGUAGE plpgsql;
@@ -2415,9 +2466,9 @@ m4_updTrig(q_qr_token_registration)
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- xyzzy921 - Create trigger to track the changes in q_qr_token_registration
 --
--- This is all the used rows in q_qr_token_registration 
--- If is_one_time=='n', then the original row is still in q_qr_token_registration 
--- 
+-- This is all the used rows in q_qr_token_registration
+-- If is_one_time=='n', then the original row is still in q_qr_token_registration
+--
 -- Log this info into the security log stuff also via trigger.
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -2442,17 +2493,17 @@ comment on table q_qr_token_registration_hist is 'Token history for registration
 
 
 
-CREATE OR REPLACE FUNCTION q_qr_token_registration_hist_upd() RETURNS trigger 
+CREATE OR REPLACE FUNCTION q_qr_token_registration_hist_upd() RETURNS trigger
 AS $$
 BEGIN
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 	insert into q_qr_token_registration_hist (
 		  event
 		, token_registration_id
-		, description				
-		, role_name 			
-		, client_id 		
-		, is_one_time	
+		, description
+		, role_name
+		, client_id
+		, is_one_time
 		, email_note
 		, updated
 		, created
@@ -2460,10 +2511,10 @@ BEGIN
 		  'update'
 		, NEW.token_registration_id
 		, NEW.updated
-		, NEW.description				
-		, NEW.role_name 			
-		, NEW.client_id 		
-		, NEW.is_one_time	
+		, NEW.description
+		, NEW.role_name
+		, NEW.client_id
+		, NEW.is_one_time
 		, NEW.email_note
 		, NEW.updated
 		, NEW.created
@@ -2489,26 +2540,26 @@ CREATE TRIGGER q_qr_token_registration_hist_upd_trig
 
 
 
-CREATE OR REPLACE FUNCTION q_qr_token_registration_hist_del() RETURNS trigger 
+CREATE OR REPLACE FUNCTION q_qr_token_registration_hist_del() RETURNS trigger
 AS $$
 BEGIN
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 	insert into q_qr_token_registration_hist (
 		  event
 		, token_registration_id
-		, description				
-		, role_name 			
-		, client_id 		
-		, is_one_time	
+		, description
+		, role_name
+		, client_id
+		, is_one_time
 		, email_note
 		, updated
 		, created
 	) values (
 		  'delete'
 		, OLD.token_registration_id
-		, OLD.description			
-		, OLD.role_name 		
-		, OLD.client_id 	
+		, OLD.description
+		, OLD.role_name
+		, OLD.client_id
 		, OLD.is_one_time
 		, OLD.email_note
 		, OLD.updated
@@ -2520,7 +2571,7 @@ $$ LANGUAGE 'plpgsql';
 
 
 DROP TRIGGER if exists q_qr_token_registration_hist_del_trig
-	ON "q_qr_token_registration" 
+	ON "q_qr_token_registration"
 	;
 
 CREATE TRIGGER q_qr_token_registration_hist_del_trig
@@ -2536,16 +2587,16 @@ CREATE TRIGGER q_qr_token_registration_hist_del_trig
 
 
 
-CREATE OR REPLACE FUNCTION q_qr_token_registration_hist_ins() RETURNS trigger 
+CREATE OR REPLACE FUNCTION q_qr_token_registration_hist_ins() RETURNS trigger
 AS $$
 BEGIN
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 	insert into q_qr_token_registration_hist (
 		  event
 		, token_registration_id
-		, description				
-		, role_name 			
-		, client_id 	
+		, description
+		, role_name
+		, client_id
 		, is_one_time
 		, email_note
 		, updated
@@ -2553,10 +2604,10 @@ BEGIN
 	) values (
 		  'insert'
 		, NEW.token_registration_id
-		, NEW.description				
-		, NEW.role_name 			
-		, NEW.client_id 		
-		, NEW.is_one_time	
+		, NEW.description
+		, NEW.role_name
+		, NEW.client_id
+		, NEW.is_one_time
 		, NEW.email_note
 		, NEW.updated
 		, NEW.created
@@ -2686,18 +2737,18 @@ BEGIN
 	--	// May Create User With:<Role> must exist for this user to create a role of this type.
 	--	//
 	--	// ----------------------------------------------------------------------------------------------
-	if not ( q_admin_HasPriv ( p_user_id, 'Item  Admin' ) ) then	
+	if not ( q_admin_HasPriv ( p_user_id, 'Item  Admin' ) ) then
 		l_fail = true;
 		l_data = '{"status":"error","msg":"Not authorized to ''Item Client Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
 		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id::uuid, 'Not authorized to ''Item Client Admin''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 	end if;
 
-	-- xyzzy TODO - Add check at this point for recursive role 
-	
+	-- xyzzy TODO - Add check at this point for recursive role
+
 	if not l_fail then
-		select application_url		
+		select application_url
 			into l_found
-			from q_qr_role_name_application_url 
+			from q_qr_role_name_application_url
 			where role_name = p_role_name
 			;
 		if found then
@@ -2729,20 +2780,20 @@ BEGIN
 			insert into t_output ( msg ) values ( '  ' );
 		end if;
 
-		insert into q_qr_token_registration ( 
-				description, 
-				role_name, 
-				client_id, 
-				is_one_time, 
-				email_note, 
+		insert into q_qr_token_registration (
+				description,
+				role_name,
+				client_id,
+				is_one_time,
+				email_note,
 				admin_email,
 				application_url
-			) values ( 
-				p_description, 
-				p_role_name, 
-				l_client_id, 
-				'y', 
-				l_email_note, 
+			) values (
+				p_description,
+				p_role_name,
+				l_client_id,
+				'y',
+				l_email_note,
 				p_admin_email,
 				l_application_url
 			) returning token_registration_id into l_token_registration_id ;
@@ -2818,7 +2869,7 @@ BEGIN
 		insert into t_output ( msg ) values ( '  ' );
 	end if;
 
-	if not ( q_admin_HasPriv ( p_user_id, 'Item Admin' ) ) then	
+	if not ( q_admin_HasPriv ( p_user_id, 'Item Admin' ) ) then
 		l_fail = true;
 		l_data = '{"status":"error","msg":"Not authorized to ''Item Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
 		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id, 'Not authorized to ''Item Admin|n''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
@@ -2835,7 +2886,7 @@ BEGIN
 		select l_data::jsonb -> 'status' into l_status;
 		if l_status != '"success"' then
 			l_fail := true;
-		else 
+		else
 			select l_data::jsonb ->> 'token_registration_id' into l_token_registration_id;
 		end if;
 
@@ -2914,7 +2965,7 @@ BEGIN
 		insert into t_output ( msg ) values ( '  ' );
 	end if;
 
-	if not ( q_admin_HasPriv ( p_user_id, 'Item Client Admin' ) ) then	
+	if not ( q_admin_HasPriv ( p_user_id, 'Item Client Admin' ) ) then
 		l_fail = true;
 		l_data = '{"status":"error","msg":"Not authorized to ''Item Admin|Item Client Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
 		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id, 'Not authorized to ''Item Admin|Item Client Admin''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
@@ -2922,7 +2973,7 @@ BEGIN
 
 	if not l_fail then
 
-		select token_registration_id 	
+		select token_registration_id
 			into l_the_token
 			from q_qr_token_registration
 			;
@@ -3135,7 +3186,7 @@ BEGIN
 
 		if l_n6_flag = 'n6' or l_n6_flag = 'n8' then
 			l_recovery_token_n6 = q_auth_v1_n6_email_validate ( l_recovery_token, l_n6_flag );
-		else 
+		else
 			l_recovery_token_n6 = l_recovery_token;
 		end if;
 
@@ -3319,7 +3370,7 @@ BEGIN
 			  l_user_id
 			, l_first_name
 			, l_last_name
-			, l_password_reset_token 
+			, l_password_reset_token
 			, l_n6_flag
 		from user_row as t1
 		where password_reset_time > current_timestamp
@@ -3354,7 +3405,7 @@ BEGIN
 					l_data = '{"status":"error","msg":"Incorrect data for token, should be a number.  Please resend the email and retry the process.","code":"m4_count()","location":"m4___file__ m4___line__"}';
 			end;
 			-- insert into t_output ( msg ) values ( '  l_n6_token ->'||coalesce(to_json(l_n6_token)::text,'---null---')||'<-');
-			if not l_fail then 
+			if not l_fail then
 				select email_verify_token
 					into l_recovery_token
 					from q_qr_n6_email_verify
@@ -3367,7 +3418,7 @@ BEGIN
 				-- insert into t_output ( msg ) values ( '  l_recovery_token (2) ->'||coalesce(to_json(l_recovery_token)::text,'---null---')||'<-');
 			end if;
 		end if;
-		if not l_fail then 
+		if not l_fail then
 			-- insert into t_output ( msg ) values ( 'not fail, check to see if tokens match' );
 			-- insert into t_output ( msg ) values ( '  l_password_reset_token ->'||coalesce(to_json(l_password_reset_token)::text,'---null---')||'<-');
 			-- insert into t_output ( msg ) values ( '  l_recovery_token ->'||coalesce(to_json(l_recovery_token)::text,'---null---')||'<-');
@@ -3648,11 +3699,11 @@ BEGIN
 
 			select 'found'
 				into l_junk
-				from q_qr_n6_email_verify 
+				from q_qr_n6_email_verify
 				where n6_token = l_ran
 				;
 
-			if not found then 
+			if not found then
 				insert into q_qr_n6_email_verify ( n6_token, email_verify_token ) values ( l_ran, p_email_verify_token );
 				l_done = true;
 				l_data = LPAD(l_ran::text, 6, '0');
@@ -3672,11 +3723,11 @@ BEGIN
 
 			select 'found'
 				into l_junk
-				from q_qr_n6_email_verify 
+				from q_qr_n6_email_verify
 				where n6_token = l_ran
 				;
 
-			if not found then 
+			if not found then
 				insert into q_qr_n6_email_verify ( n6_token, email_verify_token ) values ( l_ran, p_email_verify_token );
 				l_done = true;
 				l_data = LPAD(l_ran::text, 8, '0');
@@ -3685,7 +3736,7 @@ BEGIN
 		end loop;
 
 	end if;
-	
+
 	RETURN l_data;
 END;
 $$ LANGUAGE plpgsql;
@@ -3777,7 +3828,7 @@ BEGIN
 
 		select json_agg(t0.priv_name)::text
 		into l_privs
-		from ( 
+		from (
 			select json_object_keys(t1.allowed::json)::text  as priv_name
 				from q_qr_role2 as t1
 				where t1.role_name =  'role:user'
@@ -3801,7 +3852,7 @@ BEGIN
 		-- create table if not exists q_qr_user_config_default (
 		select value
 			into l_user_config
-			from q_qr_user_config_default 
+			from q_qr_user_config_default
 			where role_name = 'role:user'
 			;
 		if not found or l_user_config is null then
@@ -3855,8 +3906,8 @@ BEGIN
 			, privileges
 			, pdf_enc_password
 			, x_user_config
-			, require_2fa 		
-			, role_name 
+			, require_2fa
+			, role_name
 			, n6_flag
 		) VALUES (
 		 	  q_auth_v1_hmac_encode ( p_email, p_hmac_password )
@@ -3872,7 +3923,7 @@ BEGIN
 			, l_privs
 			, q_auth_v1_hmac_encode ( p_userdata_password || '::' || p_pw || '::' || lower(p_first_name) || ' ' || lower(p_last_name), p_hmac_password )
 			, l_user_config
-			, l_require_2fa 	
+			, l_require_2fa
 			, 'role:user'
 			, l_n6
 		) returning user_id into l_user_id  ;
@@ -3914,16 +3965,16 @@ BEGIN
 
 	if not l_fail then
 		if l_admin_email = p_email then
-			insert into q_qr_user_hierarchy ( user_id, parent_user_id ) 
+			insert into q_qr_user_hierarchy ( user_id, parent_user_id )
 				values ( l_user_id, null )
 			;
 			if l_debug_on then
 				insert into t_output ( msg ) values ( ' l_admin_email= '||l_admin_email||' is equal to p_email' );
 			end if;
-		else 
-			insert into q_qr_user_hierarchy ( user_id, parent_user_id ) 
-				select l_user_id, t1.user_id 
-				from q_qr_users as t1 
+		else
+			insert into q_qr_user_hierarchy ( user_id, parent_user_id )
+				select l_user_id, t1.user_id
+				from q_qr_users as t1
 				where t1.email_hmac = q_auth_v1_hmac_encode ( l_admin_email, p_hmac_password )
 				;
 			GET DIAGNOSTICS v_cnt = ROW_COUNT;
@@ -3952,7 +4003,7 @@ BEGIN
 			||', "require_2fa":' 		||coalesce(to_json(l_require_2fa::text)::text,'""')
 			||', "tmp_token":'   		||coalesce(to_json(l_tmp_token)::text,'""')
 			||', "secret_2fa":'			||coalesce(to_json(l_secret_2fa)::text,'""')
-			||', "user_config":'  		||coalesce(l_user_config,'"{}"')		
+			||', "user_config":'  		||coalesce(l_user_config,'"{}"')
 			||', "otp":' 				||l_otp_str
 			||', "n6":'   				||coalesce(to_json(l_n6)::text,'""')
 			||'}';
@@ -3997,7 +4048,7 @@ $$ LANGUAGE plpgsql;
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Regiser an account for a client.
--- 
+--
 -- THis is used to create accounts where a "token" has been send to a client to create an acocunt.
 --
 -- {Method: "POST", Path: "/api/v1/auth/register-client-admin", Fx: authHandleRegisterClientAdmin, UseLogin: PublicApiCall}, // un + pw + first_name + last_name + token to lead to client account:w
@@ -4106,7 +4157,7 @@ BEGIN
 		--	;
 		select json_agg(t0.priv_name)::text
 		into l_privs
-		from ( 
+		from (
 			select json_object_keys(t1.allowed::json)::text  as priv_name
 				from q_qr_role2 as t1
 				where t1.role_name =  l_role_name
@@ -4130,7 +4181,7 @@ BEGIN
 	if not l_fail then
 		select value
 			into l_user_config
-			from q_qr_user_config_default 
+			from q_qr_user_config_default
 			where role_name = l_role_name
 			;
 		if not found or l_user_config is null then
@@ -4255,9 +4306,9 @@ BEGIN
 	end if;
 
 	if not l_fail then
-		insert into q_qr_user_hierarchy ( user_id, parent_user_id ) 
-			select l_user_id, t1.user_id 
-			from q_qr_users as t1 
+		insert into q_qr_user_hierarchy ( user_id, parent_user_id )
+			select l_user_id, t1.user_id
+			from q_qr_users as t1
 			where t1.email_hmac = q_auth_v1_hmac_encode ( l_admin_email, p_hmac_password )
 			;
 		GET DIAGNOSTICS v_cnt = ROW_COUNT;
@@ -4286,7 +4337,7 @@ BEGIN
 			||', "tmp_token":'   		||coalesce(to_json(l_tmp_token)::text,'""')
 			||', "secret_2fa":'			||coalesce(to_json(l_secret_2fa)::text,'""')
 			||', "otp":' 				||l_otp_str
-			||', "user_config":'  		||coalesce(l_user_config,'"{}"')		
+			||', "user_config":'  		||coalesce(l_user_config,'"{}"')
 			||', "n6":'   				||coalesce(to_json(l_n6)::text,'""')
 			||'}';
 
@@ -4482,7 +4533,7 @@ BEGIN
 		--	;
 		select json_agg(t0.priv_name)::text
 		into l_privs
-		from ( 
+		from (
 			select json_object_keys(t1.allowed::json)::text  as priv_name
 				from q_qr_role2 as t1
 				where t1.role_name = p_specifed_role_name
@@ -4505,7 +4556,7 @@ BEGIN
 	if not l_fail then
 		select value
 			into l_user_config
-			from q_qr_user_config_default 
+			from q_qr_user_config_default
 			where role_name = p_specified_role_name
 			;
 		if not found or l_user_config is null then
@@ -4590,7 +4641,7 @@ BEGIN
 			||', "tmp_token":'   		||coalesce(to_json(l_tmp_token)::text,'""')
 			||', "secret_2fa":'			||coalesce(to_json(l_secret_2fa)::text,'""')
 			||', "otp":' 				||l_otp_str
-			||', "user_config":'  		||coalesce(l_user_config,'"{}"')		
+			||', "user_config":'  		||coalesce(l_user_config,'"{}"')
 			||', "n6":'   				||coalesce(to_json(l_n6)::text,'""')
 			||'}';
 
@@ -4858,7 +4909,7 @@ BEGIN
 		--	;
 		select json_agg(t0.priv_name)::text
 		into l_privs
-		from ( 
+		from (
 			select json_object_keys(t1.allowed::json)::text  as priv_name
 				from q_qr_role2 as t1
 				where t1.role_name =  'role:user'
@@ -4936,9 +4987,9 @@ BEGIN
 
 	end if;
 
-	insert into q_qr_user_hierarchy ( user_id, parent_user_id ) 
-		select l_user_id, t1.user_id 
-		from q_qr_users as t1 
+	insert into q_qr_user_hierarchy ( user_id, parent_user_id )
+		select l_user_id, t1.user_id
+		from q_qr_users as t1
 		where t1.email_hmac = q_auth_v1_hmac_encode ( l_admin_email, p_hmac_password )
 		;
 	GET DIAGNOSTICS v_cnt = ROW_COUNT;
@@ -5124,7 +5175,7 @@ DECLARE
 	l_last_name				text;
 	l_debug_on 				bool;
 BEGIN
-	-- Copyright (C) Philip Schlump, 2008-2023. 
+	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 	l_debug_on = q_get_config_bool ( 'debug' );
@@ -5220,7 +5271,7 @@ BEGIN
 								  and t2.email_validated = 'y'
 								  and ( t2.setup_complete_2fa = 'y' or t2.require_2fa = 'n' )
 							)
-						)  
+						)
 					)
 				for update
 				;
@@ -5325,7 +5376,7 @@ BEGIN
 	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
 
 	if not l_fail then
-	
+
 		with user_row as (
 			select
 				  user_id
@@ -5574,7 +5625,7 @@ BEGIN
 	--  060951a1-169 |              | f9fdbdb8ddf03064341b |      3 |       0 |                                  |              |                                                                  |
 	--  a89d71d5-ae8 | 524d58b1-b94 |                      |      0 |       3 | b11ba821e996ecc6b9dd1b0ca7fe139a | 06ee6e25-315 | c0913a7535439615871db5a171fa7293e8f937102adb09c7d5341e3b33276e2a | 060951a1-169
 	-- (4 rows)
-	-- 
+	--
 	-- Note:
 	-- 	1. the am_i_known value for login matches with the "id"  in a row with etag_seen set.
 	--
@@ -5582,7 +5633,7 @@ BEGIN
 	--
 	-- xyzzy8 - fingerprint
 	select id
-		into l_device_track_id		
+		into l_device_track_id
 		from q_qr_device_track as t1
 		where t1.fingerprint_data = p_fingerprint
 		  and t1.sc_id = p_sc_id
@@ -5621,8 +5672,8 @@ BEGIN
 				, password_hash
 				, parent_user_id
 				, client_id
-				, acct_state				
-				, role_name				
+				, acct_state
+				, role_name
 			from q_qr_users
 			where email_hmac = l_email_hmac
 		)
@@ -5642,7 +5693,7 @@ BEGIN
 				, validation_method
 				, client_id
 				, acct_state
-				, role_name				
+				, role_name
 			into
 				  l_user_id
 				, l_email_validated
@@ -5659,7 +5710,7 @@ BEGIN
 				, l_validation_method
 				, l_client_id
 				, l_acct_state
-				, l_role_name				
+				, l_role_name
 			from email_user
 		    where
 				(
@@ -5698,7 +5749,7 @@ BEGIN
 				, validation_method
 				, client_id
 				, acct_state
-				, role_name				
+				, role_name
 			into l_user_id
 				, l_email_validated
 				, l_setup_complete_2fa
@@ -5714,7 +5765,7 @@ BEGIN
 				, l_validation_method
 				, l_client_id
 				, l_acct_state
-				, l_role_name				
+				, l_role_name
 			from q_qr_users
 			where email_hmac = l_email_hmac
 			;
@@ -5917,7 +5968,7 @@ BEGIN
 	if not l_fail then
 		select json_agg(t0.priv_name)::text
 		into l_privileges
-		from ( 
+		from (
 			select json_object_keys(t1.allowed::json)::text  as priv_name
 				from q_qr_role2 as t1
 				where t1.role_name = l_role_name
@@ -6000,9 +6051,9 @@ BEGIN
 					insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ...  is a new device m4___file__ m4___line__' );
 				end if;
 				insert into q_qr_device_track (
-					  fingerprint_data 
-					, sc_id 
-					, header_hash 
+					  fingerprint_data
+					, sc_id
+					, header_hash
 					, user_id
 					, am_i_known
 				) values (
@@ -6013,13 +6064,13 @@ BEGIN
 					, p_am_i_known
 				) returning id into l_device_track_id;
 
-			else 
+			else
 
 				if l_debug_on then
 					insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... existing device m4___file__ m4___line__' );
 				end if;
-				update q_qr_device_track 
-					set n_login = n_login + 1			
+				update q_qr_device_track
+					set n_login = n_login + 1
 					  , am_i_known = p_am_i_known
 					where id = l_device_track_id;
 
@@ -6028,9 +6079,9 @@ BEGIN
 
 					l_is_new_device_login = 'n';
 					insert into q_qr_device_track (
-						  fingerprint_data 
-						, sc_id 
-						, header_hash 
+						  fingerprint_data
+						, sc_id
+						, header_hash
 						, user_id
 						, am_i_known
 					) values (
@@ -6050,8 +6101,8 @@ BEGIN
 			end if;
 			insert into q_qr_valid_xsrf_id (
 				  device_track_id
-				, user_id			
-				, xsrf_id			
+				, user_id
+				, xsrf_id
 			) values (
 				  l_device_track_id
 				, l_user_id
@@ -6175,7 +6226,7 @@ BEGIN
 
 		select x_user_config::json
 		  	into l_user_config
-		 	from q_qr_users 
+		 	from q_qr_users
 			where user_id = p_user_id
 			;
 
@@ -6239,7 +6290,7 @@ BEGIN
 
 		select x_user_config::json
 		  	into l_user_config
-		 	from q_qr_users 
+		 	from q_qr_users
 			where user_id = p_user_id
 			;
 
@@ -6790,7 +6841,7 @@ $$ LANGUAGE plpgsql;
 
 drop function if exists q_auth_v1_refresh_token ( p_user_id varchar, p_auth_token varchar);
 drop function if exists q_auth_v1_refresh_token ( p_user_id varchar, p_auth_token varchar, p_hmac_password varchar );
-drop function if exists q_auth_v1_refresh_token ( p_email varchar, p_token varchar, p_hmac_password varchar ); -- old -- dup -- 
+drop function if exists q_auth_v1_refresh_token ( p_email varchar, p_token varchar, p_hmac_password varchar ); -- old -- dup --
 
 CREATE OR REPLACE FUNCTION q_auth_v1_refresh_token ( p_user_id varchar, p_auth_token varchar, p_am_i_known varchar, p_hmac_password varchar,  p_userdata_password varchar ) RETURNS text
 AS $$
@@ -6896,7 +6947,7 @@ BEGIN
 			  and user_id = p_user_id::uuid
 			  and token = p_auth_token::uuid
 			;
-		if not found then 
+		if not found then
 			-- insert / create auth_token
 			l_auth_token = uuid_generate_v4();
 			BEGIN
@@ -7007,7 +7058,7 @@ BEGIN
 				into l_email_verify_token
 				from q_qr_n6_email_verify
 				where n6_token = l_n6_token
-				;	
+				;
 			if not found then
 				l_fail = true;
 				l_data = '{"status":"error","msg":"Token not found/invalid token.","code":"m4_count()","location":"m4___file__ m4___line__"}';
@@ -7026,14 +7077,14 @@ BEGIN
 
 		select t1.user_id
 				, pgp_sym_decrypt(t1.email_enc,p_userdata_password)::text as email
-				, setup_complete_2fa 		
+				, setup_complete_2fa
 				, acct_state
-				, require_2fa			
+				, require_2fa
 			into l_user_id
 				, l_email
-				, l_setup_complete_2fa 		
-				, l_acct_state 
-				, l_require_2fa			
+				, l_setup_complete_2fa
+				, l_acct_state
+				, l_require_2fa
 			from q_qr_users as t1
 			where t1.email_verify_expire > current_timestamp
 				and t1.email_verify_token = l_email_verify_token::uuid
@@ -7227,14 +7278,14 @@ BEGIN
 			, t1.email_validated
 			, t1.setup_complete_2fa
 			, t1.acct_state
-			, t1.login_2fa_failures 		
+			, t1.login_2fa_failures
 			, t1.role_name
 		into l_user_id
 			, l_secret_2fa
 			, l_email_validated
 			, l_x2fa_validated
 			, l_acct_state
-			, l_login_2fa_failures 	
+			, l_login_2fa_failures
 			, l_role_name
 		from q_qr_users as t1
 			join q_qr_tmp_token as t2 on ( t1.user_id = t2.user_id )
@@ -7333,7 +7384,7 @@ BEGIN
 
 		select json_agg(t0.priv_name)::text
 		into l_privileges
-		from ( 
+		from (
 			select json_object_keys(t1.allowed::json)::text  as priv_name
 				from q_qr_role2 as t1
 				where t1.role_name = l_role_name
@@ -7488,12 +7539,12 @@ BEGIN
 			  secret_2fa
 			, user_id
 			, client_id
-			, require_2fa 		
+			, require_2fa
 		into
 			  l_secret_2fa
 			, l_user_id
 			, l_client_id
-			, l_require_2fa 	
+			, l_require_2fa
 		from q_qr_users as t2
 		where t2.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
 		;
@@ -7681,9 +7732,9 @@ $$ LANGUAGE plpgsql;
 -- 	-- 	;
 -- 	select q_auth_v1_add_role_to_user ( '$u1', '$role_name', '$QR_ENC_PASSWORD' );
 -- XXxx
--- 
--- 
--- 
+--
+--
+--
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 DROP FUNCTION if exists  q_auth_v1_add_role_to_user ( p_email varchar, p_role_name varchar, p_hmac_password varchar );
@@ -7741,7 +7792,7 @@ BEGIN
 			l_data = '{"status":"error","msg":"Invalid Username","code":"m4_count()","location":"m4___file__ m4___line__"}';
 			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 		end if;
-			
+
 	end if;
 
 	if not l_fail then
@@ -7780,11 +7831,11 @@ $$ LANGUAGE plpgsql;
 -- 				api_encryption_key		text,
 -- 				expires 				timestamp not null
 -- 			);
--- 
+--
 -- 			UserID, AuthToken  = jwt_auth.CheckUsageAuthToken ( c )
 -- 			...
 -- 			// firstname := c.DefaultQuery("use_token", "")
--- 
+--
 -- 			// to Create...
 -- 			// AuthToken  = jwt_auth.CreateUsageAuthToken ( c, UserID )
 -- 		*/
@@ -7887,7 +7938,7 @@ BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
-    RETURN QUERY 
+    RETURN QUERY
 		SELECT
 			  t1.user_id
 		    , pgp_sym_decrypt(t1.email_enc, p_userdata_password)::text as email
@@ -7901,8 +7952,8 @@ LANGUAGE 'plpgsql';
 
 
 
--- 
--- 
+--
+--
 -- 			select t1.user_id as "user_id", json_agg(t3.priv_name)::text as "privileges", coalesce(t1.client_id::text,'') as client_id
 -- 				 , pgp_sym_decrypt(t1.email_enc, '4Ti5G3HmJsw+gbDbMKKVs4tnRUU=')::text as email
 -- 			from q_qr_users as t1
@@ -7916,7 +7967,7 @@ LANGUAGE 'plpgsql';
 -- 			  and t2.expires > current_timestamp
 -- 			group by t1.user_id
 -- 		;
--- 
+--
 -- drop  function q_qr_validate_user_auth_token ( p_auth_token uuid, p_userdata_password varchar ) ;
 
 DROP FUNCTION if exists q_qr_validate_user_auth_token(uuid,character varying);
@@ -7934,7 +7985,7 @@ BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
-    RETURN QUERY 
+    RETURN QUERY
 			select t1.user_id as "user_id", json_agg(t3.priv_name)::text as "privileges", coalesce(t1.client_id::text,'')::text as client_id
 				 , pgp_sym_decrypt(t1.email_enc, p_userdata_password)::text as email
 				 , min(t2.expires) as expires
@@ -8029,7 +8080,7 @@ BEGIN
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
-	select 
+	select
 			  pgp_sym_decrypt(t2.email_enc, p_userdata_password)::text as email
 			, pgp_sym_decrypt(t2.first_name_enc, p_userdata_password)::text as first_name
 			, pgp_sym_decrypt(t2.last_name_enc, p_userdata_password)::text as last_name
@@ -8088,14 +8139,14 @@ BEGIN
 	l_data = '{"status":"unknown"}';
 
 	update q_qr_users
-		set 
+		set
 			  first_name_enc = pgp_sym_encrypt(p_first_name,p_userdata_password)
 			, first_name_hmac = q_auth_v1_hmac_encode ( lower(p_first_name), p_hmac_password )
 			, last_name_enc = pgp_sym_encrypt(p_last_name,p_userdata_password)
 			, last_name_hmac = q_auth_v1_hmac_encode ( lower(p_last_name), p_hmac_password )
 		where user_id = p_user_id
 		;
-	
+
 	-- check # of rows.
 	GET DIAGNOSTICS v_cnt = ROW_COUNT;
 	if v_cnt != 1 then
@@ -8149,7 +8200,7 @@ $$ LANGUAGE plpgsql;
 
 
 
-	
+
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION q_auth_v1_cleanup_old_data ( ) RETURNS text
@@ -8168,7 +8219,7 @@ BEGIN
 
 		delete from q_qr_one_time_password
 			where user_id in (
-				select user_id 
+				select user_id
 				from q_qr_users
 				where email_verify_expire < current_timestamp - interval '30 days'
 				  and ( email_validated = 'n' or ( setup_complete_2fa = 'n'  and require_2fa = 'y' ) )
@@ -8176,7 +8227,7 @@ BEGIN
 			;
 		delete from q_qr_user_config
 			where user_id in (
-				select user_id 
+				select user_id
 				from q_qr_users
 				where email_verify_expire < current_timestamp - interval '30 days'
 				  and ( email_validated = 'n' or ( setup_complete_2fa = 'n' and require_2fa = 'y' ) )
@@ -8242,7 +8293,7 @@ BEGIN
 		;
 	if not found then
 		l_valid = 'no';
-	else 
+	else
 		l_valid = 'yes';
 	end if;
 
@@ -8296,7 +8347,7 @@ BEGIN
 		;
 	if not found then
 		l_valid = 'no';
-	else 
+	else
 		l_valid = 'yes';
 	end if;
 
@@ -8344,7 +8395,7 @@ BEGIN
 		l_data = '{"status":"error","msg":"Invalid user","code":"m4_count()","location":"m4___file__ m4___line__"}';
 	end if;
 
-	if not ( q_admin_HasPriv ( p_user_id, 'Auth Token Admin' ) ) then	
+	if not ( q_admin_HasPriv ( p_user_id, 'Auth Token Admin' ) ) then
 		l_fail = true;
 		l_data = '{"status":"error","msg":"Not authorized to ''Item Client Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
 		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id::uuid, 'Not authorized to ''Auth Token Admin''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
@@ -8398,7 +8449,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION rel_description(
      p_relname text, p_schemaname text DEFAULT NULL
  ) RETURNS text AS $f$
-    SELECT obj_description((CASE 
+    SELECT obj_description((CASE
        WHEN strpos($1, '.')>0 THEN $1
        WHEN $2 IS NULL THEN 'public.'||$1
        ELSE $2||'.'||$1
@@ -8439,7 +8490,7 @@ BEGIN
 
 	-- insert into q_qr_tmp_token ( user_id, token ) values ( l_user_id, l_tmp_token );
 	-- insert into q_qr_auth_tokens ( token, user_id, sc_id ) values ( l_auth_token, l_user_id, p_sc_id );
-	select 
+	select
 			  t3.sc_id
 			, t3.token as auth_token
 			, t1.user_id
@@ -8518,11 +8569,11 @@ BEGIN
 
 	-- insert into q_qr_tmp_token ( user_id, token ) values ( l_user_id, l_tmp_token );
 	-- insert into q_qr_auth_tokens ( token, user_id, sc_id ) values ( l_auth_token, l_user_id, p_sc_id );
-	select 
+	select
 			  t1.value, t1.config_id
 		into l_value, l_config_id
 		from q_qr_user_config as t1
-		where t1.user_id = p_user_id 
+		where t1.user_id = p_user_id
 	      and t1.name = p_param_name
 		;
 
@@ -8583,7 +8634,7 @@ BEGIN
 	end if;
 
 	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
-	select 
+	select
 			  t1.acct_state
 		into l_acct_state
 		from q_qr_users as t1
@@ -8676,5 +8727,5 @@ $$ LANGUAGE plpgsql;
 -- set/get/update for q_qr_user_config
 -- client_cfg				text not null default 'n',		-- if 'y' then report to client.
 
--- vim: set noai ts=4 sw=4: 
--- vim: set noai ts=4 sw=4: 
+-- vim: set noai ts=4 sw=4:
+-- vim: set noai ts=4 sw=4:
