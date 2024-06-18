@@ -4,8 +4,8 @@
 	, "LoggerAuthPassword": "$ENV$LOGGER_AUTH_PW"
 	, "UseRedis": "yes"
 	, "RedisAuthEnabled": "no"
-	, "RedisHost": "$ENV$REDIS_HOST"
-	, "RedisPort": "$ENV$REDIS_PORT"
-	, "RedisAuth": "$ENV$REDIS_AUTH"
+	, "RedisLogHost": "$ENV$REDIS_LOG_HOST"
+	, "RedisLogPort": "$ENV$REDIS_LOG_PORT"
+	, "RedisLogAuth": "$ENV$REDIS_LOG_AUTH"
 	, "UseRedisForLog": "yes"
 }

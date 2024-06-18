@@ -177,28 +177,28 @@ if __name__ == "__main__":
                 arg_msg = sys.argv[ii+2]
 
     data_dflt = {
-        "RedisHost": "127.0.0.1",
-        "RedisPort": "6379",
-        "RedisAuth": "",
-        "RedisDatabase": "0"
+        "RedisLogHost": "127.0.0.1",
+        "RedisLogPort": "6379",
+        "RedisLogAuth": "",
+        "RedisLogDatabase": "0"
     }
 
     gCfg = readCfg( arg_cfg, data_dflt )
 
     if arg_host != "":
-        gCfg["RedisHost"] = arg_host
+        gCfg["RedisLogHost"] = arg_host
     if arg_port != "":
-        gCfg["RedisPort"] = arg_port
+        gCfg["RedisLogPort"] = arg_port
     if arg_auth != "":
-        gCfg["RedisAuth"] = arg_auth
+        gCfg["RedisLogAuth"] = arg_auth
     if arg_database != "":
-        gCfg["RedisAuth"] = arg_database
+        gCfg["RedisLogAuth"] = arg_database
     if arg_cluster_name != "":
         gCfg["ClusterName"] = arg_cluster_name
 
     print("gCfg after args, init", json.dumps(gCfg, indent=4)) 
 
-    rc.ConnectToRedis ( gCfg["RedisHost"], gCfg["RedisPort"], gCfg["RedisAuth"], gCfg["RedisDatabase"] )
+    rc.ConnectToRedis ( gCfg["RedisLogHost"], gCfg["RedisLogPort"], gCfg["RedisLogAuth"], gCfg["RedisLogDatabase"] )
     print ( f"{green}Successfully connected to Redis{reset}" )
 
     if arg_msg != "":
