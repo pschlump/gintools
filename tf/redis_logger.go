@@ -73,6 +73,60 @@ func ValidateAuthKeyHmac(AuthKey, Pw string) bool {
 	return true
 }
 
+// /*
+//
+//	type LogMessage struct {
+//		Cmd         string `json:"Cmd,omitempty"`
+//		Data        string `json:"Data,omitempty"`
+//		ReqId       string `json:"ReqId,omitempty"`
+//		FileName    string `json:"FileName,omitempty"`
+//		ClusterName string `json:"ClusterName,omitempty"`
+//		AuthKey     string `json:"AuthKey,omitempty"`
+//	}
+//
+// */
+// case "x.alive.check":
+//
+//	dbgo.Fprintf(logRedisLogger, "%(magenta)Received 'x.alive.check': %s\n", dbgo.SVar(message))
+//	dbgo.Fprintf(os.Stderr, "%(magenta)Received 'x.alive.check': %s\n", dbgo.SVar(message))
+//	xkey := "logsvr-alive:" + tf.ReqId
+//	err := rdb.Set(ctx, xkey, tf.Data, 60*time.Second).Err() // Use ReqId as Id, use Data as Data.
+//	if err != nil {
+//		dbgo.Fprintf(os.Stderr, "%(red)Error setting i-am-alive message, key=%s value=%s\n", xKey, tf.Data)
+//		dbgo.Fprintf(logRedisLogger, "%(red)Error setting i-am-alive message, key=%s value=%s\n", xKey, tf.Data)
+//	}
+func (ttf *TfType) AliveCheck(AuthKey string) bool {
+	// dbgo.Printf("%(magenta)AuthKey >%s<- at:%(LF)\n", AuthKey)
+	if ttf.Rdb == nil {
+		dbgo.Fprintf(os.Stderr, "%(red)Configuration error, not setup with Redis, at:%(LF)\n")
+		return false
+	}
+	key := GenUUID()
+	data := GenUUID()
+	if err := ttf.Rdb.Publish(ttf.Ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "x.alive.check", Data: data, ReqId: key, ClusterName: ttf.ClusterName, AuthKey: AuthKey})).Err(); err != nil {
+		fmt.Printf("%(red)Failed to publish to the log pubsub channel, %s: error:%s, at:%(LF)\n", PubSubLogKey, err)
+		return false
+	}
+
+	time.Sleep(time.Duration(500) * time.Millisecond)
+
+	// get result, validate result
+	xkey := "logsvr-alive:" + key
+	t := ttf.Rdb.Get(ttf.Ctx, xkey)
+	if t.Err() != nil {
+		dbgo.Fprintf(os.Stderr, "%(red)Failed to get the i-am-alive message from log server, key=%s, error:%s, at:%(LF)\n", xkey, t.Err())
+		return false
+	}
+
+	v := t.Val()
+	if v == data {
+		return true
+	}
+
+	dbgo.Fprintf(os.Stderr, "%(red)Failed to get matcing values,  got >%s< v.s. >%s< expected, i-am-alive message from log server, at:%(LF)\n", v, data)
+	return false
+}
+
 var PubSubLogKey = "log:pub-sub-channel:"
 var PubSubLogIAmAliveKey = "log:-i-am-alive-"
 var PubSubLogIAmAliveValue = "yes"
@@ -141,6 +195,16 @@ func (ee RedisLogger) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
+//		/*
+//			type LogMessage struct {
+//				Cmd         string `json:"Cmd,omitempty"`
+//				Data        string `json:"Data,omitempty"`
+//				ReqId       string `json:"ReqId,omitempty"`
+//				FileName    string `json:"FileName,omitempty"`
+//				ClusterName string `json:"ClusterName,omitempty"`
+//				AuthKey     string `json:"AuthKey,omitempty"`
+//			}
+
 func (ee RedisLogger) Close() (err error) {
 	if err = ee.rdb.Publish(ee.ctx, PubSubLogKey, dbgo.SVar(LogMessage{Cmd: "close", ReqId: ee.ReqId, FileName: ee.FileName, ClusterName: ee.ClusterName, AuthKey: ee.AuthKey})).Err(); err != nil {
 		fmt.Printf("Failed to publish, close, to the log pubsub channel, %s: error:%s\n", PubSubLogKey, err)
@@ -164,6 +228,6 @@ func (ee RedisLogger) Command(cmd string) (err error) {
 
 const db8 = false
 const db44 = false
-const db440 = true
+const db440 = false
 
 /* vim: set noai ts=4 sw=4: */
