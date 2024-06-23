@@ -3,7 +3,7 @@ module github.com/pschlump/gintools/tools/db-connection-test
 go 1.22.0
 
 require (
-	github.com/jackc/pgx/v4 v4.18.3
+	github.com/jackc/pgx/v4 v4.12.1-0.20210724153913-640aa07df17c
 	github.com/lib/pq v1.10.9
 	github.com/pschlump/MiscLib v1.0.8
 	github.com/pschlump/dbgo v1.0.9
@@ -29,3 +29,5 @@ require (
 	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 )
+
+replace github.com/pschlump/gintools => ../../../../pschlump/gintools

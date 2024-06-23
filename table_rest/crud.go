@@ -398,6 +398,16 @@ func HandleQueryConfig(c *gin.Context, QueryData *CrudQueryConfig) {
 			}()
 
 			// ---------------------------------------------------------------------------------
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error fetching return data from %s ->%s<- error %s at %s\n", QueryData.QueryString, stmt, err, dbgo.LF())
+				// xyzzy00000 - error check
+				fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", err, dbgo.LF())
+				SetJSONHeaders(c)
+				c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
+				return
+			}
+
+			// ---------------------------------------------------------------------------------
 			// CrudSubQueryConfig - Sub Queries
 			// ---------------------------------------------------------------------------------
 			//type CrudSubQueryConfig struct {
@@ -432,18 +442,8 @@ func HandleQueryConfig(c *gin.Context, QueryData *CrudQueryConfig) {
 					data[rn] = row
 				}
 			}
-			// ---------------------------------------------------------------------------------
 
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error fetching return data from %s ->%s<- error %s at %s\n", QueryData.QueryString, stmt, err, dbgo.LF())
-				// xyzzy00000 - error check
-				fmt.Fprintf(c.Writer, `{"status":"error","msg":%q,"error":%q,"location":%q}`, "Database Error", err, dbgo.LF())
-				SetJSONHeaders(c)
-				c.Writer.WriteHeader(http.StatusNotAcceptable) // 406
-				return
-			}
-
-			dbgo.DbPrintf("HandleCRUD.Query", "%sAT: %s data ->%s<-%s\n", dbgo.ColorYellow, dbgo.LF(), dbgo.SVarI(data), dbgo.ColorReset)
+			dbgo.DbPrintf("HandleCRUD.Query", "%(yellow)AT: %(LF) data ->%s<-\n", dbgo.SVarI(data))
 			SetJSONHeaders(c)
 
 			rawData := fmt.Sprintf(`{"status":"success","data":%s}`, dbgo.SVarI(data))

@@ -3,7 +3,7 @@ module github.com/pschlump/gintools/tools/load-role
 go 1.22.0
 
 require (
-	github.com/jackc/pgx/v4 v4.18.3
+	github.com/jackc/pgx/v4 v4.12.1-0.20210724153913-640aa07df17c
 	github.com/pschlump/ReadConfig v1.0.8
 	github.com/pschlump/check-json-syntax v1.0.10
 	github.com/pschlump/dbgo v1.0.9
@@ -25,7 +25,7 @@ require (
 	github.com/go-playground/validator/v10 v10.10.0 // indirect
 	github.com/goccy/go-json v0.9.7 // indirect
 	github.com/gofrs/uuid v4.0.0+incompatible // indirect
-	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/hhkbp2/go-strftime v0.0.0-20150709091403-d82166ec6782 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
@@ -41,7 +41,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/makiuchi-d/gozxing v0.1.1 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -53,7 +53,7 @@ require (
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/pschlump/HashStrings v0.1.5 // indirect
-	github.com/pschlump/MiscLib v1.0.3 // indirect
+	github.com/pschlump/MiscLib v1.0.7 // indirect
 	github.com/pschlump/ansi v1.0.9 // indirect
 	github.com/pschlump/filelib v1.0.12 // indirect
 	github.com/pschlump/go-colorable v0.0.24 // indirect
@@ -85,3 +85,5 @@ require (
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
+replace github.com/pschlump/gintools => ../../../../pschlump/gintools

@@ -96,13 +96,18 @@ func main() {
 
 	dbgo.Printf("%(green)Data=%s, connected to d.b.\n", dbgo.SVarI(inputData))
 
-	em := email.NewEmailSender(&(gCfg.BaseConfigType), DbOn, os.Stderr, conn, ctx, nil, nil)
+	// ./load-role.go:99:86: not enough arguments in call to email.NewEmailSender
+	// 	have (        *data.BaseConfigType, map[string]bool, *os.File,       *pgxpool.Pool, context.Context, nil,         nil)
+	// 	want (string, *data.BaseConfigType, map[string]bool, io.WriteCloser, *pgxpool.Pool, context.Context, *zap.Logger, *"github.com/pschlump/gintools/metrics".MetricsData)
+	em := email.NewEmailSender("aws_ses", &(gCfg.BaseConfigType), DbOn, os.Stderr, conn, ctx, nil, nil)
 	if em == nil {
 		fmt.Printf("Failed to get an email sender\n")
 		os.Exit(1)
 	}
-	// jwt_auth.SetupConnectToJwtAuth(ctx, conn, &gCfg, os.Stderr, em, nil, nil)
-	jwt_auth.SetupConnectToJwtAuth(ctx, conn, &(gCfg.BaseConfigType), &(gCfg.AppConfig), &(gCfg.QRConfig), os.Stderr, em, nil, nil)
+	//./load-role.go:105:125: not enough arguments in call to jwt_auth.SetupConnectToJwtAuth
+	//	have (context.Context, *pgxpool.Pool, *data.BaseConfigType, *data.AppConfig, *data.QRConfig, *os.File,       email.EmailSender, nil,         nil)
+	//	want (context.Context, *pgxpool.Pool, *data.BaseConfigType, *data.AppConfig, *data.QRConfig, io.WriteCloser, email.EmailSender, *zap.Logger, *"github.com/pschlump/gintools/metrics".MetricsData, *redis.Client)
+	jwt_auth.SetupConnectToJwtAuth(ctx, conn, &(gCfg.BaseConfigType), &(gCfg.AppConfig), &(gCfg.QRConfig), os.Stderr, em, nil, nil, nil)
 
 	// --------------------------------------------------------------------------------------
 	// Validate that we have the correct encryption passwords setup.
