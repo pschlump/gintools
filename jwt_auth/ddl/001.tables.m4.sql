@@ -1811,7 +1811,8 @@ BEGIN
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 
-	NEW.expires := current_timestamp + interval '31 days';
+	-- NEW.expires := current_timestamp + interval '31 days';
+	NEW.expires := current_timestamp + interval '2000 days';
 	RETURN NEW;
 END
 $$ LANGUAGE 'plpgsql';
@@ -8475,7 +8476,8 @@ DECLARE
 	l_sc_id					text;		-- ScID, scid
 	l_auth_token			text;
 BEGIN
-	-- Copyright (C) Write it Right, LLC, 2023.
+	-- Copyright (C) Philip Schlump, 2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 
 	l_debug_on = q_get_config_bool ( 'debug' );
@@ -8554,7 +8556,8 @@ DECLARE
 	l_config_id             uuid;
 	l_value			        text;
 BEGIN
-	-- Copyright (C) Write it Right, LLC, 2023.
+	-- Copyright (C) Philip Schlump, 2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 
 	l_debug_on = q_get_config_bool ( 'debug' );
@@ -8621,7 +8624,8 @@ DECLARE
 	l_acct_state	        text;
 	l_email_hmac			bytea;
 BEGIN
-	-- Copyright (C) Write it Right, LLC, 2023.
+	-- Copyright (C) Philip Schlump, 2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 
 	l_debug_on = q_get_config_bool ( 'debug' );
@@ -8682,7 +8686,8 @@ DECLARE
 
 	l_email_hmac			bytea;
 BEGIN
-	-- Copyright (C) Write it Right, LLC, 2023.
+	-- Copyright (C) Philip Schlump, 2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 
 	l_debug_on = q_get_config_bool ( 'debug' );
@@ -8727,5 +8732,122 @@ $$ LANGUAGE plpgsql;
 -- set/get/update for q_qr_user_config
 -- client_cfg				text not null default 'n',		-- if 'y' then report to client.
 
--- vim: set noai ts=4 sw=4:
+
+-- select q_auth_v1_add_privilage_to ( t1.user_id, 'May Administrate Coupons' );
+CREATE OR REPLACE FUNCTION q_auth_v1_add_privlage_to ( p_user_id uuid, p_priv_needed varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+AS $$
+DECLARE
+	l_data					text;
+	l_fail					bool;
+	l_debug_on 				bool;
+	l_role_name				text;
+	l_email					text;
+	l_email_hmac			bytea;
+	l_allowed 				bool;
+	l_allowed_privs 		jsonb;
+	l_priv					jsonb;
+BEGIN
+	-- Copyright (C) Philip Schlump, 2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+
+	l_debug_on = q_get_config_bool ( 'debug' );
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->q_auth_v1_add_privilage_to <- m4___file__ m4___line__' );
+		insert into t_output ( msg ) values ( '		p_user_id       ->'||coalesce(to_json(p_user_id)::text,'""')||'<-');
+		insert into t_output ( msg ) values ( '		p_priv_needed   ->'||coalesce(to_json(p_priv_needed)::text,'""')||'<-');
+	end if;
+
+	-- See: https://www.postgresqltutorial.com/postgresql-json-functions/postgresql-jsonb_insert/
+
+	select role_name 
+		, pgp_sym_decrypt(email_enc::bytea,p_userdata_password)::text email
+		into l_role_name, l_email
+		from q_qr_users
+		where user_id = p_user_id
+		;
+	if not found then
+		l_data = '{"status":"error","msg":"User not found.  Invalid user_id."}';			-- no such privilage granted.
+	else
+
+		select allowed ? p_priv_needed
+			into l_allowed
+			from q_qr_role2
+			where role_name = l_role_name
+			;
+		if found then
+			insert into t_output ( msg ) values ( '		found' );
+			if l_allowed then
+				l_data = '{"status":"success","msg":"already had this privelege"}';
+			else
+				if l_role_name = l_email then
+					insert into t_output ( msg ) values ( '		l_role_name == l_email, ='||l_email||' p_priv_needed='||p_priv_needed );
+					update q_qr_role2
+						set allowed = jsonb_insert ( allowed, '{1}', to_jsonb(p_priv_needed) )
+						where role_name = l_role_name
+						;
+					select jsonb_insert ( allowed, '{1}', to_jsonb(p_priv_needed) )
+						into l_priv
+						from q_qr_role2
+						where role_name = l_role_name
+					;
+				else
+					insert into t_output ( msg ) values ( '		will insert, l_role_name='||l_role_name );
+					insert into q_qr_role2 ( role_name, allowed ) 
+						select l_email, jsonb_insert ( allowed, '{0}', to_jsonb(p_priv_needed) )
+							from q_qr_role2
+							where role_name = l_role_name
+						;
+					select jsonb_insert ( allowed, '{0}', to_jsonb(p_priv_needed) )
+						into l_priv
+						from q_qr_role2
+						where role_name = l_role_name
+					;
+				end if;
+				insert into t_output ( msg ) values ( '		set role to email, role_name='||l_email||' privleges='||l_priv::text );
+				update q_qr_users 
+					set role_name = l_email
+						, privileges = l_priv::text
+					where user_id = p_user_id
+					;
+			end if;
+		end if;
+
+	end if;
+
+	if not l_fail then
+
+		l_data = '{"status":"success"'
+			||'}';
+
+	end if;
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->q_auth_v1_add_privlage_to <- m4___file__ m4___line__ ***returns***' );
+		insert into t_output ( msg ) values ( ' 		l_data= '||l_data );
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 -- vim: set noai ts=4 sw=4:

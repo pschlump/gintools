@@ -76,7 +76,7 @@ func CloseLogFile(requestId string) {
 }
 
 func TimedCleanupLogFile() {
-	// iterate over, if timeout #1 then close and set to os.Stderr, delete item
+	// iterate over, if time out #1 then close and set to os.Stderr, delete item
 	dbgo.Fprintf(logFilePtr, "In tf.TimedCleanupLogFile(), %(LF)\n")
 	current_time := time.Now()
 	logFilePointerLock.Lock()
@@ -152,7 +152,7 @@ func (ttf *TfType) RequestLogger(LogFileName, AuthKey, clusterName string) gin.H
 
 		c.Next()
 
-		dbgo.Fprintf(os.Stderr, "%(yellow)AT:%(LF) after request - request_id = %s\n", uuidRequestId)
+		// dbgo.Fprintf(os.Stderr, "%(yellow)AT:%(LF) after request - request_id = %s\n", uuidRequestId)
 		CloseLogFile(uuidRequestId)
 	}
 }

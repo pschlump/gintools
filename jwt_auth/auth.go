@@ -3761,9 +3761,8 @@ func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
 			stmt := `select user_id, privileges, client_id, email, seconds_till_expires from q_qr_validate_user_auth_token ( $1, $2 )`
 
 			err = pgxscan.Select(ctx, conn, &v2, stmt, AuthToken, aCfg.UserdataPassword) // __userdata_password__
-			dbgo.Fprintf(perReqLog, "Yep - should be a user_id and a set of privs >%s<- at:%(LF) auth_token->%s<-\n", dbgo.SVarI(v2), AuthToken)
-			// dbgo.Fprintf(os.Stderr, "Yep - should be a user_id and a set of privs >%s<- at:%(LF) auth_token->%s<-\n", dbgo.SVarI(v2), AuthToken)
-			// dbgo.Fprintf(os.Stderr, "%(yellow)%(LF) Error:%s stmt ->%s<- data:%s %s\n", err, stmt, AuthToken, aCfg.UserdataPassword)
+			dbgo.Fprintf(perReqLog, "Yep - should be a user_id and a set of privs, output from call >%s<- at:%(LF) stmt=%s auth_token->%s<- gCfg.UserdataPassword->%s<-\n", dbgo.SVarI(v2), stmt, AuthToken, aCfg.UserdataPassword)
+			dbgo.Fprintf(os.Stderr, "Yep - should be a user_id and a set of privs, output from call >%s<- at:%(LF) stmt=%s auth_token->%s<- gCfg.UserdataPassword->%s<-\n", dbgo.SVarI(v2), stmt, AuthToken, aCfg.UserdataPassword)
 			if err != nil {
 				dbgo.Fprintf(perReqLog, "%(red)%(LF) Error:%s stmt ->%s<- data:%s %s\n", err, stmt, AuthToken, aCfg.UserdataPassword)
 				log_enc.LogSQLError(c, stmt, err, "e", AuthToken, aCfg.UserdataPassword)
@@ -3996,7 +3995,7 @@ func IsLoggedIn(c *gin.Context) (ItIs bool) {
 	} else {
 		UserId, _, AuthToken := GetAuthToken(c)
 		if AuthToken != "" {
-			dbgo.Fprintf(perReqLog, " %(LF)2nd part of authorization: user_id=%s auth_token=->%s<-\n", UserId, AuthToken)
+			dbgo.Fprintf(perReqLog, " %(LF) 2nd part of authorization: user_id=%s auth_token=->%s<-\n", UserId, AuthToken)
 			ItIs = true
 		} else {
 			dbgo.Fprintf(perReqLog, " %(LF) ****not authoriazed ****2nd part of authorization: user_id=%s auth_token=->%s<-\n", UserId, AuthToken)
