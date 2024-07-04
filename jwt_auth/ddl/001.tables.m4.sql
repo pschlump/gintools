@@ -7973,6 +7973,52 @@ LANGUAGE 'plpgsql';
 
 DROP FUNCTION if exists q_qr_validate_user_auth_token(uuid,character varying);
 
+--old-- CREATE OR REPLACE FUNCTION q_qr_validate_user_auth_token ( p_auth_token uuid, p_userdata_password varchar ) RETURNS TABLE (
+--old--         user_id uuid,
+--old--         "privileges" text,
+--old--         client_id text,
+--old--         email text,
+--old-- 		expires timestamp,
+--old-- 		seconds_till_expires bigint
+--old-- 	)
+--old-- AS $$
+--old-- BEGIN
+--old-- 	-- Copyright (C) Philip Schlump, 2008-2023.
+--old-- 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+--old-- 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+--old--     RETURN QUERY
+--old-- 			select t1.user_id as "user_id", json_agg(t3.priv_name)::text as "privileges", coalesce(t1.client_id::text,'')::text as client_id
+--old-- 				 , pgp_sym_decrypt(t1.email_enc, p_userdata_password)::text as email
+--old-- 				 , min(t2.expires) as expires
+--old-- 				 , ceil(EXTRACT(EPOCH FROM min(t2.expires)))::bigint - ceil(extract(epoch from now()))::bigint as seconds_till_expires
+--old-- 			from q_qr_users as t1
+--old-- 				join q_qr_auth_tokens as t2 on ( t1.user_id = t2.user_id )
+--old-- 				left join q_qr_user_to_priv as t3 on ( t1.user_id = t3.user_id )
+--old-- 			where t2.token = p_auth_token
+--old-- 		      and ( t1.start_date < current_timestamp or t1.start_date is null )
+--old-- 		      and ( t1.end_date > current_timestamp or t1.end_date is null )
+--old-- 			  and t1.email_validated = 'y'
+--old-- 		      and ( t1.setup_complete_2fa = 'y' or t1.require_2fa = 'n' )
+--old-- 			  and t2.expires > current_timestamp
+--old-- 			group by t1.user_id
+--old-- 		;
+--old-- END; $$
+--old-- LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION json_keys_agg ( p_json jsonb )  RETURNS text 
+AS $$
+DECLARE
+	l_keys text[];
+BEGIN
+	SELECT ARRAY(SELECT jsonb_object_keys(p_json))
+		into l_keys;
+	return array_to_json(l_keys)::text;
+END; $$
+LANGUAGE 'plpgsql';
+
+
+
 CREATE OR REPLACE FUNCTION q_qr_validate_user_auth_token ( p_auth_token uuid, p_userdata_password varchar ) RETURNS TABLE (
         user_id uuid,
         "privileges" text,
@@ -7986,24 +8032,39 @@ BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+
+	-- privileges - should be an array (json) of privilages so, '["May AN", "May..."]'
+
+	--	select json_object_keys(t1.allowed::json)  as priv_name, t1.role_name, t1.role_id, t2.user_id
+	--	from q_qr_role2 as t1
+	--		join q_qr_users as t2 on ( t1.role_name = t2.role_name )
+	--	--
+	--				left join q_qr_user_to_priv as t3 on ( t1.user_id = t3.user_id )
+
     RETURN QUERY
-			select t1.user_id as "user_id", json_agg(t3.priv_name)::text as "privileges", coalesce(t1.client_id::text,'')::text as client_id
+		select t5.user_id, json_keys_agg(t5.allowed) as "privileges", t5.client_id, t5.email, t5.expires, t5.seconds_till_expires
+		from (
+			select t1.user_id as "user_id", t4.allowed, coalesce(t1.client_id::text,'')::text as client_id
 				 , pgp_sym_decrypt(t1.email_enc, p_userdata_password)::text as email
 				 , min(t2.expires) as expires
 				 , ceil(EXTRACT(EPOCH FROM min(t2.expires)))::bigint - ceil(extract(epoch from now()))::bigint as seconds_till_expires
 			from q_qr_users as t1
 				join q_qr_auth_tokens as t2 on ( t1.user_id = t2.user_id )
-				left join q_qr_user_to_priv as t3 on ( t1.user_id = t3.user_id )
+				left join q_qr_role2 as t4 on ( t1.role_name = t4.role_name )
 			where t2.token = p_auth_token
 		      and ( t1.start_date < current_timestamp or t1.start_date is null )
 		      and ( t1.end_date > current_timestamp or t1.end_date is null )
 			  and t1.email_validated = 'y'
 		      and ( t1.setup_complete_2fa = 'y' or t1.require_2fa = 'n' )
 			  and t2.expires > current_timestamp
-			group by t1.user_id
+			group by t1.user_id, t4.allowed
+		) as t5
 		;
 END; $$
 LANGUAGE 'plpgsql';
+
+
+
 
 -- select * from  q_qr_validate_user_auth_token ( '65d26cf9-575a-42e7-971c-77eda313d145'::uuid, '4Ti5G3HmJsw+gbDbMKKVs4tnRUU=');
 -- explain analyze select * from  q_qr_validate_user_auth_token ( '65d26cf9-575a-42e7-971c-77eda313d145'::uuid, '4Ti5G3HmJsw+gbDbMKKVs4tnRUU=');
@@ -8746,6 +8807,7 @@ DECLARE
 	l_allowed 				bool;
 	l_allowed_privs 		jsonb;
 	l_priv					jsonb;
+	l_path					text[];
 BEGIN
 	-- Copyright (C) Philip Schlump, 2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -8773,8 +8835,8 @@ BEGIN
 		l_data = '{"status":"error","msg":"User not found.  Invalid user_id."}';			-- no such privilage granted.
 	else
 
-		select allowed ? p_priv_needed
-			into l_allowed
+		select allowed ? p_priv_needed, allowed
+			into l_allowed, l_priv
 			from q_qr_role2
 			where role_name = l_role_name
 			;
@@ -8783,29 +8845,22 @@ BEGIN
 			if l_allowed then
 				l_data = '{"status":"success","msg":"already had this privelege"}';
 			else
+				l_path[0] = p_priv_needed;
+				l_priv = jsonb_set ( l_priv, l_path, 'true'::jsonb );
 				if l_role_name = l_email then
+					-- select jsonb_set ( '{"a":true,"c":true}'::jsonb, '{"a"}', 'false' );
 					insert into t_output ( msg ) values ( '		l_role_name == l_email, ='||l_email||' p_priv_needed='||p_priv_needed );
 					update q_qr_role2
-						set allowed = jsonb_insert ( allowed, '{1}', to_jsonb(p_priv_needed) )
+						set allowed = jsonb_set ( allowed, l_path, 'true'::jsonb )
 						where role_name = l_role_name
 						;
-					select jsonb_insert ( allowed, '{1}', to_jsonb(p_priv_needed) )
-						into l_priv
-						from q_qr_role2
-						where role_name = l_role_name
-					;
 				else
 					insert into t_output ( msg ) values ( '		will insert, l_role_name='||l_role_name );
 					insert into q_qr_role2 ( role_name, allowed ) 
-						select l_email, jsonb_insert ( allowed, '{0}', to_jsonb(p_priv_needed) )
-							from q_qr_role2
-							where role_name = l_role_name
+						select l_email, jsonb_set ( t1.allowed, l_path, 'true'::jsonb )
+							from q_qr_role2 as t1
+							where t1.role_name = l_role_name
 						;
-					select jsonb_insert ( allowed, '{0}', to_jsonb(p_priv_needed) )
-						into l_priv
-						from q_qr_role2
-						where role_name = l_role_name
-					;
 				end if;
 				insert into t_output ( msg ) values ( '		set role to email, role_name='||l_email||' privleges='||l_priv::text );
 				update q_qr_users 
@@ -8832,8 +8887,6 @@ BEGIN
 	RETURN l_data;
 END;
 $$ LANGUAGE plpgsql;
-
-
 
 
 
