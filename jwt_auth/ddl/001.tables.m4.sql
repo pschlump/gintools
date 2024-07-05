@@ -4,6 +4,7 @@
 -- BSD Licensed.  See LICENSE.bsd file.
 
 -- xyzzyPartialReg
+-- xyzzyOnSuccessfulX
 
 -- xyzzyError100 - never true iff.
 -- xyzzy-Fix-Error-Message-to-be-clear
@@ -6128,6 +6129,8 @@ BEGIN
 			l_client_user_config = '[]';
 		end if;
 
+		-- xyzzyOnSuccessfulX
+
 		l_data = '{"status":"success"'
 			||', "user_id":'     			||coalesce(to_json(l_user_id)::text,'""')
 			||', "auth_token":'  			||coalesce(to_json(l_auth_token)::text,'""')
@@ -6600,6 +6603,7 @@ BEGIN
 		--	;
 
 		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'User Registered', 'File:m4___file__ Line No:m4___line__');
+
 	end if;
 
 	insert into q_qr_user_hierarchy ( user_id, parent_user_id ) values ( l_user_id, p_parent_user_id );
@@ -6607,6 +6611,17 @@ BEGIN
 	if not l_fail then
 		l_tmp_token = uuid_generate_v4();
 		insert into q_qr_tmp_token ( user_id, token ) values ( l_user_id, l_tmp_token );
+
+		-- xyzzyOnSuccessfulX
+		-- if 'q_qr_post_register' exists then ... call with  ( l_user_id, l_tmp_token, l_pw, l_first_name, l_last_name, l_email, p_parent_user_id, p_hmac_password,  p_userdata_password );
+		-- 	SELECT EXISTS (
+		--         SELECT *
+		--         FROM pg_catalog.pg_proc
+		--         JOIN pg_namespace ON pg_catalog.pg_proc.pronamespace = pg_namespace.oid
+		--         WHERE proname = 'q_qr_post_register'
+		--             AND pg_namespace.nspname = 'public'
+		--         );
+
 		l_data = '{"status":"success"'
 			||', "user_id":' 		||coalesce(to_json(l_user_id)::text,'""')
 			||', "tmp_token":'  	||coalesce(to_json(l_tmp_token)::text,'""')
@@ -6615,6 +6630,7 @@ BEGIN
 			||', "last_name":'   	||coalesce(to_json(l_last_name)::text,'""')
 			||', "email":' 			||coalesce(to_json(l_email)::text,'""')
 			||'}';
+
 	end if;
 
 	RETURN l_data;
@@ -8006,11 +8022,17 @@ DROP FUNCTION if exists q_qr_validate_user_auth_token(uuid,character varying);
 --old-- LANGUAGE 'plpgsql';
 
 
+
+-- json_keys_agg converts JSON data of the form {"a":true, "b":true} into ["a","b"].
 CREATE OR REPLACE FUNCTION json_keys_agg ( p_json jsonb )  RETURNS text 
 AS $$
 DECLARE
 	l_keys text[];
 BEGIN
+	-- Copyright (C) Philip Schlump, 2008-2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+
 	SELECT ARRAY(SELECT jsonb_object_keys(p_json))
 		into l_keys;
 	return array_to_json(l_keys)::text;
@@ -8063,6 +8085,11 @@ BEGIN
 END; $$
 LANGUAGE 'plpgsql';
 
+
+
+-- Note to self:
+--		views select "left join q_qr_user_to_priv as t3" - could be replace with
+--		"left join ( select ... +++ where user_id = CX ) as t3" - and have the external "query" criteria folded into the internal view code. (Macro Like)
 
 
 
