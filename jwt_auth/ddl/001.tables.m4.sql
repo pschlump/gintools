@@ -2383,9 +2383,9 @@ BEGIN
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 	l_data = '{"status":"failed"}';			-- no such privilage granted.
 
-	select role_name
+	select t1.role_name
 		into l_role_name
-		from q_qr_users
+		from q_qr_users as t1
 		where t1.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
 		;
 	if found then
@@ -2739,7 +2739,7 @@ BEGIN
 	--	// May Create User With:<Role> must exist for this user to create a role of this type.
 	--	//
 	--	// ----------------------------------------------------------------------------------------------
-	if not ( q_admin_HasPriv ( p_user_id, 'Item  Admin' ) ) then
+	if not ( q_admin_HasPriv ( p_user_id, 'Item Client Admin' ) ) then
 		l_fail = true;
 		l_data = '{"status":"error","msg":"Not authorized to ''Item Client Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
 		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id::uuid, 'Not authorized to ''Item Client Admin''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
@@ -2871,9 +2871,9 @@ BEGIN
 		insert into t_output ( msg ) values ( '  ' );
 	end if;
 
-	if not ( q_admin_HasPriv ( p_user_id, 'Item Admin' ) ) then
+	if not ( q_admin_HasPriv ( p_user_id, 'Item Client Admin' ) ) then
 		l_fail = true;
-		l_data = '{"status":"error","msg":"Not authorized to ''Item Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
+		l_data = '{"status":"error","msg":"Not authorized to ''Item Client Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
 		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id, 'Not authorized to ''Item Admin|n''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 	end if;
 
@@ -2969,7 +2969,7 @@ BEGIN
 
 	if not ( q_admin_HasPriv ( p_user_id, 'Item Client Admin' ) ) then
 		l_fail = true;
-		l_data = '{"status":"error","msg":"Not authorized to ''Item Admin|Item Client Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
+		l_data = '{"status":"error","msg":"Not authorized to ''Item Client Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
 		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id, 'Not authorized to ''Item Admin|Item Client Admin''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 	end if;
 
@@ -8817,12 +8817,19 @@ $$ LANGUAGE plpgsql;
 
 
 
--- set/get/update for q_qr_user_config
--- client_cfg				text not null default 'n',		-- if 'y' then report to client.
 
 
--- select q_auth_v1_add_privilage_to ( t1.user_id, 'May Administrate Coupons' );
-CREATE OR REPLACE FUNCTION q_auth_v1_add_privlage_to ( p_user_id uuid, p_priv_needed varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+
+
+
+drop FUNCTION if exists q_auth_v1_add_privlage_to ( p_user_id uuid,  p_priv_needed varchar, p_hmac_password varchar, p_userdata_password varchar ) ;
+
+
+
+-- p_user_id - the user that has the authentication to add a privilage (AutoJob Admin)
+-- p_add_to_user_id - the user that will receive the privilage
+-- p_priv_needed - the privilage that will be added
+CREATE OR REPLACE FUNCTION q_auth_v1_add_privlage_to ( p_user_id uuid, p_add_to_user_id uuid, p_priv_needed varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
 AS $$
 DECLARE
 	l_data					text;
@@ -8846,56 +8853,67 @@ BEGIN
 
 	if l_debug_on then
 		insert into t_output ( msg ) values ( 'function ->q_auth_v1_add_privilage_to <- m4___file__ m4___line__' );
-		insert into t_output ( msg ) values ( '		p_user_id       ->'||coalesce(to_json(p_user_id)::text,'""')||'<-');
-		insert into t_output ( msg ) values ( '		p_priv_needed   ->'||coalesce(to_json(p_priv_needed)::text,'""')||'<-');
+		insert into t_output ( msg ) values ( '		p_user_id           ->'||coalesce(to_json(p_user_id)::text,'""')||'<-');
+		insert into t_output ( msg ) values ( '		p_add_to_user_id    ->'||coalesce(to_json(p_add_to_user_id)::text,'""')||'<-');
+		insert into t_output ( msg ) values ( '		p_priv_needed       ->'||coalesce(to_json(p_priv_needed)::text,'""')||'<-');
 	end if;
 
 	-- See: https://www.postgresqltutorial.com/postgresql-json-functions/postgresql-jsonb_insert/
+	if not ( q_admin_HasPriv ( p_user_id, 'AutoJob Admin' ) ) then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"Not authorized for ''AutoJob Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id::uuid, 'Not authorized to ''AutoJob Admin''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+	end if;
 
-	select role_name 
-		, pgp_sym_decrypt(email_enc::bytea,p_userdata_password)::text email
-		into l_role_name, l_email
-		from q_qr_users
-		where user_id = p_user_id
-		;
-	if not found then
-		l_data = '{"status":"error","msg":"User not found.  Invalid user_id."}';			-- no such privilage granted.
-	else
+	if not l_fail then 
 
-		select allowed ? p_priv_needed, allowed
-			into l_allowed, l_priv
-			from q_qr_role2
-			where role_name = l_role_name
+		select role_name 
+			, pgp_sym_decrypt(email_enc::bytea,p_userdata_password)::text email
+			into l_role_name, l_email
+			from q_qr_users
+			where user_id = p_add_to_user_id
 			;
-		if found then
-			insert into t_output ( msg ) values ( '		found' );
-			if l_allowed then
-				l_data = '{"status":"success","msg":"already had this privelege"}';
-			else
-				l_path[0] = p_priv_needed;
-				l_priv = jsonb_set ( l_priv, l_path, 'true'::jsonb );
-				if l_role_name = l_email then
-					-- select jsonb_set ( '{"a":true,"c":true}'::jsonb, '{"a"}', 'false' );
-					insert into t_output ( msg ) values ( '		l_role_name == l_email, ='||l_email||' p_priv_needed='||p_priv_needed );
-					update q_qr_role2
-						set allowed = jsonb_set ( allowed, l_path, 'true'::jsonb )
-						where role_name = l_role_name
-						;
+		if not found then
+			l_fail = true;
+			l_data = '{"status":"error","msg":"User not found.  Invalid user_id."}';			-- no such privilage granted.
+		else
+
+			select allowed ? p_priv_needed, allowed
+				into l_allowed, l_priv
+				from q_qr_role2
+				where role_name = l_role_name
+				;
+			if found then
+				insert into t_output ( msg ) values ( '		found' );
+				if l_allowed then
+					l_data = '{"status":"success","msg":"already had this privelege"}';
 				else
-					insert into t_output ( msg ) values ( '		will insert, l_role_name='||l_role_name );
-					insert into q_qr_role2 ( role_name, allowed ) 
-						select l_email, jsonb_set ( t1.allowed, l_path, 'true'::jsonb )
-							from q_qr_role2 as t1
-							where t1.role_name = l_role_name
+					l_path[0] = p_priv_needed;
+					l_priv = jsonb_set ( l_priv, l_path, 'true'::jsonb );
+					if l_role_name = l_email then
+						-- select jsonb_set ( '{"a":true,"c":true}'::jsonb, '{"a"}', 'false' );
+						insert into t_output ( msg ) values ( '		l_role_name == l_email, ='||l_email||' p_priv_needed='||p_priv_needed );
+						update q_qr_role2
+							set allowed = jsonb_set ( allowed, l_path, 'true'::jsonb )
+							where role_name = l_role_name
+							;
+					else
+						insert into t_output ( msg ) values ( '		will insert, l_role_name='||l_role_name );
+						insert into q_qr_role2 ( role_name, allowed ) 
+							select l_email, jsonb_set ( t1.allowed, l_path, 'true'::jsonb )
+								from q_qr_role2 as t1
+								where t1.role_name = l_role_name
+							;
+					end if;
+					insert into t_output ( msg ) values ( '		set role to email, role_name='||l_email||' privleges='||l_priv::text );
+					update q_qr_users 
+						set role_name = l_email
+							, privileges = l_priv::text
+						where user_id = p_add_to_user_id
 						;
 				end if;
-				insert into t_output ( msg ) values ( '		set role to email, role_name='||l_email||' privleges='||l_priv::text );
-				update q_qr_users 
-					set role_name = l_email
-						, privileges = l_priv::text
-					where user_id = p_user_id
-					;
 			end if;
+
 		end if;
 
 	end if;
@@ -8914,6 +8932,136 @@ BEGIN
 	RETURN l_data;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- p_suer_id is the logged in administrative user. -- User must have "Admin" priv
+-- p_email is the user to add the priv to.
+CREATE OR REPLACE FUNCTION q_auth_v1_add_privlage_to_email ( p_user_id uuid, p_email varchar, p_priv_needed varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+AS $$
+DECLARE
+	l_data					text;
+	l_fail					bool;
+	l_debug_on 				bool;
+	l_role_name				text;
+	l_email					text;
+	l_add_to_user_id		uuid;
+	l_email_hmac			bytea;
+	l_allowed 				bool;
+	l_allowed_privs 		jsonb;
+	l_priv					jsonb;
+	l_path					text[];
+BEGIN
+	-- Copyright (C) Philip Schlump, 2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+
+	l_debug_on = q_get_config_bool ( 'debug' );
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->q_auth_v1_add_privilage_to <- m4___file__ m4___line__' );
+		insert into t_output ( msg ) values ( '		p_user_id       ->'||coalesce(to_json(p_user_id)::text,'""')||'<-');
+		insert into t_output ( msg ) values ( '		p_email         ->'||coalesce(to_json(p_email)::text,'""')||'<-');
+		insert into t_output ( msg ) values ( '		p_priv_needed   ->'||coalesce(to_json(p_priv_needed)::text,'""')||'<-');
+	end if;
+
+	-- See: https://www.postgresqltutorial.com/postgresql-json-functions/postgresql-jsonb_insert/
+	if not ( q_admin_HasPriv ( p_user_id, 'AutoJob Admin' ) ) then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"Not authorized for ''AutoJob Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id::uuid, 'Not authorized to ''AutoJob Admin''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+	end if;
+
+	if not l_fail then
+
+		l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
+		select role_name 
+			, pgp_sym_decrypt(email_enc::bytea,p_userdata_password)::text email
+			, user_id 
+			into l_role_name, l_email, l_add_to_user_id
+			from q_qr_users as t1
+			where t1.email_hmac = l_email_hmac
+			;
+		if not found then
+			l_fail = true;
+			l_data = '{"status":"error","msg":"User not found.  Invalid email."}';		
+		else
+
+
+			select allowed ? p_priv_needed, allowed
+				into l_allowed, l_priv
+				from q_qr_role2
+				where role_name = l_role_name
+				;
+			if found then
+				insert into t_output ( msg ) values ( '		found' );
+				if l_allowed then
+					l_data = '{"status":"success","msg":"already had this privelege"}';
+				else
+					l_path[0] = p_priv_needed;
+					l_priv = jsonb_set ( l_priv, l_path, 'true'::jsonb );
+					if l_role_name = l_email then
+						-- select jsonb_set ( '{"a":true,"c":true}'::jsonb, '{"a"}', 'false' );
+						insert into t_output ( msg ) values ( '		l_role_name == l_email, ='||l_email||' p_priv_needed='||p_priv_needed );
+						update q_qr_role2
+							set allowed = jsonb_set ( allowed, l_path, 'true'::jsonb )
+							where role_name = l_role_name
+							;
+					else
+						insert into t_output ( msg ) values ( '		will insert, l_role_name='||l_role_name );
+						insert into q_qr_role2 ( role_name, allowed ) 
+							select l_email, jsonb_set ( t1.allowed, l_path, 'true'::jsonb )
+								from q_qr_role2 as t1
+								where t1.role_name = l_role_name
+							;
+					end if;
+					insert into t_output ( msg ) values ( '		set role to email, role_name='||l_email||' privleges='||l_priv::text );
+					update q_qr_users 
+						set role_name = l_email
+							, privileges = l_priv::text
+						where user_id = l_add_to_user_id
+						;
+				end if;
+			end if;
+
+		end if;
+
+	end if;
+
+	if not l_fail then
+
+		l_data = '{"status":"success"'
+			||'}';
+
+	end if;
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->q_auth_v1_add_privlage_to <- m4___file__ m4___line__ ***returns***' );
+		insert into t_output ( msg ) values ( ' 		l_data= '||l_data );
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
 
 
 

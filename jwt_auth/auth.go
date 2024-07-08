@@ -184,6 +184,9 @@ var GinSetupTable = []GinLoginType{
 	{Method: "POST", Path: "/api/v1/auth/auth-token-delete-admin", Fx: authHandleAuthTokenDeleteAdmin, UseLogin: LoginRequired},      //
 	{Method: "POST", Path: "/api/v1/auth/get-acct-state", Fx: authHandlerGetAcctState, UseLogin: LoginRequired},                      //
 	{Method: "POST", Path: "/api/v1/auth/update-acct-state", Fx: authHandlerUpdateAcctState, UseLogin: LoginRequired},                //
+	{Method: "GET", Path: "/api/v1/auth/has-priv", Fx: authHandlerHasPriv, UseLogin: LoginRequired},                                  //
+	{Method: "POST", Path: "/api/v1/auth/has-priv", Fx: authHandlerHasPriv, UseLogin: LoginRequired},                                 //
+	{Method: "POST", Path: "/api/v1/auth/add-priv-to", Fx: authHandlerAddPrivTo, UseLogin: LoginRequired},                            //
 
 	// change2faInfo
 
@@ -5217,6 +5220,122 @@ func authHandlerSetEmailRedirect(c *gin.Context) {
 		Status: "success",
 	}
 	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
+}
+
+type ApiHasPriv struct {
+	ForEmail string `json:"for_email"   form:"for_email"  binding:"required,email"`
+	Priv     string `json:"priv"        form:"priv"       binding:"required"`
+}
+
+type HasPrivSuccess struct {
+	Status string `json:"status"`
+}
+
+// {Method: "GET", Path: "/api/v1/auth/has-priv", Fx: authHandlerHasPriv, UseLogin: LoginRequired},                                   //
+
+// authHandlerHasPriv godoc
+// @Summary get the privlatge for an account
+// @Schemes
+// @Description Return status success if the account has the privilage
+// @Tags auth
+// @Accept json,x-www-form-urlencoded
+// @Param   for_email      formData    string     true        "For Email Address"
+// @Param   priv           formData    string     true        "Priv to check"
+// @Produce json
+// @Success 200 {object} jwt_auth.UpdateAcctStateSuccess
+// @Failure 400 {object} jwt_auth.StdErrorReturn
+// @Failure 401 {object} jwt_auth.StdErrorReturn
+// @Failure 406 {object} jwt_auth.StdErrorReturn
+// @Failure 500 {object} jwt_auth.StdErrorReturn
+// @Router /api/v1/auth/has-priv [get]
+func authHandlerHasPriv(c *gin.Context) {
+	var pp ApiHasPriv
+	if err := BindFormOrJSON(c, &pp); err != nil {
+		return
+	}
+
+	perReqLog := tf.GetLogFilePtr(c)
+
+	pp.ForEmail = cleanupEmail(pp.ForEmail)
+
+	// func CallQQrAdminHasPrivEmail(c *gin.Context, email string, privNeeded string) (rv RvQQrAdminHasPrivEmail, err error) {
+	rv, err := callme.CallQQrAdminHasPrivEmail(c, pp.ForEmail, pp.Priv)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, gin.H{ // 400
+			"status": "error",
+			"msg":    fmt.Sprintf("Error: %s", err),
+		}))
+		return
+	}
+
+	var out HasPrivSuccess
+	out.Status = rv.Status
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
+
+}
+
+type ApiAddPrivTo struct {
+	ForEmail string `json:"for_email"   form:"for_email"  binding:"required,email"`
+	Priv     string `json:"priv"        form:"priv"       binding:"required"`
+}
+
+type AddPrivToSuccess struct {
+	Status string `json:"status"`
+}
+
+// {Method: "POST", Path: "/api/v1/auth/add-priv-to", Fx: authHandlerAddPrivTo, UseLogin: LoginRequired},                //
+
+// authHandlerAddPrivTo godoc
+// @Summary give an account a privilage
+// @Schemes
+// @Description Return status success if you can give the account the specified privilage
+// @Tags auth
+// @Accept json,x-www-form-urlencoded
+// @Param   for_email      formData    string     true        "For Email Address"
+// @Param   priv           formData    string     true        "Priv to check"
+// @Produce json
+// @Success 200 {object} jwt_auth.UpdateAcctStateSuccess
+// @Failure 400 {object} jwt_auth.StdErrorReturn
+// @Failure 401 {object} jwt_auth.StdErrorReturn
+// @Failure 406 {object} jwt_auth.StdErrorReturn
+// @Failure 500 {object} jwt_auth.StdErrorReturn
+// @Router /api/v1/auth/has-priv [post]
+func authHandlerAddPrivTo(c *gin.Context) {
+	var pp ApiAddPrivTo
+	if err := BindFormOrJSON(c, &pp); err != nil {
+		return
+	}
+
+	perReqLog := tf.GetLogFilePtr(c)
+
+	UserId, _, AuthToken := GetAuthToken(c)
+	if AuthToken == "" {
+		out := StdErrorReturn{
+			Status:   "error",
+			Msg:      "401 not authorized",
+			Location: dbgo.LF(),
+		}
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out))
+	}
+
+	pp.ForEmail = cleanupEmail(pp.ForEmail)
+
+	// func CallAuthAddPrivlageToEmail(c *gin.Context, userId string, email string, privNeeded string) (rv RvAuthAddPrivlageToEmail, err error) {
+	rv, err := callme.CallAuthAddPrivlageToEmail(c, UserId, pp.ForEmail, pp.Priv)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, gin.H{ // 400
+			"status": "error",
+			"msg":    fmt.Sprintf("Error: %s", err),
+		}))
+		return
+	}
+
+	var out AddPrivToSuccess
+	out.Status = rv.Status
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
+
 }
 
 /* vim: set noai ts=4 sw=4: */
