@@ -8886,6 +8886,7 @@ BEGIN
 			if found then
 				insert into t_output ( msg ) values ( '		found' );
 				if l_allowed then
+					l_fail = true;
 					l_data = '{"status":"success","msg":"already had this privelege"}';
 				else
 					l_path[0] = p_priv_needed;
@@ -8912,6 +8913,9 @@ BEGIN
 						where user_id = p_add_to_user_id
 						;
 				end if;
+			else
+				l_fail = true;
+				l_data = '{"status":"success","msg":"role name was not found, no role to add to."}';
 			end if;
 
 		end if;
@@ -8964,6 +8968,7 @@ DECLARE
 	l_allowed_privs 		jsonb;
 	l_priv					jsonb;
 	l_path					text[];
+	l_txt					text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -8974,7 +8979,7 @@ BEGIN
 	l_data = '{"status":"unknown"}';
 
 	if l_debug_on then
-		insert into t_output ( msg ) values ( 'function ->q_auth_v1_add_privilage_to <- m4___file__ m4___line__' );
+		insert into t_output ( msg ) values ( 'function ->q_auth_v1_add_privilage_to_email <- m4___file__ m4___line__' );
 		insert into t_output ( msg ) values ( '		p_user_id       ->'||coalesce(to_json(p_user_id)::text,'""')||'<-');
 		insert into t_output ( msg ) values ( '		p_email         ->'||coalesce(to_json(p_email)::text,'""')||'<-');
 		insert into t_output ( msg ) values ( '		p_priv_needed   ->'||coalesce(to_json(p_priv_needed)::text,'""')||'<-');
@@ -9011,6 +9016,7 @@ BEGIN
 			if found then
 				insert into t_output ( msg ) values ( '		found' );
 				if l_allowed then
+					l_fail = true;
 					l_data = '{"status":"success","msg":"already had this privelege"}';
 				else
 					l_path[0] = p_priv_needed;
@@ -9030,13 +9036,17 @@ BEGIN
 								where t1.role_name = l_role_name
 							;
 					end if;
-					insert into t_output ( msg ) values ( '		set role to email, role_name='||l_email||' privleges='||l_priv::text );
+					l_txt = json_keys_agg ( l_priv );
+					insert into t_output ( msg ) values ( '		set role to email, role_name='||l_email||' privleges='||l_priv::text||' l_txt='||l_txt );
 					update q_qr_users 
 						set role_name = l_email
-							, privileges = l_priv::text
+							, privileges = l_txt
 						where user_id = l_add_to_user_id
 						;
 				end if;
+			else
+				l_fail = true;
+				l_data = '{"status":"success","msg":"role name was not found, no privlage to remove"}';
 			end if;
 
 		end if;
@@ -9050,7 +9060,7 @@ BEGIN
 
 	end if;
 	if l_debug_on then
-		insert into t_output ( msg ) values ( 'function ->q_auth_v1_add_privlage_to <- m4___file__ m4___line__ ***returns***' );
+		insert into t_output ( msg ) values ( 'function ->q_auth_v1_add_privlage_to_email <- m4___file__ m4___line__ ***returns***' );
 		insert into t_output ( msg ) values ( ' 		l_data= '||l_data );
 	end if;
 
@@ -9069,6 +9079,149 @@ $$ LANGUAGE plpgsql;
 
 
 
+
+
+
+-- select '{"a": 1, "b": 2}'::jsonb - 'a';
+-- 	rv, err := callme.CallAuthRmPrivlageFromEmail(c, UserId, pp.ForEmail, pp.Priv)
+
+-- p_suer_id is the logged in administrative user. -- User must have "Admin" priv
+-- p_email is the user to add the priv to.
+CREATE OR REPLACE FUNCTION q_auth_v1_rm_privlage_from_email ( p_user_id uuid, p_email varchar, p_priv_needed varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+AS $$
+DECLARE
+	l_data					text;
+	l_fail					bool;
+	l_debug_on 				bool;
+	l_role_name				text;
+	l_email					text;
+	l_add_to_user_id		uuid;
+	l_email_hmac			bytea;
+	l_allowed 				bool;
+	l_allowed_privs 		jsonb;
+	l_priv					jsonb;
+	l_path					text[];
+	l_txt					text;
+BEGIN
+	-- Copyright (C) Philip Schlump, 2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+
+	l_debug_on = q_get_config_bool ( 'debug' );
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->q_auth_v1_rm_privlage_from_email <- m4___file__ m4___line__' );
+		insert into t_output ( msg ) values ( '		p_user_id       ->'||coalesce(to_json(p_user_id)::text,'""')||'<-');
+		insert into t_output ( msg ) values ( '		p_email         ->'||coalesce(to_json(p_email)::text,'""')||'<-');
+		insert into t_output ( msg ) values ( '		p_priv_needed   ->'||coalesce(to_json(p_priv_needed)::text,'""')||'<-');
+	end if;
+
+	-- See: https://www.postgresqltutorial.com/postgresql-json-functions/postgresql-jsonb_insert/
+	if not ( q_admin_HasPriv ( p_user_id, 'AutoJob Admin' ) ) then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"Not authorized for ''AutoJob Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id::uuid, 'Not authorized to ''AutoJob Admin''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+	end if;
+
+	if not l_fail then
+
+		l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
+		select role_name 
+			, pgp_sym_decrypt(email_enc::bytea,p_userdata_password)::text email
+			, user_id 
+			into l_role_name, l_email, l_add_to_user_id
+			from q_qr_users as t1
+			where t1.email_hmac = l_email_hmac
+			;
+		if not found then
+			l_fail = true;
+			l_data = '{"status":"error","msg":"User not found.  Invalid email."}';		
+		else
+
+
+			select allowed ? p_priv_needed, allowed
+				into l_allowed, l_priv
+				from q_qr_role2
+				where role_name = l_role_name
+				;
+			if found then
+				insert into t_output ( msg ) values ( '		found - so removing it.' );
+				if not l_allowed then
+					l_fail = true;
+					l_data = '{"status":"success","msg":"already had this privelege removed"}';
+				else
+					-- update the_table set attr['is_default'] = to_jsonb(false);
+					l_priv = l_priv - p_priv_needed;
+					if l_role_name = l_email then
+						-- select jsonb_set ( '{"a":true,"c":true}'::jsonb, '{"a"}', 'false' );
+						insert into t_output ( msg ) values ( '		l_role_name == l_email, ='||l_email||' p_priv_needed='||p_priv_needed );
+						update q_qr_role2
+							set allowed = allowed - p_priv_needed
+							where role_name = l_role_name
+							;
+					else
+						insert into t_output ( msg ) values ( '		will insert, l_role_name='||l_role_name );
+						insert into q_qr_role2 ( role_name, allowed ) 
+							select l_email, t1.allowed - p_priv_needed
+								from q_qr_role2 as t1
+								where t1.role_name = l_role_name
+							;
+					end if;
+					l_txt = json_keys_agg ( l_priv );
+					insert into t_output ( msg ) values ( '		set role to email, role_name='||l_email||' privleges='||l_priv::text||' l_txt='||l_txt );
+					update q_qr_users 
+						set role_name = l_email
+							, privileges = l_txt
+						where user_id = l_add_to_user_id
+						;
+				end if;
+			else
+				l_fail = true;
+				l_data = '{"status":"success","msg":"role name was not found, no privlage to remove"}';
+			end if;
+
+		end if;
+
+	end if;
+
+	if not l_fail then
+
+		l_data = '{"status":"success"'
+			||'}';
+
+	end if;
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->q_auth_v1_rm_privlage_from_email <- m4___file__ m4___line__ ***returns***' );
+		insert into t_output ( msg ) values ( ' 		l_data= '||l_data );
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- vim: set noai ts=4 sw=4:
 
 
 

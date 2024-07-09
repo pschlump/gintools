@@ -187,6 +187,7 @@ var GinSetupTable = []GinLoginType{
 	{Method: "GET", Path: "/api/v1/auth/has-priv", Fx: authHandlerHasPriv, UseLogin: LoginRequired},                                  //
 	{Method: "POST", Path: "/api/v1/auth/has-priv", Fx: authHandlerHasPriv, UseLogin: LoginRequired},                                 //
 	{Method: "POST", Path: "/api/v1/auth/add-priv-to", Fx: authHandlerAddPrivTo, UseLogin: LoginRequired},                            //
+	{Method: "POST", Path: "/api/v1/auth/rm-priv-from", Fx: authHandlerRmPrivFrom, UseLogin: LoginRequired},                          //
 
 	// change2faInfo
 
@@ -4007,137 +4008,6 @@ func IsLoggedIn(c *gin.Context) (ItIs bool) {
 	return
 }
 
-// -------------------------------------------------------------------------------------------------------------------------
-type SQLStringType struct {
-	X string
-}
-type SQLIntType struct {
-	X *int
-}
-
-func CallDatabaseJSONFunction(c *gin.Context, fCall string, encPat string, data ...interface{}) (rv string, err error) {
-	perReqLog := tf.GetLogFilePtr(c)
-	var v2 []*SQLStringType
-	stmt := "select " + fCall + " as \"x\""
-	if conn == nil {
-		dbgo.Fprintf(perReqLog, "!!!!! connection is nil at:%(LF)\n")
-		os.Exit(1)
-	}
-	dbgo.Fprintf(perReqLog, "%(yellow)[    Database Call]:%(reset) ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
-	dbgo.Fprintf(perReqLog, "[    Database Call] ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
-	start := time.Now()
-	err = pgxscan.Select(ctx, conn, &v2, stmt, data...)
-	elapsed := time.Since(start) // elapsed time.Duration
-	if err != nil {
-		if elapsed > (1 * time.Millisecond) {
-			dbgo.Fprintf(perReqLog, "    %(red)Error on select stmt ->%s<- data %s %(red)elapsed:%s%(reset) at:%s %s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1), dbgo.LF(-2))
-		} else {
-			dbgo.Fprintf(perReqLog, "    %(red)Error on select stmt ->%s<- data %s elapsed:%s at:%s %s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1), dbgo.LF(-2))
-		}
-		// dbgo.Fprintf(perReqLog, "    Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
-		log_enc.LogSQLError(c, stmt, err, encPat, data...)
-		return "", fmt.Errorf("Sql error")
-	}
-	if len(v2) > 0 {
-		dbgo.Fprintf(perReqLog, "    %(yellow)Call Returns:%(reset) %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
-		// dbgo.Fprintf(perReqLog, "    Call Returns: %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
-		return v2[0].X, nil
-	}
-	dbgo.Fprintf(perReqLog, "    %(yellow)Call ---no rows returned--- Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
-	// dbgo.Fprintf(perReqLog, "    Call Empty ---no rows returned--- elapsed:%s at:%(LF)\n", elapsed)
-	return "{}", nil
-}
-
-func SelectString(c *gin.Context, stmt string, encPat string, data ...interface{}) (rv string, err error) {
-	perReqLog := tf.GetLogFilePtr(c)
-	var v2 []*SQLStringType
-	if conn == nil {
-		dbgo.Fprintf(perReqLog, "!!!!! connection is nil at:%(LF)\n")
-		os.Exit(1)
-	}
-	dbgo.Fprintf(perReqLog, "%(yellow)[    Database Call]:%(reset) ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
-	// dbgo.Fprintf(perReqLog, "[    Database Call] ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
-	start := time.Now()
-	err = pgxscan.Select(ctx, conn, &v2, stmt, data...)
-	elapsed := time.Since(start) // elapsed time.Duration
-	if err != nil {
-		if elapsed > (1 * time.Millisecond) {
-			dbgo.Fprintf(perReqLog, "    %(red)Error on select stmt ->%s<- data %s %(red)elapsed:%s%(reset) at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
-		} else {
-			dbgo.Fprintf(perReqLog, "    %(red)Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
-		}
-		// dbgo.Fprintf(perReqLog, "    Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
-		//if c == nil {
-		//	dbgo.Fprintf(perReqLog, "Error: %s stmt %s at %(LF)\n", stmt, err)
-		//} else {
-		log_enc.LogSQLError(c, stmt, err, encPat, data...)
-		//}
-		return "", fmt.Errorf("Sql error")
-	}
-	if len(v2) > 0 {
-		dbgo.Fprintf(perReqLog, "    %(yellow)Call Returns:%(reset) %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
-		// dbgo.Fprintf(perReqLog, "    Call Returns: %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
-		return v2[0].X, nil
-	}
-	dbgo.Fprintf(perReqLog, "    %(yellow)Call ---no rows returned--- Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
-	// dbgo.Fprintf(perReqLog, "    Call Empty ---no rows returned--- elapsed:%s at:%(LF)\n", elapsed)
-	return "{}", nil
-}
-
-func CallDatabaseJSONFunctionNoErr(c *gin.Context, fCall string, encPat string, data ...interface{}) (rv string, err error) {
-	perReqLog := tf.GetLogFilePtr(c)
-	var v2 []*SQLStringType
-	stmt := "select " + fCall + " as \"x\""
-	if conn == nil {
-		dbgo.Fprintf(perReqLog, "!!!!! connection is nil at:%(LF)\n")
-		os.Exit(1)
-	}
-	dbgo.Fprintf(perReqLog, "%(yellow)[    Database Call]:%(reset) ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
-	// dbgo.Fprintf(perReqLog, "[    Database Call] ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
-	start := time.Now()
-	err = pgxscan.Select(ctx, conn, &v2, stmt, data...)
-	elapsed := time.Since(start) // elapsed time.Duration
-	if err != nil {
-		if elapsed > (1 * time.Millisecond) {
-			dbgo.Fprintf(perReqLog, "    %(red)Error on select stmt ->%s<- data %s %(red)elapsed:%s%(reset) at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
-		} else {
-			dbgo.Fprintf(perReqLog, "    %(red)Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
-		}
-		// dbgo.Fprintf(perReqLog, "    Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
-		log_enc.LogSQLErrorNoErr(c, stmt, err, encPat, data...)
-		return "", fmt.Errorf("Sql error")
-	}
-	if len(v2) > 0 {
-		dbgo.Fprintf(perReqLog, "    %(yellow)Call Returns:%(reset) %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
-		// dbgo.Fprintf(perReqLog, "    Call Returns: %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
-		return v2[0].X, nil
-	}
-	dbgo.Fprintf(perReqLog, "    %(yellow)Call ---no rows returned--- Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
-	// dbgo.Fprintf(perReqLog, "    Call Empty ---no rows returned--- elapsed:%s at:%(LF)\n", elapsed)
-	return "{}", nil
-}
-
-// -------------------------------------------------------------------------------------------------------------------------
-func SqlRunStmt(c *gin.Context, stmt string, encPat string, data ...interface{}) (rv []map[string]interface{}, err error) {
-	perReqLog := tf.GetLogFilePtr(c)
-	// var v2 []*SQLStringType
-	if conn == nil {
-		dbgo.Fprintf(perReqLog, "!!!!! connection is nil at:%(LF)\n")
-		os.Exit(1)
-	}
-	// fmt.Fprintf(perReqLog, "Database Stmt ->%s<- data ->%s<-\n", stmt, dbgo.SVar(data))
-	fmt.Fprintf(perReqLog, "Database Stmt ->%s<- data ->%s<-\n", stmt, dbgo.SVar(data))
-
-	// res, err := conn.Exec(ctx, stmt, data...)
-	err = pgxscan.Select(ctx, conn, &rv, stmt, data...)
-	if err != nil {
-		log_enc.LogSQLError(c, stmt, err, encPat, data...)
-		return nil, fmt.Errorf("Sql error")
-	}
-
-	return nil, nil
-}
-
 // Input : [{"priv_name":"May Change Password"}, {"priv_name":"May Password"}]
 // Outupt : {"May Change Password":true, "May Password":true}
 // func ConvPrivs(perReqLog *os.File, Privileges string) (rv string, mr map[string]bool) {
@@ -5324,6 +5194,52 @@ func authHandlerAddPrivTo(c *gin.Context) {
 	// func CallAuthAddPrivlageToEmail(c *gin.Context, userId string, email string, privNeeded string) (rv RvAuthAddPrivlageToEmail, err error) {
 	rv, err := callme.CallAuthAddPrivlageToEmail(c, UserId, pp.ForEmail, pp.Priv)
 
+	if err != nil {
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, gin.H{ // 400
+			"status": "error",
+			"msg":    fmt.Sprintf("Error: %s", err),
+		}))
+		return
+	}
+
+	var out AddPrivToSuccess
+	out.Status = rv.Status
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
+
+}
+
+/*
+	--post-data "{
+		\"for_email\": \"${FOR_EMAIL}\",
+		\"priv\": \"${PRIV}\"
+	}" \
+
+"${server}/api/v1/auth/rm-priv-from"
+
+select '{"a": 1, "b": 2}'::jsonb - 'a';
+*/
+func authHandlerRmPrivFrom(c *gin.Context) {
+	var pp ApiAddPrivTo
+	if err := BindFormOrJSON(c, &pp); err != nil {
+		return
+	}
+
+	perReqLog := tf.GetLogFilePtr(c)
+
+	UserId, _, AuthToken := GetAuthToken(c)
+	if AuthToken == "" {
+		out := StdErrorReturn{
+			Status:   "error",
+			Msg:      "401 not authorized",
+			Location: dbgo.LF(),
+		}
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out))
+	}
+
+	pp.ForEmail = cleanupEmail(pp.ForEmail)
+
+	// FUNCTION q_auth_v1_rm_privlage_from_email ( p_user_id uuid, p_email varchar, p_priv_needed varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+	rv, err := callme.CallAuthRmPrivlageFromEmail(c, UserId, pp.ForEmail, pp.Priv)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, gin.H{ // 400
 			"status": "error",
