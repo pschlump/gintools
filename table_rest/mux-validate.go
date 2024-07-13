@@ -120,16 +120,16 @@ func ValidateInputParameters(c *gin.Context, Input []*MuxInput) (pname string, e
 		false,
 		-2,
 		/*FxGetNameList*/ func() []string {
-			dbgo.Printf("%(yellow) at:%(LF) GetNameList\n")
+			// dbgo.Printf("%(yellow) at:%(LF) GetNameList\n")
 			return GetNameList(c)
 		},
 		/*FxGetDataValue*/ func(name string) (string, bool) {
-			dbgo.Printf("%(yellow) at:%(LF) GetVar\n")
+			// dbgo.Printf("%(yellow) at:%(LF) GetVar\n")
 			a, b := GetVar(name, c)
 			return b, a
 		},
 		/*FxSetDataValue*/ func(name, val string) {
-			dbgo.Printf("%(yellow) at:%(LF) SetValue !!!!!!!!!!!!!!!!!!!!!\n")
+			// dbgo.Printf("%(yellow) at:%(LF) SetValue !!!!!!!!!!!!!!!!!!!!!\n")
 			SetValue(c, name, val)
 		},
 		// OIG: mux.InOrd[kInOrd].Input, // Input []*MuxInput,
@@ -204,7 +204,7 @@ func ValidationFunctionCommon(c *gin.Context, NoValidate bool, depth int,
 		return
 	}
 
-	fmt.Fprintf(os.Stderr, "%sURL (%s) -- Validation Start AT: %s%s\n", dbgo.ColorCyan, c.Request.URL, dbgo.LF(), dbgo.ColorReset)
+	// fmt.Fprintf(os.Stderr, "%sURL (%s) -- Validation Start AT: %s%s\n", dbgo.ColorCyan, c.Request.URL, dbgo.LF(), dbgo.ColorReset)
 	fmt.Fprintf(logFilePtr, "URL (%s) -- Validation Start AT: %s\n", c.Request.URL, dbgo.LF())
 	// allNames := GetNameList(www, c.Request)
 	allNames := FxGetNameList()
@@ -213,7 +213,7 @@ func ValidationFunctionCommon(c *gin.Context, NoValidate bool, depth int,
 		if !found {
 			val = ""
 		}
-		fmt.Fprintf(os.Stderr, "%s   name[%s] initial value [%s]%s\n", dbgo.ColorCyan, name, EncIfSecret(name, val), dbgo.ColorReset)
+		// fmt.Fprintf(os.Stderr, "%s   name[%s] initial value [%s]%s\n", dbgo.ColorCyan, name, EncIfSecret(name, val), dbgo.ColorReset)
 		fmt.Fprintf(logFilePtr, "   name[%s] initial value [%s]\n", name, EncIfSecret(name, val))
 	}
 
@@ -222,8 +222,8 @@ func ValidationFunctionCommon(c *gin.Context, NoValidate bool, depth int,
 		empty_input = false
 		name := vv.Name
 		pname = vv.Name
-		fmt.Fprintf(os.Stderr, "%s   Validation of name [%s] AT: %s%s\n", dbgo.ColorCyan, name, dbgo.LF(), dbgo.ColorReset)
-		fmt.Fprintf(logFilePtr, "%s   Validation of name [%s] AT: %s%s\n", dbgo.ColorCyan, name, dbgo.LF(), dbgo.ColorReset)
+		// fmt.Fprintf(os.Stderr, "%s   Validation of name [%s] AT: %s%s\n", dbgo.ColorCyan, name, dbgo.LF(), dbgo.ColorReset)
+		// fmt.Fprintf(logFilePtr, "%s   Validation of name [%s] AT: %s%s\n", dbgo.ColorCyan, name, dbgo.LF(), dbgo.ColorReset)
 
 		// func GetVar(name string, c *gin.Context) (found bool, value string) {
 		val, found := FxGetDataValue(name)
@@ -249,15 +249,15 @@ func ValidationFunctionCommon(c *gin.Context, NoValidate bool, depth int,
 		}
 
 		if !found {
-			fmt.Fprintf(os.Stderr, "%sAT: %s%s\n", dbgo.ColorCyan, dbgo.LF(), dbgo.ColorReset)
+			// fmt.Fprintf(os.Stderr, "%sAT: %s%s\n", dbgo.ColorCyan, dbgo.LF(), dbgo.ColorReset)
 			if vv.Default != "" {
 				dbgo.DbPrintf("MuxRewriteRequest.01", "Using vv.Default [%s]\n", vv.Default)
 				FxSetDataValue(name, vv.Default)
 				val = vv.Default
 			} else if vv.Required {
 				err = fmt.Errorf("Missing [%s] - Required Parameter", name)
-				fmt.Fprintf(os.Stderr, "%s   Validation Failed name=[%s] missing value is required AT: %s%s\n", dbgo.ColorCyan, name, dbgo.LF(), dbgo.ColorReset)
-				fmt.Fprintf(logFilePtr, "   Validation Failed name=[%s] missing value is required AT: %s\n", name, dbgo.LF())
+				// fmt.Fprintf(os.Stderr, "%s   Validation Failed name=[%s] missing value is required AT: %s%s\n", dbgo.ColorCyan, name, dbgo.LF(), dbgo.ColorReset)
+				// fmt.Fprintf(logFilePtr, "   Validation Failed name=[%s] missing value is required AT: %s\n", name, dbgo.LF())
 				return
 			}
 			if db405 {
@@ -266,7 +266,7 @@ func ValidationFunctionCommon(c *gin.Context, NoValidate bool, depth int,
 		}
 
 		// Changes to this switch requires corresponding changes above!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		fmt.Fprintf(os.Stderr, "%sAT: %s%s\n", dbgo.ColorCyan, dbgo.LF(), dbgo.ColorReset)
+		// fmt.Fprintf(os.Stderr, "%sAT: %s%s\n", dbgo.ColorCyan, dbgo.LF(), dbgo.ColorReset)
 		switch vv.Type {
 		case "n/a":
 			// Ignore type.
@@ -430,7 +430,7 @@ func ValidationFunctionCommon(c *gin.Context, NoValidate bool, depth int,
 			}
 		case "s", "str", "string", "file", "dt", "date", "date-time", "csv":
 			// xyzzy444 - TODO - add regexp check for strings
-			fmt.Fprintf(os.Stderr, "%sname [%s] val ->%s<- len=%d vv.Required=%v, at:%s%s\n", dbgo.ColorCyan, name, EncIfSecret(name, val), len(val), vv.Required, dbgo.LF(), dbgo.ColorReset)
+			// fmt.Fprintf(os.Stderr, "%sname [%s] val ->%s<- len=%d vv.Required=%v, at:%s%s\n", dbgo.ColorCyan, name, EncIfSecret(name, val), len(val), vv.Required, dbgo.LF(), dbgo.ColorReset)
 			// PJS new Tue Oct 19 05:44:46 MDT 2021
 			if vv.Type == "csv" {
 				ss := strings.Split(val, ",") // TODO : Should be a CSV split w/ embeded quote marks. (and trim of blanks? )
@@ -562,10 +562,10 @@ func ValidationFunctionCommon(c *gin.Context, NoValidate bool, depth int,
 	}
 
 	if empty_input {
-		fmt.Fprintf(os.Stderr, "%sURL (%s) -- No fields to validate. AT: %s%s\n", dbgo.ColorYellow, c.Request.URL, dbgo.LF(), dbgo.ColorReset)
+		// fmt.Fprintf(os.Stderr, "%sURL (%s) -- No fields to validate. AT: %s%s\n", dbgo.ColorYellow, c.Request.URL, dbgo.LF(), dbgo.ColorReset)
 		fmt.Fprintf(logFilePtr, "URL (%s) -- No fields to validate. AT: %s\n", c.Request.URL, dbgo.LF())
 	} else {
-		fmt.Fprintf(os.Stderr, "%sURL (%s) -- Fields Validated AT: %s%s\n", dbgo.ColorCyan, c.Request.URL, dbgo.LF(), dbgo.ColorReset)
+		// fmt.Fprintf(os.Stderr, "%sURL (%s) -- Fields Validated AT: %s%s\n", dbgo.ColorCyan, c.Request.URL, dbgo.LF(), dbgo.ColorReset)
 		fmt.Fprintf(logFilePtr, "URL (%s) -- Fields Validated AT: %s\n", c.Request.URL, dbgo.LF())
 		for _, vv := range Input {
 			name := vv.Name
@@ -573,7 +573,7 @@ func ValidationFunctionCommon(c *gin.Context, NoValidate bool, depth int,
 			if !found {
 				value = ""
 			}
-			fmt.Fprintf(os.Stderr, "%s    name [%s] value [%s]%s\n", dbgo.ColorCyan, name, EncIfSecret(name, value), dbgo.ColorReset)
+			// fmt.Fprintf(os.Stderr, "%s    name [%s] value [%s]%s\n", dbgo.ColorCyan, name, EncIfSecret(name, value), dbgo.ColorReset)
 			fmt.Fprintf(logFilePtr, "    name [%s] value [%s]\n", name, EncIfSecret(name, value))
 		}
 	}
