@@ -362,7 +362,7 @@ func ValidationFunctionCommon(c *gin.Context, NoValidate bool, depth int,
 					}
 				}
 				if vv.MaxLen > 0 {
-					if len(val) >= vv.MaxLen {
+					if len(val) > vv.MaxLen {
 						err = fmt.Errorf("Parameter [%s] - Invalid Length %d exceeds maximum %d", name, len(val), vv.MaxLen)
 						fmt.Fprintf(os.Stderr, "%s    Too long(%d) valiate name=[%s] value=[%s]%s\n", dbgo.ColorRed, vv.MaxLen, name, EncIfSecret(name, val), dbgo.ColorReset)
 						fmt.Fprintf(logFilePtr, "    Too long(%d) name=[%s] value=[%s]\n", vv.MaxLen, name, EncIfSecret(name, val))
@@ -510,7 +510,7 @@ func ValidationFunctionCommon(c *gin.Context, NoValidate bool, depth int,
 					}
 				}
 				if vv.MaxLen > 0 {
-					if len(val) >= vv.MaxLen {
+					if len(val) > vv.MaxLen {
 						err = fmt.Errorf("Parameter [%s] - Invalid Length %d exceeds maximum %d", name, len(val), vv.MaxLen)
 						fmt.Fprintf(os.Stderr, "%s    Too long(%d) valiate name=[%s] value=[%s]%s\n", dbgo.ColorRed, vv.MaxLen, name, EncIfSecret(name, val), dbgo.ColorReset)
 						fmt.Fprintf(logFilePtr, "    Too long(%d) name=[%s] value=[%s]\n", vv.MaxLen, name, EncIfSecret(name, val))
