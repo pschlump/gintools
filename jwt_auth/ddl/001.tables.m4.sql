@@ -1344,14 +1344,64 @@ CREATE TRIGGER q_qr_saved_state_expire_trig
 alter table if exists q_qr_users add column if not exists role_name 		text;
 alter table if exists q_qr_users add column if not exists org_name			text;
 alter table if exists q_qr_users add column if not exists n6_flag					text default '' not null;
+alter table if exists q_qr_users add column if not exists validator		text;
+alter table if exists q_qr_users add column if not exists claims			text;
+alter table if exists q_qr_users add column if not exists id_token			text;
+alter table if exists q_qr_users add column if not exists access_token			text;
+alter table if exists q_qr_users add column if not exists refresh_token			text;
+
+DO $$
+BEGIN
+	BEGIN
+		ALTER TABLE q_qr_users DROP CONSTRAINT q_qr_users_account_type_check;
+	EXCEPTION
+		WHEN duplicate_table THEN	-- postgres raises duplicate_table at surprising times. Ex.: for UNIQUE constraints.
+		WHEN duplicate_object THEN
+			RAISE NOTICE 'Table constraint q_qr_users_account_type_check already exists';
+	END;
+	BEGIN
+		ALTER TABLE q_qr_users ADD CONSTRAINT  q_qr_users_account_type_check check ( account_type in ( 'login', 'un/pw', 'token', 'other', 'sso' ) );
+		-- account_type			varchar(20) default 'login' not null check ( account_type in ( 'login', 'un/pw', 'token', 'other', 'sso' ) ),
+	EXCEPTION
+		WHEN duplicate_table THEN	-- postgres raises duplicate_table at surprising times. Ex.: for UNIQUE constraints.
+		WHEN duplicate_object THEN
+			RAISE NOTICE 'Table constraint q_qr_users_account_type_check already exists';
+		WHEN others THEN
+			RAISE NOTICE 'Table constraint q_qr_users_account_type_check already creation error';
+	END;
+	BEGIN
+		ALTER TABLE q_qr_users DROP CONSTRAINT q_qr_users_validation_method_check;
+	EXCEPTION
+		WHEN duplicate_table THEN	-- postgres raises duplicate_table at surprising times. Ex.: for UNIQUE constraints.
+		WHEN duplicate_object THEN
+			RAISE NOTICE 'Table constraint q_qr_users_validation_method_check already exists';
+	END;
+	BEGIN
+		ALTER TABLE q_qr_users ADD CONSTRAINT  q_qr_users_validation_method_check check ( validation_method in ( 'un/pw', 'sip', 'srp6a', 'hw-key', 'webauthn', 'sso' ) );
+		-- validation_method		varchar(10) default 'un/pw' not null check ( validation_method in ( 'un/pw', 'sip', 'srp6a', 'hw-key', 'webauthn', 'sso' ) ),
+	EXCEPTION
+		WHEN duplicate_table THEN	-- postgres raises duplicate_table at surprising times. Ex.: for UNIQUE constraints.
+		WHEN duplicate_object THEN
+			RAISE NOTICE 'Table constraint q_qr_users_validation_method_check already exists';
+		WHEN others THEN
+			RAISE NOTICE 'Table constraint q_qr_users_validation_method_check already creation error';
+	END;
+END $$;
+
+
+
+
+
+
+
 
 CREATE TABLE if not exists q_qr_users (
 	user_id 				uuid default uuid_generate_v4() not null primary key,
 	email_hmac 				bytea not null,
 	email_enc 				bytea not null,										-- encrypted/decryptable email address
 	password_hash 			text not null,
-	validation_method		varchar(10) default 'un/pw' not null check ( validation_method in ( 'un/pw', 'sip', 'srp6a', 'hw-key', 'webauthn' ) ),
-	validator				text, -- p, q, a, v? -- Store as JSON and decode as necessary? { "typ":"sip", "ver":"v0.0.1", "v":..., "p":... }
+	validation_method		varchar(10) default 'un/pw' not null check ( validation_method in ( 'un/pw', 'sip', 'srp6a', 'hw-key', 'webauthn', 'sso' ) ),
+	validator				text, 
 	e_value					text,
 	x_value					text,
 	y_value					text,
@@ -1372,7 +1422,7 @@ CREATE TABLE if not exists q_qr_users (
 	login_success 			int default 0 not null,
 	login_2fa_failures 		int default 10 not null,
 	parent_user_id 			uuid,
-	account_type			varchar(20) default 'login' not null check ( account_type in ( 'login', 'un/pw', 'token', 'other' ) ),
+	account_type			varchar(20) default 'login' not null check ( account_type in ( 'login', 'un/pw', 'token', 'other', 'sso' ) ),
 	require_2fa 			varchar(1) default 'y' not null,
 	secret_2fa 				varchar(20),
 	setup_complete_2fa 		varchar(1) default 'n' not null,					-- Must be 'y' to login / set by q_auth_v1_validate_2fa_token
@@ -1383,6 +1433,10 @@ CREATE TABLE if not exists q_qr_users (
 	role_name 				text not null,
 	org_name				text,												-- Used for testing - name of the Admin that this user is tied to
 	n6_flag					text default '' not null,							-- used to mark if user was registered with n6 or n8 flag.
+	claims 					text,
+	id_token 				text,
+	access_token 			text,
+	refresh_token 			text,
 	updated 				timestamp, 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 				timestamp default current_timestamp not null 		-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
@@ -3548,6 +3602,9 @@ BEGIN
 						and parent_user_id is not null
 					)  or (
 							account_type = 'token'
+						and parent_user_id is not null
+					)  or (
+							account_type = 'sso'
 						and parent_user_id is not null
 					)
 			for update
@@ -6138,8 +6195,8 @@ BEGIN
 			||', "require_2fa":' 			||coalesce(to_json(l_require_2fa)::text,'""')
 			||', "secret_2fa":'  			||coalesce(to_json(l_secret_2fa)::text,'""')
 			||', "account_type":'			||coalesce(to_json(l_account_type)::text,'""')
-			||', "privileges":'  			||coalesce(l_privileges,'""')
-			||', "user_config":'  			||coalesce(l_user_config,'""')
+			||', "privileges":'  			||coalesce(l_privileges,'""')	-- $TYPE$ []string
+			||', "user_config":'  			||coalesce(l_user_config,'""')	-- $TYPE$ map[string]string
 			||', "client_user_config":'  	||coalesce(l_client_user_config,'""')
 			||', "first_name":'  			||coalesce(to_json(l_first_name)::text,'""')
 			||', "last_name":'   			||coalesce(to_json(l_last_name)::text,'""')
@@ -7650,7 +7707,7 @@ BEGIN
 			  and ( t8.end_date > current_timestamp or t8.end_date is null )
 			  and (
 					(
-							t8.account_type = 'login'
+							t8.account_type in ( 'login', 'sso' )
 						and t8.password_hash = crypt(p_pw, password_hash)
 						and t8.parent_user_id is null
 					    and t8.email_validated = 'y'
@@ -9221,7 +9278,490 @@ $$ LANGUAGE plpgsql;
 
 
 
--- vim: set noai ts=4 sw=4:
+drop FUNCTION if exists q_auth_v1_idp_login_or_register ( p_email varchar, p_auth_source varchar, p_claims varchar, p_id_token varchar, p_access_token varchar, p_refresh_token varchar,  p_hmac_password varchar, p_userdata_password varchar, p_fingerprint varchar, p_sc_id varchar, p_hash_of_headers varchar, p_xsrf_id varchar ) ;
+drop FUNCTION if exists q_auth_v1_idp_login_or_register ( p_email varchar, p_validator varchar, p_claims varchar, p_id_token varchar, p_access_token varchar, p_refresh_token varchar,  p_hmac_password varchar, p_userdata_password varchar, p_fingerprint varchar, p_sc_id varchar, p_hash_of_headers varchar, p_xsrf_id varchar ) ;
+
+CREATE OR REPLACE FUNCTION q_auth_v1_idp_login_or_register ( p_email varchar, p_validator varchar, p_claims varchar, p_id_token varchar, p_access_token varchar, p_refresh_token varchar,  p_hmac_password varchar, p_userdata_password varchar, p_hash_of_headers varchar, p_email_verified varchar, p_first_name varchar, p_last_name varchar ) RETURNS text
+AS $$
+DECLARE
+	l_2fa_id				uuid;
+	l_data					text;
+	l_fail					bool;
+  	l_user_id 				uuid;
+	l_junk					text;
+	l_email_validated		varchar(1);
+	l_setup_complete_2fa 	varchar(1);
+	l_start_date			timestamp;
+	l_end_date				timestamp;
+	l_account_type			varchar(20);
+	l_privileges			text;
+	l_user_config			text;
+	l_first_name			text;
+	l_last_name				text;
+	l_token				text;
+	l_tmp					text;
+	l_auth_token			uuid;
+	l_tmp_token				uuid;	-- when 2fa is on this is returnd as not null (UUID)
+	l_debug_on 				bool;
+	l_failed_login_timeout 	timestamp;
+	l_login_failures 		int;
+	l_one_time_password_id 	uuid;
+	v_cnt 					int;
+	l_validation_method		varchar(10);
+	l_manifest_id			uuid;
+	l_email_hmac            bytea;
+	l_is_new_device_login	varchar(1);
+	l_client_id				uuid;
+	l_acct_state			text;
+	l_role_name				text;
+	l_is_new_device_msg		text;
+	l_device_track_id		uuid;
+	l_client_user_config	text;
+	l_txt					text;
+	l_new_registration		bool;
+BEGIN
+	l_debug_on = q_get_config_bool ( 'debug' );
+
+	-- Copyright (C) Philip Schlump, 2008-2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+	l_is_new_device_login = 'n';
+	l_is_new_device_msg = '--don''t-know--';
+	l_new_registration		= false;
+	l_tmp_token = uuid_generate_v4();
+	l_account_type = 'sso';
+	l_acct_state = 'reg1';
+	l_token = '';
+
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<- m4___file__ m4___line__' );
+		insert into t_output ( msg ) values ( '  p_email ->'||coalesce(to_json(p_email)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_validator ->'||coalesce(to_json(p_validator)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_claims ->'||coalesce(to_json(p_claims)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_id_token ->'||coalesce(to_json(p_id_token)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_access_token ->'||coalesce(to_json(p_access_token)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_refresh_token ->'||coalesce(to_json(p_refresh_token)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_hmac_password ->'||coalesce(to_json(p_hmac_password)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_userdata_password ->'||coalesce(to_json(p_userdata_password)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_hash_of_headers ->'||coalesce(to_json(p_hash_of_headers)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  p_email_verified ->'||coalesce(to_json(p_email_verified)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  ' );
+	end if;
+
+	-- validation_method		varchar(10) default 'un/pw' not null check ( validation_method in ( 'un/pw', 'sip', 'srp6a', 'hw-key' ) ),
+	if not l_fail then
+		l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
+		-- see:(this one has been fixed) xyzzy-Slow!! - better to do select count - and verify where before update.
+		with email_user as (
+			select
+				  user_id
+				, email_validated
+				, setup_complete_2fa
+				, start_date
+				, end_date
+				, account_type
+				, pgp_sym_decrypt(first_name_enc,p_userdata_password)::text as x_first_name
+				, pgp_sym_decrypt(last_name_enc,p_userdata_password)::text as x_last_name
+				, failed_login_timeout
+				, login_failures
+				, validation_method
+				, password_hash
+				, parent_user_id
+				, client_id
+				, role_name
+			from q_qr_users
+			where email_hmac = l_email_hmac
+		)
+		select
+				  user_id
+				, email_validated
+				, setup_complete_2fa
+				, start_date
+				, end_date
+				, x_first_name
+				, x_last_name
+				, failed_login_timeout
+				, login_failures
+				, validation_method
+				, client_id
+				, role_name
+			into
+				  l_user_id
+				, l_email_validated
+				, l_setup_complete_2fa
+				, l_start_date
+				, l_end_date
+				, l_first_name
+				, l_last_name
+				, l_failed_login_timeout
+				, l_login_failures
+				, l_validation_method
+				, l_client_id
+				, l_role_name
+			from email_user
+		;
+
+		if found then
+
+			if parent_user_id is not null then
+
+				l_fail = true;
+				l_data = '{"status":"error","msg":"Invalid account, a child account of a differnet login account.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'Invalid account, a child account of a different login account.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+
+			elsif x_account_type = 'sso' then
+
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'SSO Login Account Found:'||p_email, 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+
+			else 
+
+				l_fail = true;
+				l_data = '{"status":"error","msg":"Invalid account type, try logging in with a email/password.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'Invalid account type, try logging in with a email/password.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+
+			end if;
+
+		else
+
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'New Registration:'||p_email, 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+
+			-- register them
+			l_new_registration		= true;
+
+			if not l_fail then
+				select json_agg(t0.priv_name)::text
+				into l_privileges
+				from (
+					select json_object_keys(t1.allowed::json)::text  as priv_name
+						from q_qr_role2 as t1
+						where t1.role_name =  'role:user'
+					) as t0
+					;
+				if not found then
+					if l_debug_on then
+						insert into t_output ( msg ) values ( 'Failed to get the privileges for the user' );
+					end if;
+					l_fail = true;
+					l_data = '{"status":"error","msg":"Unable to get privileges for the user.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+					l_privileges = '';
+				end if;
+				if l_debug_on then
+					insert into t_output ( msg ) values ( 'calculate l_privileges ->'||coalesce(to_json(l_privileges)::text,'---null---')||'<-');
+				end if;
+			end if;
+
+			if not l_fail then
+
+				-- xyzzyInsertNew - Move to - end where update4
+				l_validation_method = 'sso';
+				l_role_name = 'role:user';
+				l_user_id = uuid_generate_v4();
+
+				INSERT INTO q_qr_users (
+					  email_hmac
+					, email_enc
+					, user_id
+					, validator
+					, email_verify_token
+					, email_verify_expire
+					, first_name_hmac
+					, first_name_enc
+					, last_name_hmac
+					, last_name_enc
+					, privileges
+					, validation_method
+					, password_hash
+					, role_name
+					, require_2fa
+					, login_failures 
+					, login_success
+					, claims 
+					, id_token 
+					, access_token 
+					, refresh_token 
+					, account_type
+					, email_validated
+				) VALUES (
+					  l_email_hmac
+					, pgp_sym_encrypt(p_email, p_userdata_password)
+					, l_user_id
+					, p_validator
+					, null
+					, current_timestamp + interval '10000 day'
+					, q_auth_v1_hmac_encode ( p_first_name, p_hmac_password )
+					, pgp_sym_encrypt( p_first_name, p_userdata_password )
+					, q_auth_v1_hmac_encode ( p_last_name, p_hmac_password )
+					, pgp_sym_encrypt( p_last_name, p_userdata_password )
+					, l_privileges
+					, l_validation_method	-- sso
+					, '*'					-- never a valid hash - password is not used.
+					, l_role_name			-- role:user
+					, 'n'					-- 2fa on SSO side, not this side.
+					, 0 					-- login_failures
+					, 1  					-- login_success 
+					, p_claims
+					, p_id_token
+					, p_access_token
+					, p_refresh_token
+					, l_account_type		-- sso
+					, p_email_verified
+				);
+
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'User Registered', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+
+				-- Generate OTP passwords - 20 of them.
+
+			end if;
+
+			insert into q_qr_user_hierarchy ( user_id, parent_user_id )
+				select l_user_id, t1.user_id
+				from q_qr_users as t1
+				where t1.email_hmac = l_email_hmac
+				;
+			GET DIAGNOSTICS v_cnt = ROW_COUNT;
+			if v_cnt = 0 then
+				l_fail = true;
+				l_data = '{"status":"error","msg":"Unable to create account as a part of the account hierarchy.  Please login or recover password.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'Unable to create account as a part of the account hierarchy.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+			end if;
+
+		end if;
+
+	end if;
+
+	if l_debug_on then
+		insert into t_output ( msg ) values ( '  [[[ Additional Fields ]]]' );
+		insert into t_output ( msg ) values ( '  ->'||coalesce(to_json(p_userdata_password)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_first_name           = ->'||coalesce(to_json(l_first_name)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_last_name            = ->'||coalesce(to_json(l_last_name)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_validation_method    = ->'||coalesce(to_json(l_validation_method)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_start_date           = ->'||coalesce(to_json(l_start_date)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_end_date             = ->'||coalesce(to_json(l_end_date)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_email_validated      = ->'||coalesce(to_json(l_email_validated)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_setup_complete_2fa   = ->'||coalesce(to_json(l_setup_complete_2fa)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_client_id            = ->'||coalesce(to_json(l_client_id)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_one_time_password_id = ->'||coalesce(to_json(l_one_time_password_id)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_role_name            = ->'||coalesce(to_json(l_role_name)::text,'---null---')||'<-');
+	end if;
+
+	if l_role_name is null then
+		l_role_name = 'role:user';
+	end if;
+	if l_role_name = '' then
+		l_role_name = 'role:user';
+	end if;
+
+	if not l_fail then
+		if not q_admin_HasPriv ( l_user_id, 'May Login' ) then
+			if l_debug_on then
+				insert into t_output ( msg ) values ( 'Failed to find priv ''May Login'' ->'||l_user_id||'<-');
+			end if;
+			l_fail = true;
+			l_data = '{"status":"error","msg":"Account lacks ''May Login'' privilege","code":"m4_count()","location":"m4___file__ m4___line__"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account lacks ''May Login'' privilege', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+		end if;
+	end if;
+
+	if not l_fail then
+		if l_validation_method != 'sso' then
+			l_fail = true;
+			l_data = '{"status":"error","msg":"Account is not a sso (single sign on) authetication method","code":"m4_count()","location":"m4___file__ m4___line__"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account is not a sso (single singn on) autetication method', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+		end if;
+	end if;
+
+	if not l_fail then
+		l_auth_token = uuid_generate_v4();
+		BEGIN
+			insert into q_qr_auth_tokens ( token, user_id, sc_id ) values ( l_auth_token, l_user_id, p_sc_id );
+		EXCEPTION WHEN unique_violation THEN
+			l_fail = true;
+			l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to create user/auth-token.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+		END;
+	end if;
+
+	if not l_fail then
+		select json_agg(t0.priv_name)::text
+		into l_privileges
+		from (
+			select json_object_keys(t1.allowed::json)::text  as priv_name
+				from q_qr_role2 as t1
+				where t1.role_name = l_role_name
+			) as t0
+			;
+
+		-- xyzzyError100 - never true iff.
+		if not found then
+			if l_debug_on then
+				insert into t_output ( msg ) values ( 'Failed to get the privileges for the user' );
+			end if;
+			l_fail = true;
+			l_data = '{"status":"error","msg":"Unable to get privileges for the user.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+			l_privileges = '[]';
+		end if;
+	end if;
+
+	if not l_fail then
+		l_user_config = '[]';
+
+		-- q8_user_config.sql
+		select
+				json_agg(
+					json_build_object(
+						'config_id', config_id,
+						'name', name,
+						'value', value
+					)
+				)::text as data
+			into l_user_config
+			from q_qr_user_config as t1
+			where t1.user_id = l_user_id
+			;
+
+		if not found then
+			l_user_config = '[]';
+		end if;
+	end if;
+
+	if not l_fail then
+
+		if l_debug_on then
+			insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ...  m4___file__ m4___line__' );
+			insert into t_output ( msg ) values ( 'calculate l_user_id ->'||coalesce(to_json(l_user_id)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_privileges ->'||coalesce(l_privileges,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_client_id ->'||coalesce(to_json(l_client_id)::text,'---null---')||'<-');
+		end if;
+
+		-- xyzzyInsertNew - Move to - end where update4
+		if not l_new_registration then
+
+			-- all of these fieds are set/created with insert if this is a 'registration' operation (above).
+			update q_qr_users
+				set
+					  failed_login_timeout = null
+					, login_failures = 0
+					, login_success = login_success + 1
+					, privileges = l_privileges
+					, email_verify_token = null
+					, validator = p_validator
+					, claims = p_claims
+					, id_token = p_id_token
+					, access_token = p_access_token
+					, refresh_token = p_refresh_token
+				where user_id = l_user_id
+				;
+
+		end if;
+
+		-- add tmp_token, email to message so can complete registration.
+		insert into q_qr_tmp_token ( user_id, token, auth_token ) values ( l_user_id, l_tmp_token, l_auth_token );
+		if l_debug_on then
+			insert into t_output ( msg ) values ( ' l_tmp_token ->'||coalesce(to_json(l_tmp_token)::text,'---null---')||'<-');
+		end if;
+
+		if l_debug_on then
+			insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... insert into q_qr_valid_xref_id m4___file__ m4___line__' );
+		end if;
+
+		insert into q_qr_valid_xsrf_id (
+			  device_track_id
+			, user_id
+			, xsrf_id
+		) values (
+			  l_device_track_id
+			, l_user_id
+			, p_xsrf_id::uuid
+		);
+
+		l_client_user_config = '[]';
+		SELECT json_agg(t1)
+			INTO l_client_user_config
+			FROM (
+					select t2.name, t2.value
+					from q_qr_user_config t2
+					where t2.user_id = l_user_id
+					  and t2.client_cfg = 'y'
+					order by 1
+				) as t1
+			;
+		if not found then
+			l_client_user_config = '[]';
+		end if;
+
+		l_data = '{"status":"success"'
+			||', "user_id":'     			||coalesce(to_json(l_user_id)::text,'""')
+			||', "auth_token":'  			||coalesce(to_json(l_auth_token)::text,'""')
+			||', "token":'  				||coalesce(to_json(l_token)::text,'""')
+			||', "tmp_token":'   			||coalesce(to_json(l_tmp_token)::text,'""')
+			||', "require_2fa":' 			||coalesce(to_json('n'::text)::text,'""')
+			||', "account_type":'			||coalesce(to_json(l_account_type)::text,'""')
+			||', "privileges":'  			||coalesce(l_privileges,'""') -- $TYPE$ []string
+			||', "user_config":'  			||coalesce(l_user_config,'""') -- $TYPE$ map[string]string
+			||', "client_user_config":'  	||coalesce(l_client_user_config,'""')
+			||', "first_name":'  			||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   			||coalesce(to_json(l_last_name)::text,'""')
+			||', "is_new_device_login":' 	||coalesce(to_json(l_is_new_device_login)::text,'"n"')
+			||', "client_id":'     			||coalesce(to_json(l_client_id)::text,'""')
+			||', "acct_state":'     		||coalesce(to_json(l_acct_state)::text,'""')
+			||', "is_new_device_msg":' 		||coalesce(to_json(l_is_new_device_msg)::text,'"--not-set--')
+			||'}';
+
+		if l_debug_on then
+			insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... data==success m4___file__ m4___line__' );
+		end if;
+
+	else
+
+		if l_user_id is not null then
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Login Failure email:'||p_email, 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+			if l_debug_on then
+				insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... --- has user_id, status=failed/error --- m4___file__ m4___line__' );
+			end if;
+			if l_failed_login_timeout is not null then
+				update q_qr_users
+					set login_failures = login_failures + 1
+					where user_id = l_user_id
+					  and failed_login_timeout is not null
+					  and login_failures >= 6
+					;
+			else
+				update q_qr_users
+					set login_failures = login_failures + 1
+					  , failed_login_timeout = current_timestamp + interval '1 minute'
+					where user_id = l_user_id
+					  and failed_login_timeout is null
+					  and login_failures >= 6
+					;
+				update q_qr_users
+					set login_failures = login_failures + 1
+					where user_id = l_user_id
+					  and failed_login_timeout is null
+					  and login_failures < 6
+					;
+			end if;
+		end if;
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- select q_auth_v1_idp_login_or_register ( 'bob@bob.com' , 'https://test.example.com', '{"claims":"yep"}', 'p_id_token', 'p_access_token', 'p_refresh_token',  'y75lR1HeI/gb4nx2ZBe69D/FtZY=', '4Ti5G3HmJsw+gbDbMKKVs4tnRUU=', 'p_fingerprint', 'p_sc_id', 'p_hash_of_headers', '337eb9f5-95b0-4894-7ac7-2427daad8e22' );
 
 
 
