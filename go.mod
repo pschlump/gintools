@@ -35,7 +35,7 @@ require (
 	github.com/thoas/stats v0.0.0-20190407194641-965cb2de1678
 	github.com/xeipuuv/gojsonschema v1.2.0
 	go.uber.org/zap v1.21.0
-	golang.org/x/exp v0.0.0-20220613132600-b0d781184e0d
+	golang.org/x/exp v0.0.0-20230304125523-9ff063c70017
 	golang.org/x/image v0.0.0-20220722155232-062f8c9fd539
 )
 
@@ -76,8 +76,10 @@ require (
 	github.com/pschlump/go-isatty v0.0.24 // indirect
 	github.com/pschlump/godebug v1.0.4 // indirect
 	github.com/pschlump/gowords v1.0.1 // indirect
+	github.com/pschlump/names v0.0.2 // indirect
 	github.com/pschlump/picfloat v1.0.0 // indirect
 	github.com/pschlump/pictime v1.0.0 // indirect
+	github.com/pschlump/pluto v0.0.12 // indirect
 	github.com/sendgrid/rest v2.6.9+incompatible // indirect
 	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
