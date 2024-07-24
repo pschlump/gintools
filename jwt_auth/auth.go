@@ -101,7 +101,7 @@ import (
 	"github.com/pschlump/gintools/tools/jwt-cli/jwtlib"
 	"github.com/pschlump/htotp"
 	"github.com/pschlump/json"
-	"github.com/pschlump/names"
+	"github.com/pschlump/pluto/g_lib"
 	"github.com/pschlump/scany/pgxscan"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -125,6 +125,13 @@ const (
 	LoginRequired LoginType = 1
 	PublicApiCall LoginType = 0
 	LoginOptional LoginType = 2
+)
+
+type NoCookieType int
+
+const (
+	CookieUsed NoCookieType = 1
+	NoCookie   NoCookieType = 2
 )
 
 var GinSetupTable = []GinLoginType{
@@ -443,7 +450,7 @@ func authHandleLogin(c *gin.Context) {
 	//  TokenHeaderVSCookie string `json:"token_header_vs_cookie" default:"cookie"`
 	if rvStatus.AuthToken != "" {
 		// xyzzy TODO - add in logging of / reporting of ... reason for failure, XsrfID, FP, y_id, HeaderHash -- Add in md.AddCounter...
-		theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken, pp.Email, pp.NoCookie)
+		theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken, pp.Email, g_lib.IfTrue(pp.NoCookie == "nc", NoCookie, CookieUsed))
 		if err != nil {
 			return
 		}
@@ -2376,7 +2383,7 @@ func authHandleValidate2faToken(c *gin.Context) {
 	dbgo.Fprintf(perReqLog, "%(LF): rvStatus.AuthToken= ->%s<- for ->%s<-\n", rvStatus.AuthToken, pp.Email)
 	if rvStatus.AuthToken != "" {
 		dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
-		theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken, pp.Email, pp.NoCookie)
+		theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken, pp.Email, g_lib.IfTrue(pp.NoCookie == "nc", NoCookie, CookieUsed))
 		if err != nil {
 			md.AddCounter("jwt_auth_failed_login_attempts", 1)
 			return
@@ -3233,7 +3240,7 @@ func authHandleRefreshToken(c *gin.Context) {
 
 		// replace current cookie/header with new signed token
 		if rvStatus.AuthToken != "" {
-			theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken, rvStatus.Email, pp.NoCookie)
+			theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken, rvStatus.Email, g_lib.IfTrue(pp.NoCookie == "nc", NoCookie, CookieUsed))
 			if err != nil {
 				return
 			}
@@ -3813,7 +3820,7 @@ func GetAuthToken(c *gin.Context) (UserId, Email, AuthToken string) {
 //	AuthJWTPrivate           string `json:"auth_jwt_private_file" default:""`                                                    // Private Key File
 //	AuthJWTKeyType           string `json:"auth_jwt_key_type" default:"ES" validate:"v.In(['ES256','RS256', 'ES512', 'RS512'])"` // Key type ES = ESDSA or RS = RSA
 
-func CreateJWTSignedCookie(c *gin.Context, DBAuthToken, email_addr, NoCookie string) (rv string, err error) {
+func CreateJWTSignedCookie(c *gin.Context, DBAuthToken, email_addr string, NoCookieRequested NoCookieType) (rv string, err error) {
 
 	perReqLog := tf.GetLogFilePtr(c)
 	if DBAuthToken != "" { // If the Database code created an auth-token, then this needs to be converted to a JWT-Token and sent back to the user (Coookie, Header etc)
@@ -3844,16 +3851,23 @@ func CreateJWTSignedCookie(c *gin.Context, DBAuthToken, email_addr, NoCookie str
 		// "Progressive improvement beats delayed perfection" -- Mark Twain
 		if aCfg.TokenHeaderVSCookie == "header" || aCfg.TokenHeaderVSCookie == "both" {
 			c.Writer.Header().Set("Authorization", "Bearer "+rv)
+			if gCfg.ReleaseMode == "dev" {
+				c.Writer.Header().Set("Authentication-User", email_addr)
+			}
 		}
 		if aCfg.TokenHeaderVSCookie == "cookie" || aCfg.TokenHeaderVSCookie == "both" {
 			// Skip cookeis - this is useful for browser extensions that can not use a "cookie" for auth.
 			// You can set any value for the 'no_cookie' data field.   Normally if you want to skip cookies
 			// send 'nc' for the value.
-			if NoCookie == "" { // if NoCookie != "nc" { - if "nc" then will be skipped.
+			dbgo.Printf("%(magenta)AT: %(LF) - woofing cookies\n")
+			if NoCookieRequested == CookieUsed {
 				SetCookie("X-Authentication", rv, c) // Will be a secure http cookie on TLS.
+				dbgo.Printf("%(magenta)AT: %(LF) - cookies %s %s\n", "X-Authentication", rv)
 				if gCfg.ReleaseMode == "dev" {
 					SetCookie("X-Authentication-User", email_addr, c) // Will be a secure http cookie on TLS.
+					dbgo.Printf("%(magenta)AT: %(LF) - cookies %s %s\n", "X-Authentication-User", email_addr)
 				}
+				dbgo.Printf("%(magenta)AT: %(LF) - cookies %s %s\n", "X-Is-Logged-In", "yes")
 				SetInsecureCookie("X-Is-Logged-In", "yes", c) // To let the JS code know that it is logged in.		// xyzzy-Expire
 			}
 		}
@@ -4544,7 +4558,7 @@ func authHandleValidateToken(c *gin.Context) {
 
 		// replace current cookie/header with new signed token
 		if rvStatus.AuthToken != "" {
-			theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken, rvStatus.Email, pp.NoCookie)
+			theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken, rvStatus.Email, g_lib.IfTrue(pp.NoCookie == "nc", NoCookie, CookieUsed))
 			if err != nil {
 				return
 			}
@@ -5252,149 +5266,6 @@ func authHandlerRmPrivFrom(c *gin.Context) {
 	var out AddPrivToSuccess
 	out.Status = rv.Status
 	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
-
-}
-
-/*
-ID Token:
-
-eyJhbGciOiJSUzI1NiIsImtpZCI6ImE3OGJmNTkwMGM0MzBjNWYxMzVkNzlmYjdlNzAxMTA2Y2ViYzk3YzAifQ.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjU1NTYvZGV4Iiwic3ViIjoiQ2cwd0xUTTROUzB5T0RBNE9TMHdFZ1J0YjJOciIsImF1ZCI6ImV4YW1wbGUtYXBwIiwiZXhwIjoxNzIxMTczOTkxLCJpYXQiOjE3MjEwODc1OTEsImF0X2hhc2giOiJtNFBraVRkUlpqaVRhQVNJQ3pzNzJnIiwiY19oYXNoIjoiWGVyenEtQTZLbnhWYzdDN0VrRnVvUSIsImVtYWlsIjoia2lsZ29yZUBraWxnb3JlLnRyb3V0IiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJLaWxnb3JlIFRyb3V0In0.GQCzlVVOY_U9yNU1YvSyD-d1zRib1ZrWn6h8HJhExQrrQhFXlq54kWeOk-lmAhuznOZdBy8umv1wVmFB2hE9JtcSz1nQtLxOPHjgFbPxGb0ShYbQHvIN3so70qAAHdoIxstJSkuHufM99fasyJdJE-x9HqXcTIcE9jbEnvxhYDGkX1j_kvjwukQ2PJWfkj7dbXQLDdgEnR0PsGXMlUEXCb90CqQC98Pc8F3E2qbD1WtfAucgRHfD0U_XpVCCQX210rEkMJE-3KyVZv9fZ7VxRJjDMAu_ex1DU7ly8xL4RFH36peucp94FUF-XChc9ozh8FjHat7EDaqw2qSNp2-KjQ
-Access Token:
-
-eyJhbGciOiJSUzI1NiIsImtpZCI6ImE3OGJmNTkwMGM0MzBjNWYxMzVkNzlmYjdlNzAxMTA2Y2ViYzk3YzAifQ.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjU1NTYvZGV4Iiwic3ViIjoiQ2cwd0xUTTROUzB5T0RBNE9TMHdFZ1J0YjJOciIsImF1ZCI6ImV4YW1wbGUtYXBwIiwiZXhwIjoxNzIxMTczOTkxLCJpYXQiOjE3MjEwODc1OTEsImF0X2hhc2giOiJ0TndYUE1NWDlyZ0dfMzVZU1ZtQVlnIiwiZW1haWwiOiJraWxnb3JlQGtpbGdvcmUudHJvdXQiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IktpbGdvcmUgVHJvdXQifQ.jHVABk-6CCi6m4s9R4MjBmHhNGGY0zxgh6YS_qkKI0r2oJK-u5uRHqZiqNHloKHuvPEzxDd3Ob7juoo8-qW8UJPaOhdofuAD2aGmAXKOgXXZGzIF9VWNOt7kqqlGOjBrpaMm7h6tUHpUb9GU8w_0CjKG5pA_ZK5uC4q6V4kF6vWOG_S1sspqcv2F-UvtzGKj6Y2VzgSb2A4eKApbdVGTZjRrCogQ0rWR_RXSnzCxmnHLDhLnarkVgEZyM936Zqp_Mjl0RrchyczI95rMwMh3FsXtPl4JG35bGDP3dNP7SFGxS2Gb2TxLqn4grfBpl-3kkD2vJuWkGq17Q9ODHu00Sg
-Claims:
-
-{
-  "iss": "http://127.0.0.1:5556/dex",
-  "sub": "Cg0wLTM4NS0yODA4OS0wEgRtb2Nr",
-  "aud": "example-app",
-  "exp": 1721173991,
-  "iat": 1721087591,
-  "at_hash": "m4PkiTdRZjiTaASICzs72g",
-  "c_hash": "Xerzq-A6KnxVc7C7EkFuoQ",
-  "email": "kilgore@kilgore.trout",
-  "email_verified": true,
-  "name": "Kilgore Trout"
-}
-
-Refresh Token:
-
-Chlib2JldWg3Ym54bWZrd2k2ZWlzMjVtNXVlEhlodnV6anN3d2k2cmV3NW52bGs2eWdhazNi
-*/
-
-type ClaimsType struct {
-	Validator     string `json:"iss"`
-	Email         string `json:"email"`
-	EmailVerified bool   `json:"email_verified"`
-	Name          string `json:"name"`
-}
-
-func IdpLoginRegister(c *gin.Context, redirectURI string, rawIDToken string, accessToken string, RefreshToken string, claimsAsJSONString string, claims []byte, verified string) {
-
-	/*
-		type RvAuthIdpLoginOrRegister struct {
-			jwt_auth.StdErrorReturn
-			UserId           string `json:"user_id,omitempty"`
-			AuthToken        string `json:"auth_token,omitempty"`
-			TmpToken         string `json:"tmp_token,omitempty"`
-			Require2Fa       string `json:"require_2fa,omitempty"`
-			AccountType      string `json:"account_type,omitempty"`
-			Privileges       string `json:"privileges,omitempty"`
-			UserConfig       string `json:"user_config,omitempty"`
-			ClientUserConfig string `json:"client_user_config,omitempty"`
-			FirstName        string `json:"first_name,omitempty"`
-			LastName         string `json:"last_name,omitempty"`
-			ClientId         string `json:"client_id,omitempty"`
-			AcctState        string `json:"acct_state,omitempty"`
-		}
-	*/
-	perReqLog := tf.GetLogFilePtr(c)
-
-	var vt ClaimsType
-	err := json.Unmarshal(claims, &vt)
-
-	hashOfHeaders := HeaderFingerprint(c)
-	emailVerified := "n"
-	if vt.EmailVerified {
-		emailVerified = "y"
-	}
-
-	firstName, lastName := "?", "?"
-	if vt.Name != "" {
-		got := names.ParseFullName(vt.Name)
-		firstName, lastName = got.First, got.Last
-	}
-
-	// func CallAuthIdpLoginOrRegister(c *gin.Context, email string, validator string, claims string, idToken string, accessToken string, refreshToken string, hashOfHeaders string, emailVerified string, firstName string, lastName string) (rv RvAuthIdpLoginOrRegister, err error) {
-	rvStatus, err := callme.CallAuthIdpLoginOrRegister(c, vt.Email, vt.Validator, string(claims), rawIDToken, accessToken, RefreshToken, hashOfHeaders, emailVerified, firstName, lastName)
-	if err != nil {
-		md.AddCounter("jwt_auth_failed_login_attempts", 1)
-		return
-	}
-
-	stmt := "q_auth_v1_idp_login_or_register (  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12 )"
-	if rvStatus.Status != "success" {
-
-		md.AddCounter("jwt_auth_failed_login_attempts", 1)
-		rvStatus.LogUUID = GenUUID()
-
-		if logger != nil {
-			fields := []zapcore.Field{
-				zap.String("message", "Stored Procedure (q_auth_v1_idp_login_or_register) error return"),
-				zap.String("go_location", dbgo.LF()),
-			}
-			fields = AppendStructToZapLog(fields, rvStatus)
-			logger.Error("failed-to-login", fields...)
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-		} else {
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-		}
-		var out LoginError1
-		copier.Copy(&out, &rvStatus)
-		out.Email = vt.Email
-		// c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 401
-		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out)) // 401
-		return
-	}
-
-	//  TokenHeaderVSCookie string `json:"token_header_vs_cookie" default:"cookie"`
-	if rvStatus.AuthToken != "" {
-
-		theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken, vt.Email, "cookie") // this creates the cookie!
-		if err != nil {
-			return
-		}
-		dbgo.Fprintf(perReqLog, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, vt.Email)
-
-		c.Set("__is_logged_in__", "y")
-		c.Set("__user_id__", rvStatus.UserId)
-		c.Set("__auth_token__", rvStatus.AuthToken)
-		rv, mr := ConvPrivs2(perReqLog, rvStatus.Privileges)
-		c.Set("__privs__", rv)
-		c.Set("__privs_map__", mr)
-		c.Set("__email_hmac_password__", aCfg.EncryptionPassword)
-		c.Set("__user_password__", aCfg.UserdataPassword) // __userdata_password__
-		c.Set("__client_id__", rvStatus.ClientId)
-
-		md.AddCounter("jwt_auth_success_login", 1)
-
-		if theJwtToken != "" {
-			// "Progressive improvement beats delayed perfection" -- Mark Twain
-			if aCfg.TokenHeaderVSCookie == "cookie" {
-				rvStatus.Token = ""
-				c.Set("__jwt_token__", "")
-				c.Set("__jwt_cookie_only__", "yes")
-			} else { // header or both
-				rvStatus.Token = theJwtToken
-				c.Set("__jwt_token__", theJwtToken)
-			}
-		}
-
-		// xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
-		if gCfg.RedisUsePubSub == "yes" {
-			RedisBrodcast(rvStatus.AuthToken, fmt.Sprintf(`{"cmd":"/auth/login","auth_token":%q,"user_id":%q}`, rvStatus.AuthToken, rvStatus.UserId))
-		}
-	}
 
 }
 

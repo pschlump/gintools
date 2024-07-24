@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS q_qr_role_name_application_url (
 	updated 			timestamp,
 	created 			timestamp default current_timestamp not null
 );
-comment on table q_qr_role_name_application_url is 'Role Creation Token to Applicaiton URL - Copyright (C) Philip Schlump, LLC, 2022. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_role_name_application_url is 'Role Creation Token to Applicaiton URL - Copyright (C) Philip Schlump, LLC, 2022. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 create unique index if not exists q_qr_role_name_application_url_u1 on q_qr_role_name_application_url ( role_name );
 
@@ -62,7 +62,7 @@ create unique index if not exists q_qr_role_name_application_url_u1 on q_qr_role
 CREATE OR REPLACE FUNCTION q_qr_role_name_application_url_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -93,7 +93,7 @@ CREATE TABLE if not exists t_output (
 	, msg 		text
 	, created 	timestamp default current_timestamp not null
 );
-comment on table t_output is 'Temporary output for debuging - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table t_output is 'Temporary output for debuging - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 -- used for cleanup of table - Delete everything that is
 -- more than 1 hour old?
@@ -110,14 +110,14 @@ CREATE TABLE if not exists t_key_value (
 	updated 	timestamp, 									 						-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 	timestamp default current_timestamp not null 						-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table t_key_value is 'Key value store so we do not need redis running - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table t_key_value is 'Key value store so we do not need redis running - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 
 
 CREATE OR REPLACE FUNCTION t_key_value_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -203,7 +203,7 @@ CREATE TABLE if not exists q_qr_device_track (
 	, updated 			timestamp
 	, created 			timestamp default current_timestamp not null
 );
-comment on table q_qr_device_track is 'Valid vesion of id.json, and device tracking - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_device_track is 'Valid vesion of id.json, and device tracking - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 create index if not exists q_qr_device_track_p1 on q_qr_device_track using hash ( etag_seen );
 create index if not exists q_qr_device_track_p2 on q_qr_device_track ( created, user_id );
@@ -217,7 +217,7 @@ create index if not exists q_qr_device_track_p7 on q_qr_device_track ( fingerpri
 CREATE OR REPLACE FUNCTION q_qr_device_track_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -254,7 +254,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.expires := current_timestamp + interval '3660 days';
 	RETURN NEW;
 END
@@ -286,14 +286,14 @@ CREATE TABLE if not exists q_qr_valid_xsrf_id (
 	, updated 			timestamp
 	, created 			timestamp default current_timestamp not null
 );
-comment on table q_qr_valid_xsrf_id is 'Valid xref_id values - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_valid_xsrf_id is 'Valid xref_id values - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 
 
 CREATE OR REPLACE FUNCTION q_qr_valid_xsrf_id_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -327,7 +327,7 @@ CREATE TABLE if not exists q_qr_308_redirect (
 	  id					uuid not null primary key		-- ID on URL - to validate
 	, valid_user_id			uuid			-- Valid  User that has successfuly loged in on this device.
 );
-comment on table q_qr_308_redirect is 'Valid login - unique ID - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_308_redirect is 'Valid login - unique ID - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 create index if not exists q_qr_308_rediret_p1 on q_qr_308_redirect ( valid_user_id );
 
@@ -340,7 +340,7 @@ create index if not exists q_qr_308_rediret_p1 on q_qr_308_redirect ( valid_user
 CREATE TABLE if not exists q_qr_valid_referer (
 	referer			text
 );
-comment on table q_qr_valid_referer is 'Valid referer headers - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_valid_referer is 'Valid referer headers - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 create unique index if not exists  q_qr_valid_referer_u1 on q_qr_valid_referer ( referer );
 
@@ -357,7 +357,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	select value into l_data from q_qr_config where name = p_name;
 	if not found then
 		l_data = '';
@@ -376,7 +376,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	select b_value into l_data from q_qr_config where name = p_name;
 	if not found then
 		l_data = false;
@@ -392,7 +392,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	select b_value into l_data from q_qr_config where name = p_name;
 	if not found then
 		l_data = p_dflt;
@@ -411,7 +411,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	select value::bigint into l_data from q_qr_config where name = p_name;
 	if not found then
 		l_data = p_dflt;
@@ -442,7 +442,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	if l_debug_on then
 		insert into t_output ( msg ) values ( 'function ->q_auth_v1_validate_fingerprint_data<- 001.tables.m4.sql 363' );
@@ -535,7 +535,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	if l_debug_on then
 		insert into t_output ( msg ) values ( 'function ->q_auth_v1_login_cleanup_fingerprint_data<- 001.tables.m4.sql 456' );
@@ -585,7 +585,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	if l_debug_on then
 		insert into t_output ( msg ) values ( 'function ->q_auth_v1_validate_xsrf_id<- 001.tables.m4.sql 506' );
@@ -644,7 +644,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	if l_debug_on then
 		insert into t_output ( msg ) values ( 'function ->q_auth_v1_xsrf_setup<- 001.tables.m4.sql 565' );
@@ -715,7 +715,7 @@ CREATE TABLE if not exists q_qr_s3_log (
 	, updated 			timestamp
 	, created 			timestamp default current_timestamp not null
 );
-comment on table q_qr_s3_log is 'log of files pushed to S3 - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_s3_log is 'log of files pushed to S3 - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 create index if not exists q_qr_s3_log_p1 on q_qr_s3_log ( group_id );
 create index if not exists q_qr_s3_log_p2 on q_qr_s3_log ( user_id );
@@ -726,7 +726,7 @@ create index if not exists q_qr_s3_log_p3 on q_qr_s3_log ( state );
 CREATE OR REPLACE FUNCTION q_qr_s3_log_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -763,7 +763,7 @@ CREATE TABLE if not exists q_qr_email_log (
 	, updated 			timestamp
 	, created 			timestamp default current_timestamp not null
 );
-comment on table q_qr_email_log is 'log of emails sent - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_email_log is 'log of emails sent - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 create index if not exists q_qr_email_log_p1 on q_qr_email_log ( state );
 create index if not exists q_qr_email_log_p2 on q_qr_email_log ( user_id );
@@ -773,7 +773,7 @@ create index if not exists q_qr_email_log_p2 on q_qr_email_log ( user_id );
 CREATE OR REPLACE FUNCTION q_qr_email_log_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -809,7 +809,7 @@ CREATE TABLE if not exists q_qr_email_send (
 	, updated 			timestamp
 	, created 			timestamp default current_timestamp not null
 );
-comment on table q_qr_email_send is 'log of emails sent - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_email_send is 'log of emails sent - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 create index if not exists q_qr_email_send_p1 on q_qr_email_send ( state );
 create index if not exists q_qr_email_send_p2 on q_qr_email_send ( user_id );
@@ -820,7 +820,7 @@ create index if not exists q_qr_email_send_p3 on q_qr_email_send ( state, create
 CREATE OR REPLACE FUNCTION q_qr_email_send_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -863,7 +863,7 @@ CREATE TABLE if not exists q_qr_validate_startup (
 	validation_value_hmac 				bytea not null,
 	validation_value_enc 				bytea not null
 );
-comment on table q_qr_validate_startup is 'Check database has correct encryption passwords (one row only)  - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_validate_startup is 'Check database has correct encryption passwords (one row only)  - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -879,7 +879,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	insert into t_output ( msg ) values ( 'function ->q_auth_v1_setup_startup_one_time<- 001.tables.m4.sql 736' );
 
@@ -942,7 +942,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -1036,7 +1036,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -1137,7 +1137,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -1226,7 +1226,7 @@ CREATE TABLE if not exists q_qr_uploaded_files (
     seq 				bigint DEFAULT nextval('t_order_seq'::regclass) NOT NULL,
 	user_id				uuid				-- UserId for the if login is used, may be null
 );
-comment on table q_qr_uploaded_files is 'files uploaded - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_uploaded_files is 'files uploaded - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 -- xyzzy - Add group_n_id		int					-- user specifed.
 -- xyzzy - add URL_path for getting file			-- URL for getting file.
@@ -1259,7 +1259,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -1365,14 +1365,14 @@ CREATE TABLE if not exists t_valid_cors_origin (
 	, updated 	timestamp
 	, created 	timestamp default current_timestamp not null
 );
-comment on table t_valid_cors_origin is 'valid CORS origins - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table t_valid_cors_origin is 'valid CORS origins - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 
 
 CREATE OR REPLACE FUNCTION t_valid_cors_origin_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -1418,7 +1418,7 @@ CREATE TABLE if not exists q_qr_code (
 	updated 			timestamp, 									 						-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 			timestamp default current_timestamp not null 						-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table q_qr_code is 'Creation/tracking of QR codes  - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_code is 'Creation/tracking of QR codes  - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 
 -- create index q_qr_code_h1 on q_qr_code using hash ( qrid10 );
@@ -1429,7 +1429,7 @@ create unique index if not exists  q_qr_code_h1 on q_qr_code ( qrid10 );
 CREATE OR REPLACE FUNCTION q_qr_code_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -1468,7 +1468,7 @@ CREATE TABLE if not exists q_qr_saved_state (
 	updated 			timestamp, 									 						-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 			timestamp default current_timestamp not null 						-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table q_qr_saved_state is 'table of saved user state - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_saved_state is 'table of saved user state - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 create index if not exists q_qr_saved_state_p1 on q_qr_saved_state ( expires );
 
@@ -1477,7 +1477,7 @@ create index if not exists q_qr_saved_state_p1 on q_qr_saved_state ( expires );
 CREATE OR REPLACE FUNCTION q_qr_saved_state_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -1502,7 +1502,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.expires := current_timestamp + interval '92 days';
 	RETURN NEW;
 END
@@ -1651,7 +1651,7 @@ CREATE TABLE if not exists q_qr_users (
 	updated 				timestamp, 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 				timestamp default current_timestamp not null 		-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table q_qr_users is 'Login authorization - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_users is 'Login authorization - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 CREATE UNIQUE INDEX if not exists  q_qr_users_u1 on q_qr_users ( email_hmac );
 
@@ -1683,7 +1683,7 @@ CREATE INDEX if not exists q_qr_users_enc_p8 on q_qr_users ( role_name );
 CREATE OR REPLACE FUNCTION q_qr_users_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -1734,7 +1734,7 @@ CREATE TABLE if not exists q_qr_n6_email_verify (
 	created 				timestamp default current_timestamp not null 		-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
 
-comment on table q_qr_n6_email_verify is 'n6/n8 keys - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_n6_email_verify is 'n6/n8 keys - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 CREATE UNIQUE INDEX if not exists  q_qr_n6_email_verify_u1 on q_qr_n6_email_verify ( n6_token );
 DROP INDEX if exists q_qr_n6_email_verify_u2;
@@ -1754,14 +1754,14 @@ CREATE TABLE if not exists q_qr_vapid_keys (
 	updated 				timestamp, 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 				timestamp default current_timestamp not null 		-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table q_qr_vapid_keys is 'VAPID keys for user - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_vapid_keys is 'VAPID keys for user - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 
 
 CREATE OR REPLACE FUNCTION q_qr_vapid_keys_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -1807,7 +1807,7 @@ CREATE TABLE if not exists q_qr_user_hierarchy (
 	user_id 				uuid not null,
 	parent_user_id			uuid
 );
-comment on table q_qr_user_hierarchy is 'user hererchy (admin->user, admin->client, cilent->client-user, etc) - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_user_hierarchy is 'user hererchy (admin->user, admin->client, cilent->client-user, etc) - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 CREATE INDEX if not exists q_qr_user_hierarchy_p1 on q_qr_user_hierarchy ( user_id );
 CREATE INDEX if not exists q_qr_user_hierarchy_p2 on q_qr_user_hierarchy ( parent_user_id );
@@ -1825,7 +1825,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
  	select
 		    pgp_sym_decrypt(t1.email_enc, p_userdata_password)::text as email
@@ -1858,7 +1858,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
  	select
@@ -1898,7 +1898,7 @@ CREATE TABLE if not exists q_qr_user_config (
 	updated 				timestamp, 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 				timestamp default current_timestamp not null 		-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table q_qr_user_config is 'Per user conifiguraiton  - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_user_config is 'Per user conifiguraiton  - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 create index if not exists q_qr_user_config_p1 on q_qr_user_config ( user_id );
 create unique index if not exists  q_qr_user_config_u1 on q_qr_user_config ( user_id, name );
@@ -1943,7 +1943,7 @@ END $$;
 CREATE OR REPLACE FUNCTION q_qr_user_config_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -1979,7 +1979,7 @@ CREATE TABLE if not exists q_qr_user_config_default (
 	role_name 					text not null,		-- join to Q_QR_ROLE2
 	value						jsonb not null
 );
-comment on table q_qr_user_config_default is 'Per user conifiguraiton / default at registration based on role  - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_user_config_default is 'Per user conifiguraiton / default at registration based on role  - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 create unique index if not exists  q_qr_user_config_default_u1 on q_qr_user_config_default ( role_name );
 
@@ -2028,7 +2028,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	RETURN QUERY
 		SELECT
@@ -2060,7 +2060,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	-- l_data = encode(hmac(p_email, p_hmac_password, 'sha256'), 'base64');
 	l_data = hmac(p_email, p_hmac_password, 'sha256');
@@ -2108,7 +2108,7 @@ CREATE TABLE if not exists q_qr_auth_tokens (
 	api_encryption_key		text,
 	expires 				timestamp not null
 );
-comment on table q_qr_auth_tokens is 'Per user auth tokens - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_auth_tokens is 'Per user auth tokens - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 create unique index if not exists  q_qr_auth_tokens_u1 on q_qr_auth_tokens ( token );
 create index if not exists q_qr_auth_tokens_p1 on q_qr_auth_tokens ( user_id );
@@ -2138,7 +2138,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	-- NEW.expires := current_timestamp + interval '31 days';
 	NEW.expires := current_timestamp + interval '2000 days';
@@ -2197,11 +2197,11 @@ alter table if exists q_qr_tmp_token add column if not exists auth_token 			uuid
 CREATE TABLE if not exists q_qr_tmp_token (
 	tmp_token_id 		uuid default uuid_generate_v4() primary key not null,
 	user_id 			uuid not null,
-	token			 	uuid not null,
+	token			 	uuid not null,	-- the tmp_token
 	auth_token		 	uuid not null,
 	expires 			timestamp not null	-- set to 20 min in future by trigger.
 );
-comment on table q_qr_tmp_token is 'registration temporary tokens - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_tmp_token is 'registration temporary tokens - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 --	sip_x_value				text,
 --	sip_e_value				text,
@@ -2236,7 +2236,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	if NEW.expires is null then
 		NEW.expires := current_timestamp + interval '20 minutes';
@@ -2287,7 +2287,7 @@ CREATE OR REPLACE view q_qr_expired_tmp_token as
 --		location			text,
 --		created 			timestamp default current_timestamp not null 						-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 --	);
---comment on table q_qr_auth_security_log is 'Security event log - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+--comment on table q_qr_auth_security_log is 'Security event log - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 
 
@@ -2308,7 +2308,7 @@ CREATE TABLE if not exists q_qr_auth_log (
     seq 				bigint DEFAULT nextval('t_order_seq'::regclass) NOT NULL,
 	created 			timestamp default current_timestamp not null 						-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table q_qr_auth_log is 'Authentication log - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_auth_log is 'Authentication log - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 
 
@@ -2333,7 +2333,7 @@ CREATE TABLE if not exists q_qr_one_time_password (
 	user_id					uuid not null,
 	otp_hmac				text
 );
-comment on table q_qr_one_time_password is 'Per user one time passwords - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_one_time_password is 'Per user one time passwords - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 create unique index if not exists  q_qr_one_time_password_u1 on q_qr_one_time_password ( user_id, otp_hmac );
 
@@ -2372,7 +2372,7 @@ CREATE TABLE if not exists q_qr_config (
 	updated 		timestamp, 									 						-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 		timestamp default current_timestamp not null 						-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
-comment on table q_qr_config is 'Per site/application config - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_config is 'Per site/application config - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 create unique index if not exists  q_qr_config_u1 on q_qr_config ( name ) ;
 
@@ -2381,7 +2381,7 @@ create unique index if not exists  q_qr_config_u1 on q_qr_config ( name ) ;
 CREATE OR REPLACE FUNCTION q_qr_config_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -2420,7 +2420,7 @@ drop TABLE if exists q_qr_user_role ;
 --old-priv--	role_id 		uuid not null,
 --old-priv--	user_id 		uuid not null
 --old-priv--);
---old-priv--comment on table q_qr_user_role is 'user roles join - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+--old-priv--comment on table q_qr_user_role is 'user roles join - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 --old-priv--
 --old-priv--create unique index q_qr_user_role_u1 on q_qr_user_role ( role_id, user_id );
 --old-priv--create unique index q_qr_user_role_u2 on q_qr_user_role ( user_id, role_id );
@@ -2431,7 +2431,7 @@ drop TABLE if exists q_qr_user_role ;
 --old-priv--	, role_name 	text not null
 --old-priv--	, with_grant	varchar(1) default 'n'
 --old-priv--);
---old-priv--comment on table q_qr_role is 'user roles - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+--old-priv--comment on table q_qr_role is 'user roles - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 --old-priv--
 --old-priv--create unique index q_qr_role_u1 on q_qr_role ( role_name );
 --old-priv--
@@ -2441,7 +2441,7 @@ drop TABLE if exists q_qr_user_role ;
 --old-priv--	role_id 		uuid not null,
 --old-priv--	priv_id 		uuid not null
 --old-priv--);
---old-priv--comment on table q_qr_role_priv is 'roles priv join - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+--old-priv--comment on table q_qr_role_priv is 'roles priv join - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 --old-priv--
 --old-priv--create unique index q_qr_role_priv_u1 on q_qr_role_priv ( priv_id, role_id );
 --old-priv--create unique index q_qr_role_priv_u2 on q_qr_role_priv ( role_id, priv_id );
@@ -2452,7 +2452,7 @@ drop TABLE if exists q_qr_user_role ;
 --old-priv--	, priv_name 	text not null
 --old-priv--	, with_grant	varchar(1) default 'n'
 --old-priv--);
---old-priv--comment on table q_qr_priv is 'privs - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+--old-priv--comment on table q_qr_priv is 'privs - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 --old-priv--
 --old-priv--create unique index q_qr_priv_u1 on q_qr_priv ( priv_name );
 --old-priv--
@@ -2523,7 +2523,7 @@ CREATE TABLE if not exists q_qr_role2 (
 	, with_grant	varchar(1) default 'n' not null
 	, allowed		jsonb not null
 );
-comment on table q_qr_role2 is 'user roles - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_role2 is 'user roles - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 
 create unique index if not exists  q_qr_role2_u1 on q_qr_role2 ( role_name );
@@ -2609,7 +2609,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_data = false;
 
 	select role_name
@@ -2641,7 +2641,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2024.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_data = '{"status":"failed"}';			-- no such privilage granted.
 
 	select role_name
@@ -2683,7 +2683,7 @@ $$ LANGUAGE plpgsql;
 --dev--BEGIN
 --dev--	-- Copyright (C) Philip Schlump, 2008-2023.
 --dev--	-- BSD 3 Clause Licensed.  See LICENSE.bsd
---dev--	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+--dev--	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 --dev--	l_data = '{"status":"failed"}';			-- no such privilage granted.
 --dev--
 --dev--	select role_name
@@ -2729,7 +2729,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_data = '{"status":"failed"}';			-- no such privilage granted.
 
 	select t1.role_name
@@ -2784,7 +2784,7 @@ CREATE TABLE if not exists q_qr_token_registration (
 	, updated 					timestamp
 	, created 					timestamp default current_timestamp not null
 );
-comment on table q_qr_token_registration is 'Configured token based registration - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_token_registration is 'Configured token based registration - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 DO $$
 BEGIN
@@ -2808,7 +2808,7 @@ END $$;
 CREATE OR REPLACE FUNCTION q_qr_token_registration_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -2858,7 +2858,7 @@ CREATE TABLE if not exists q_qr_token_registration_hist (
 	, created 					timestamp default current_timestamp not null
 );
 
-comment on table q_qr_token_registration_hist is 'Token history for registration - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_token_registration_hist is 'Token history for registration - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 
 
@@ -2868,7 +2868,7 @@ comment on table q_qr_token_registration_hist is 'Token history for registration
 CREATE OR REPLACE FUNCTION q_qr_token_registration_hist_upd() RETURNS trigger
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	insert into q_qr_token_registration_hist (
 		  event
 		, token_registration_id
@@ -2915,7 +2915,7 @@ CREATE TRIGGER q_qr_token_registration_hist_upd_trig
 CREATE OR REPLACE FUNCTION q_qr_token_registration_hist_del() RETURNS trigger
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	insert into q_qr_token_registration_hist (
 		  event
 		, token_registration_id
@@ -2962,7 +2962,7 @@ CREATE TRIGGER q_qr_token_registration_hist_del_trig
 CREATE OR REPLACE FUNCTION q_qr_token_registration_hist_ins() RETURNS trigger
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	insert into q_qr_token_registration_hist (
 		  event
 		, token_registration_id
@@ -3044,7 +3044,7 @@ CREATE TABLE if not exists q_qr_client (
 	, updated 				timestamp
 	, created 				timestamp default current_timestamp not null
 );
-comment on table q_qr_client is 'List of clients - Copyright (C) Philip Schlump, 2008-2023. -- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024';
+comment on table q_qr_client is 'List of clients - Copyright (C) Philip Schlump, 2008-2023. -- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024';
 
 create unique index if not exists  q_qr_client_u1 on q_qr_client ( client_name );
 
@@ -3053,7 +3053,7 @@ create unique index if not exists  q_qr_client_u1 on q_qr_client ( client_name )
 CREATE OR REPLACE FUNCTION q_qr_client_upd() RETURNS trigger 
 AS $$
 BEGIN
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	NEW.updated := current_timestamp;
 	RETURN NEW;
 END
@@ -3106,7 +3106,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -3241,7 +3241,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -3348,7 +3348,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -3489,7 +3489,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -3625,7 +3625,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 	-- 
@@ -3720,7 +3720,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 	l_debug_on = q_get_config_bool ( 'debug' );
@@ -3890,7 +3890,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -4034,7 +4034,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -4189,7 +4189,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -4486,7 +4486,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -4811,7 +4811,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -5081,7 +5081,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -5227,7 +5227,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -5446,7 +5446,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -5522,7 +5522,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	delete from q_qr_auth_log where user_id = p_user_id;
 	delete from q_qr_auth_tokens where user_id = p_user_id;
@@ -5573,7 +5573,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -5759,7 +5759,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -5850,7 +5850,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -5981,7 +5981,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 	l_is_new_device_login = 'n';
@@ -6494,7 +6494,7 @@ BEGIN
 		end if;
 
 		-- client_cfg				text not null default 'n',		-- if 'y' then report to client.
-		l_client_user_config = '[]';
+		l_client_user_config = '{}';
 		SELECT json_agg(t1)
 			INTO l_client_user_config
 			FROM (
@@ -6506,7 +6506,7 @@ BEGIN
 				) as t1
 			;
 		if not found then
-			l_client_user_config = '[]';
+			l_client_user_config = '{}';
 		end if;
 
 		-- xyzzyOnSuccessfulX
@@ -6518,9 +6518,9 @@ BEGIN
 			||', "require_2fa":' 			||coalesce(to_json(l_require_2fa)::text,'""')
 			||', "secret_2fa":'  			||coalesce(to_json(l_secret_2fa)::text,'""')
 			||', "account_type":'			||coalesce(to_json(l_account_type)::text,'""')
-			||', "privileges":'  			||coalesce(l_privileges,'""')	-- $TYPE$ []string
-			||', "user_config":'  			||coalesce(l_user_config,'""')	-- $TYPE$ map[string]string
-			||', "client_user_config":'  	||coalesce(l_client_user_config,'""')
+			||', "privileges":'  			||coalesce(l_privileges,'[]') -- $TYPE$ []string
+			||', "user_config":'  			||coalesce(l_user_config,'{}') -- $TYPE$ map[string]string
+			||', "client_user_config":'  	||coalesce(l_client_user_config,'{}') -- $TYPE$ map[string]string
 			||', "first_name":'  			||coalesce(to_json(l_first_name)::text,'""')
 			||', "last_name":'   			||coalesce(to_json(l_last_name)::text,'""')
 			||', "is_new_device_login":' 	||coalesce(to_json(l_is_new_device_login)::text,'"n"')
@@ -6593,7 +6593,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -6656,7 +6656,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -6743,7 +6743,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -6846,7 +6846,7 @@ BEGIN
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
@@ -7053,7 +7053,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
@@ -7260,7 +7260,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -7422,7 +7422,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -7569,7 +7569,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -7604,7 +7604,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	update q_qr_users as t1
 		set setup_complete_2fa = 'y'
@@ -7650,7 +7650,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -7844,7 +7844,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
@@ -7927,7 +7927,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 	l_require_2fa 			= 'y';
@@ -7993,7 +7993,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -8159,7 +8159,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -8247,7 +8247,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -8290,7 +8290,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -8334,7 +8334,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
     RETURN QUERY
 		SELECT
 			  t1.user_id
@@ -8381,7 +8381,7 @@ DROP FUNCTION if exists q_qr_validate_user_auth_token(uuid,character varying);
 --old-- BEGIN
 --old-- 	-- Copyright (C) Philip Schlump, 2008-2023.
 --old-- 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
---old-- 	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+--old-- 	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 --old--     RETURN QUERY
 --old-- 			select t1.user_id as "user_id", json_agg(t3.priv_name)::text as "privileges", coalesce(t1.client_id::text,'')::text as client_id
 --old-- 				 , pgp_sym_decrypt(t1.email_enc, p_userdata_password)::text as email
@@ -8411,7 +8411,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	SELECT ARRAY(SELECT jsonb_object_keys(p_json))
 		into l_keys;
@@ -8433,7 +8433,7 @@ AS $$
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	-- privileges - should be an array (json) of privilages so, '["May AN", "May..."]'
 
@@ -8492,7 +8492,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -8545,7 +8545,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -8603,7 +8603,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -8680,7 +8680,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	l_data = 'ok';
 
@@ -8743,7 +8743,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -8802,7 +8802,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -8848,7 +8848,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 
@@ -8946,7 +8946,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
@@ -9026,7 +9026,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
@@ -9094,7 +9094,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
@@ -9156,7 +9156,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
@@ -9225,7 +9225,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
@@ -9352,7 +9352,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
@@ -9485,7 +9485,7 @@ DECLARE
 BEGIN
 	-- Copyright (C) Philip Schlump, 2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_fail = false;
@@ -9603,8 +9603,9 @@ $$ LANGUAGE plpgsql;
 
 drop FUNCTION if exists q_auth_v1_idp_login_or_register ( p_email varchar, p_auth_source varchar, p_claims varchar, p_id_token varchar, p_access_token varchar, p_refresh_token varchar,  p_hmac_password varchar, p_userdata_password varchar, p_fingerprint varchar, p_sc_id varchar, p_hash_of_headers varchar, p_xsrf_id varchar ) ;
 drop FUNCTION if exists q_auth_v1_idp_login_or_register ( p_email varchar, p_validator varchar, p_claims varchar, p_id_token varchar, p_access_token varchar, p_refresh_token varchar,  p_hmac_password varchar, p_userdata_password varchar, p_fingerprint varchar, p_sc_id varchar, p_hash_of_headers varchar, p_xsrf_id varchar ) ;
+drop FUNCTION if exists q_auth_v1_idp_login_or_register ( p_email varchar, p_validator varchar, p_claims varchar, p_id_token varchar, p_access_token varchar, p_refresh_token varchar,  p_hmac_password varchar, p_userdata_password varchar, p_hash_of_headers varchar, p_email_verified varchar, p_first_name varchar, p_last_name varchar ) ;
 
-CREATE OR REPLACE FUNCTION q_auth_v1_idp_login_or_register ( p_email varchar, p_validator varchar, p_claims varchar, p_id_token varchar, p_access_token varchar, p_refresh_token varchar,  p_hmac_password varchar, p_userdata_password varchar, p_hash_of_headers varchar, p_email_verified varchar, p_first_name varchar, p_last_name varchar ) RETURNS text
+CREATE OR REPLACE FUNCTION q_auth_v1_idp_login_or_register ( p_email varchar, p_validator varchar, p_claims varchar, p_id_token varchar, p_access_token varchar, p_refresh_token varchar,  p_hmac_password varchar, p_userdata_password varchar, p_hash_of_headers varchar, p_email_verified varchar, p_first_name varchar, p_last_name varchar, p_sc_id varchar ) RETURNS text
 AS $$
 DECLARE
 	l_2fa_id				uuid;
@@ -9642,12 +9643,14 @@ DECLARE
 	l_client_user_config	text;
 	l_txt					text;
 	l_new_registration		bool;
+	l_parent_user_id 		uuid;
+	x_account_type 			text;
 BEGIN
 	l_debug_on = q_get_config_bool ( 'debug' );
 
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
-	-- version: a96dfe548ae05f361b64bccc15d3b115ceae0ecb tag: v1.0.59 build_date: Tue Jul 16 15:30:54 MDT 2024
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
 	l_fail = false;
 	l_data = '{"status":"unknown"}';
 	l_is_new_device_login = 'n';
@@ -9659,7 +9662,7 @@ BEGIN
 	l_token = '';
 
 	if l_debug_on then
-		insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<- 001.tables.m4.sql 9339' );
+		insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<- 001.tables.m4.sql 9342' );
 		insert into t_output ( msg ) values ( '  p_email ->'||coalesce(to_json(p_email)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_validator ->'||coalesce(to_json(p_validator)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_claims ->'||coalesce(to_json(p_claims)::text,'---null---')||'<-');
@@ -9710,6 +9713,8 @@ BEGIN
 				, validation_method
 				, client_id
 				, role_name
+				, parent_user_id
+				, account_type
 			into
 				  l_user_id
 				, l_email_validated
@@ -9723,32 +9728,34 @@ BEGIN
 				, l_validation_method
 				, l_client_id
 				, l_role_name
+				, l_parent_user_id 		
+				, x_account_type 
 			from email_user
 		;
 
 		if found then
 
-			if parent_user_id is not null then
+			if l_parent_user_id is not null then
 
 				l_fail = true;
-				l_data = '{"status":"error","msg":"Invalid account, a child account of a differnet login account.","code":"2111","location":"001.tables.m4.sql 9411"}';
-				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'Invalid account, a child account of a different login account.', '2111', 'File:001.tables.m4.sql Line No:9412');
+				l_data = '{"status":"error","msg":"Invalid account, a child account of a differnet login account.","code":"2111","location":"001.tables.m4.sql 9418"}';
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'Invalid account, a child account of a different login account.', '2111', 'File:001.tables.m4.sql Line No:9419');
 
 			elsif x_account_type = 'sso' then
 
-				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'SSO Login Account Found:'||p_email, '2111', 'File:001.tables.m4.sql Line No:9416');
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'SSO Login Account Found:'||p_email, '2111', 'File:001.tables.m4.sql Line No:9423');
 
 			else 
 
 				l_fail = true;
-				l_data = '{"status":"error","msg":"Invalid account type, try logging in with a email/password.","code":"2112","location":"001.tables.m4.sql 9421"}';
-				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'Invalid account type, try logging in with a email/password.', '2112', 'File:001.tables.m4.sql Line No:9422');
+				l_data = '{"status":"error","msg":"Invalid account type, try logging in with a email/password.","code":"2112","location":"001.tables.m4.sql 9428"}';
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'Invalid account type, try logging in with a email/password.', '2112', 'File:001.tables.m4.sql Line No:9429');
 
 			end if;
 
 		else
 
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'New Registration:'||p_email, '2112', 'File:001.tables.m4.sql Line No:9428');
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'New Registration:'||p_email, '2112', 'File:001.tables.m4.sql Line No:9435');
 
 			-- register them
 			l_new_registration		= true;
@@ -9767,7 +9774,7 @@ BEGIN
 						insert into t_output ( msg ) values ( 'Failed to get the privileges for the user' );
 					end if;
 					l_fail = true;
-					l_data = '{"status":"error","msg":"Unable to get privileges for the user.","code":"2113","location":"001.tables.m4.sql 9447"}';
+					l_data = '{"status":"error","msg":"Unable to get privileges for the user.","code":"2113","location":"001.tables.m4.sql 9454"}';
 					l_privileges = '';
 				end if;
 				if l_debug_on then
@@ -9832,7 +9839,7 @@ BEGIN
 					, p_email_verified
 				);
 
-				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'User Registered', '2113', 'File:001.tables.m4.sql Line No:9512');
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'User Registered', '2113', 'File:001.tables.m4.sql Line No:9519');
 
 				-- Generate OTP passwords - 20 of them.
 
@@ -9846,8 +9853,8 @@ BEGIN
 			GET DIAGNOSTICS v_cnt = ROW_COUNT;
 			if v_cnt = 0 then
 				l_fail = true;
-				l_data = '{"status":"error","msg":"Unable to create account as a part of the account hierarchy.  Please login or recover password.","code":"2114","location":"001.tables.m4.sql 9526"}';
-				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'Unable to create account as a part of the account hierarchy.', '2114', 'File:001.tables.m4.sql Line No:9527');
+				l_data = '{"status":"error","msg":"Unable to create account as a part of the account hierarchy.  Please login or recover password.","code":"2114","location":"001.tables.m4.sql 9533"}';
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'Unable to create account as a part of the account hierarchy.', '2114', 'File:001.tables.m4.sql Line No:9534');
 			end if;
 
 		end if;
@@ -9882,16 +9889,16 @@ BEGIN
 				insert into t_output ( msg ) values ( 'Failed to find priv ''May Login'' ->'||l_user_id||'<-');
 			end if;
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Account lacks ''May Login'' privilege","code":"2115","location":"001.tables.m4.sql 9562"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account lacks ''May Login'' privilege', '2115', 'File:001.tables.m4.sql Line No:9563');
+			l_data = '{"status":"error","msg":"Account lacks ''May Login'' privilege","code":"2115","location":"001.tables.m4.sql 9569"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account lacks ''May Login'' privilege', '2115', 'File:001.tables.m4.sql Line No:9570');
 		end if;
 	end if;
 
 	if not l_fail then
 		if l_validation_method != 'sso' then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Account is not a sso (single sign on) authetication method","code":"2116","location":"001.tables.m4.sql 9570"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account is not a sso (single singn on) autetication method', '2116', 'File:001.tables.m4.sql Line No:9571');
+			l_data = '{"status":"error","msg":"Account is not a sso (single sign on) authetication method","code":"2116","location":"001.tables.m4.sql 9577"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account is not a sso (single singn on) autetication method', '2116', 'File:001.tables.m4.sql Line No:9578');
 		end if;
 	end if;
 
@@ -9901,8 +9908,8 @@ BEGIN
 			insert into q_qr_auth_tokens ( token, user_id, sc_id ) values ( l_auth_token, l_user_id, p_sc_id );
 		EXCEPTION WHEN unique_violation THEN
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"2117","location":"001.tables.m4.sql 9581"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to create user/auth-token.', '2117', 'File:001.tables.m4.sql Line No:9582');
+			l_data = '{"status":"error","msg":"Unable to create user/auth-token.","code":"2117","location":"001.tables.m4.sql 9588"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Unable to create user/auth-token.', '2117', 'File:001.tables.m4.sql Line No:9589');
 		END;
 	end if;
 
@@ -9922,13 +9929,13 @@ BEGIN
 				insert into t_output ( msg ) values ( 'Failed to get the privileges for the user' );
 			end if;
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Unable to get privileges for the user.","code":"2118","location":"001.tables.m4.sql 9602"}';
+			l_data = '{"status":"error","msg":"Unable to get privileges for the user.","code":"2118","location":"001.tables.m4.sql 9609"}';
 			l_privileges = '[]';
 		end if;
 	end if;
 
 	if not l_fail then
-		l_user_config = '[]';
+		l_user_config = '';
 
 		-- q8_user_config.sql
 		select
@@ -9952,7 +9959,7 @@ BEGIN
 	if not l_fail then
 
 		if l_debug_on then
-			insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ...  001.tables.m4.sql 9632' );
+			insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ...  001.tables.m4.sql 9639' );
 			insert into t_output ( msg ) values ( 'calculate l_user_id ->'||coalesce(to_json(l_user_id)::text,'---null---')||'<-');
 			insert into t_output ( msg ) values ( 'calculate l_privileges ->'||coalesce(l_privileges,'---null---')||'<-');
 			insert into t_output ( msg ) values ( 'calculate l_client_id ->'||coalesce(to_json(l_client_id)::text,'---null---')||'<-');
@@ -9986,20 +9993,10 @@ BEGIN
 		end if;
 
 		if l_debug_on then
-			insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... insert into q_qr_valid_xref_id 001.tables.m4.sql 9666' );
+			insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... insert into q_qr_valid_xref_id 001.tables.m4.sql 9673' );
 		end if;
 
-		insert into q_qr_valid_xsrf_id (
-			  device_track_id
-			, user_id
-			, xsrf_id
-		) values (
-			  l_device_track_id
-			, l_user_id
-			, p_xsrf_id::uuid
-		);
-
-		l_client_user_config = '[]';
+		l_client_user_config = '{}';
 		SELECT json_agg(t1)
 			INTO l_client_user_config
 			FROM (
@@ -10011,7 +10008,7 @@ BEGIN
 				) as t1
 			;
 		if not found then
-			l_client_user_config = '[]';
+			l_client_user_config = '{}';
 		end if;
 
 		l_data = '{"status":"success"'
@@ -10021,9 +10018,9 @@ BEGIN
 			||', "tmp_token":'   			||coalesce(to_json(l_tmp_token)::text,'""')
 			||', "require_2fa":' 			||coalesce(to_json('n'::text)::text,'""')
 			||', "account_type":'			||coalesce(to_json(l_account_type)::text,'""')
-			||', "privileges":'  			||coalesce(l_privileges,'""') -- $TYPE$ []string
-			||', "user_config":'  			||coalesce(l_user_config,'""') -- $TYPE$ map[string]string
-			||', "client_user_config":'  	||coalesce(l_client_user_config,'""')
+			||', "privileges":'  			||coalesce(l_privileges,'[]') -- $TYPE$ []string
+			||', "user_config":'  			||coalesce(l_user_config,'{}') -- $TYPE$ map[string]string
+			||', "client_user_config":'  	||coalesce(l_client_user_config,'{}') -- $TYPE$ map[string]string
 			||', "first_name":'  			||coalesce(to_json(l_first_name)::text,'""')
 			||', "last_name":'   			||coalesce(to_json(l_last_name)::text,'""')
 			||', "is_new_device_login":' 	||coalesce(to_json(l_is_new_device_login)::text,'"n"')
@@ -10033,15 +10030,15 @@ BEGIN
 			||'}';
 
 		if l_debug_on then
-			insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... data==success 001.tables.m4.sql 9713' );
+			insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... data==success 001.tables.m4.sql 9710' );
 		end if;
 
 	else
 
 		if l_user_id is not null then
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Login Failure email:'||p_email, '2118', 'File:001.tables.m4.sql Line No:9719');
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Login Failure email:'||p_email, '2118', 'File:001.tables.m4.sql Line No:9716');
 			if l_debug_on then
-				insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... --- has user_id, status=failed/error --- 001.tables.m4.sql 9721' );
+				insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... --- has user_id, status=failed/error --- 001.tables.m4.sql 9718' );
 			end if;
 			if l_failed_login_timeout is not null then
 				update q_qr_users
@@ -10078,14 +10075,162 @@ $$ LANGUAGE plpgsql;
 
 
 
+-- rvStatus, err := callme.CallAuthIdpSsoToken(c, pp.TmpToken, pp.XsrfId, pp.FPData, hashOfHeaders, pp.ScID)
+CREATE OR REPLACE FUNCTION q_auth_v1_idp_sso_token ( p_tmp_token uuid, p_xsrf_id varchar, p_fp_data varchar, p_hash_of_headers varchar, p_sc_id varchar,  p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+AS $$
+DECLARE
+	l_2fa_id				uuid;
+	l_data					text;
+	l_fail					bool;
+  	l_user_id 				uuid;
+	l_account_type			varchar(20);
+	l_auth_token			uuid;
+	l_tmp_token				uuid;	-- when 2fa is on this is returnd as not null (UUID)
+	l_debug_on 				bool;
+	l_email					text;
+	l_client_id				text;
+	l_token					text;
+	l_client_user_config 	text;
+	l_user_config 			text;
+	l_privileges			text;
+	l_first_name			text;
+	l_last_name				text;
+BEGIN
+	l_debug_on = q_get_config_bool ( 'debug' );
+
+	-- Copyright (C) Philip Schlump, 2008-2024.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: 4f7b13fe367f24d5d59aed50433a74a9df8bf4dd tag: v1.0.59 build_date: Wed Jul 24 05:21:04 MDT 2024
+
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	l_token = p_tmp_token;
+
+	select t1.user_id, t1.auth_token, account_type, pgp_sym_decrypt(t2.email_enc, p_userdata_password)::text as email, t2.client_id
+		    , pgp_sym_decrypt(t1.first_name_enc,p_userdata_password)::text as first_name
+		    , pgp_sym_decrypt(t1.last_name_enc,p_userdata_password)::text as last_name
+		into l_user_id, l_auth_token, l_account_type, l_email, l_client_id, l_first_name, l_last_name
+		from q_qr_tmp_token as t1
+			join q_qr_users as t2 on ( t1.user_id = t2.user_id )
+		where t1.token = p_tmp_token
+	  	for update
+		;
+
+	if not found then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"Invalid tmp_token - start login process again.","code":"2119","location":"001.tables.m4.sql 9799"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid tmp_token - start login process again.', '2119', 'File:001.tables.m4.sql Line No:9800');
+	end if;
+		
+	if not l_fail then
+		delete from q_qr_tmp_token
+			where token = p_tmp_token
+			;
+	end if;
+
+	if not l_fail then
+		select json_agg(t0.priv_name)::text
+		into l_privileges
+		from (
+			select json_object_keys(t1.allowed::json)::text  as priv_name
+				from q_qr_role2 as t1
+				where t1.role_name = l_role_name
+			) as t0
+			;
+
+		if not found then
+			if l_debug_on then
+				insert into t_output ( msg ) values ( 'Failed to get the privileges for the user' );
+			end if;
+			l_fail = true;
+			l_data = '{"status":"error","msg":"Unable to get privileges for the user.","code":"2120","location":"001.tables.m4.sql 9824"}';
+			l_privileges = '[]';
+		end if;
+	end if;
+
+	if not l_fail then
+		l_user_config = '';
+
+		select
+				json_agg(
+					json_build_object(
+						'config_id', config_id,
+						'name', name,
+						'value', value
+					)
+				)::text as data
+			into l_user_config
+			from q_qr_user_config as t1
+			where t1.user_id = l_user_id
+			;
+
+		if not found then
+			l_user_config = '[]';
+		end if;
+	end if;
+
+	if not l_fail then
+		l_client_user_config = '{}';
+		SELECT json_agg(t1)
+			INTO l_client_user_config
+			FROM (
+					select t2.name, t2.value
+					from q_qr_user_config t2
+					where t2.user_id = l_user_id
+					  and t2.client_cfg = 'y'
+					order by 1
+				) as t1
+			;
+		if not found then
+			l_client_user_config = '{}';
+		end if;
+	end if;
+
+	if not l_fail then
+
+		if l_debug_on then
+			insert into t_output ( msg ) values ( 'function ->q_quth_v1_idp_sso_token<-..... Continued ...  001.tables.m4.sql 9870' );
+			insert into t_output ( msg ) values ( 'calculate l_user_id ->'||coalesce(to_json(l_user_id)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_client_id ->'||coalesce(to_json(l_client_id)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_authy_token ->'||coalesce(to_json(l_authy_token)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_privileges ->'||coalesce(to_json(l_privileges)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_user_config ->'||coalesce(to_json(l_user_config)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_client_user_config ->'||coalesce(to_json(l_client_user_config)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_l_email ->'||coalesce(to_json(l_l_email)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_l_token ->'||coalesce(to_json(l_l_token)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_first_name ->'||coalesce(to_json(l_first_name)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_l_last_name ->'||coalesce(to_json(l_l_last_name)::text,'---null---')||'<-');
+		end if;
+
+		l_data = '{"status":"success"'
+			||', "user_id":'     			||coalesce(to_json(l_user_id)::text,'""')
+			||', "auth_token":'  			||coalesce(to_json(l_auth_token)::text,'""')
+			||', "account_type":'			||coalesce(to_json(l_account_type)::text,'""')
+			||', "privileges":'  			||coalesce(l_privileges,'[]') -- $TYPE$ []string
+			||', "user_config":'  			||coalesce(l_user_config,'{}') -- $TYPE$ map[string]string
+			||', "client_user_config":'  	||coalesce(l_client_user_config,'{}') -- $TYPE$ map[string]string
+			||', "client_id":'     			||coalesce(to_json(l_client_id)::text,'""')
+			||', "email":'  				||coalesce(to_json(l_email)::text,'""')
+			||', "token":'  				||coalesce(to_json(l_token)::text,'""')
+			||', "first_name":'  			||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   			||coalesce(to_json(l_last_name)::text,'""')
+			||'}';
+
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
 
 
 
 
 
 
--- select q_auth_v1_idp_login_or_register ( 'bob@bob.com' , 'https://test.example.com', '{"claims":"yep"}', 'p_id_token', 'p_access_token', 'p_refresh_token',  'y75lR1HeI/gb4nx2ZBe69D/FtZY=', '4Ti5G3HmJsw+gbDbMKKVs4tnRUU=', 'p_fingerprint', 'p_sc_id', 'p_hash_of_headers', '337eb9f5-95b0-4894-7ac7-2427daad8e22' );
 
+--select q_auth_v1_idp_login_or_register ( 'bob@bob.com', 'https://test.example.com', '{"claims":"yep"}', 'p_id_token', 'p_access_token', 'p_refresh_token', 'y75lR1HeI/gb4nx2ZBe69D/FtZY=', '4Ti5G3HmJsw+gbDbMKKVs4tnRUU=', 'p_hash_of_headers', 'y', 'First', 'Bob' , '337eb9f5-95b0-4894-7ac7-2427daad8e22' );
+--select q_auth_v1_idp_login_or_register ( 'bob@bob.com', 'https://test.example.com', '{"claims":"yep"}', 'p_id_token', 'p_access_token', 'p_refresh_token', 'y75lR1HeI/gb4nx2ZBe69D/FtZY=', '4Ti5G3HmJsw+gbDbMKKVs4tnRUU=', 'p_hash_of_headers', 'y', 'First', 'Bob' , '337eb9f5-95b0-4894-7ac7-2427daad8e22' );
 
 
 

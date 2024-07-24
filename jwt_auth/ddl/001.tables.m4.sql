@@ -1923,7 +1923,7 @@ alter table if exists q_qr_tmp_token add column if not exists auth_token 			uuid
 CREATE TABLE if not exists q_qr_tmp_token (
 	tmp_token_id 		uuid default uuid_generate_v4() primary key not null,
 	user_id 			uuid not null,
-	token			 	uuid not null,
+	token			 	uuid not null,	-- the tmp_token
 	auth_token		 	uuid not null,
 	expires 			timestamp not null	-- set to 20 min in future by trigger.
 );
@@ -6171,7 +6171,7 @@ BEGIN
 		end if;
 
 		-- client_cfg				text not null default 'n',		-- if 'y' then report to client.
-		l_client_user_config = '[]';
+		l_client_user_config = '{}';
 		SELECT json_agg(t1)
 			INTO l_client_user_config
 			FROM (
@@ -6183,7 +6183,7 @@ BEGIN
 				) as t1
 			;
 		if not found then
-			l_client_user_config = '[]';
+			l_client_user_config = '{}';
 		end if;
 
 		-- xyzzyOnSuccessfulX
@@ -6195,9 +6195,9 @@ BEGIN
 			||', "require_2fa":' 			||coalesce(to_json(l_require_2fa)::text,'""')
 			||', "secret_2fa":'  			||coalesce(to_json(l_secret_2fa)::text,'""')
 			||', "account_type":'			||coalesce(to_json(l_account_type)::text,'""')
-			||', "privileges":'  			||coalesce(l_privileges,'""')	-- $TYPE$ []string
-			||', "user_config":'  			||coalesce(l_user_config,'""')	-- $TYPE$ map[string]string
-			||', "client_user_config":'  	||coalesce(l_client_user_config,'""')
+			||', "privileges":'  			||coalesce(l_privileges,'[]') -- $TYPE$ []string
+			||', "user_config":'  			||coalesce(l_user_config,'{}') -- $TYPE$ map[string]string
+			||', "client_user_config":'  	||coalesce(l_client_user_config,'{}') -- $TYPE$ map[string]string
 			||', "first_name":'  			||coalesce(to_json(l_first_name)::text,'""')
 			||', "last_name":'   			||coalesce(to_json(l_last_name)::text,'""')
 			||', "is_new_device_login":' 	||coalesce(to_json(l_is_new_device_login)::text,'"n"')
@@ -9280,8 +9280,9 @@ $$ LANGUAGE plpgsql;
 
 drop FUNCTION if exists q_auth_v1_idp_login_or_register ( p_email varchar, p_auth_source varchar, p_claims varchar, p_id_token varchar, p_access_token varchar, p_refresh_token varchar,  p_hmac_password varchar, p_userdata_password varchar, p_fingerprint varchar, p_sc_id varchar, p_hash_of_headers varchar, p_xsrf_id varchar ) ;
 drop FUNCTION if exists q_auth_v1_idp_login_or_register ( p_email varchar, p_validator varchar, p_claims varchar, p_id_token varchar, p_access_token varchar, p_refresh_token varchar,  p_hmac_password varchar, p_userdata_password varchar, p_fingerprint varchar, p_sc_id varchar, p_hash_of_headers varchar, p_xsrf_id varchar ) ;
+drop FUNCTION if exists q_auth_v1_idp_login_or_register ( p_email varchar, p_validator varchar, p_claims varchar, p_id_token varchar, p_access_token varchar, p_refresh_token varchar,  p_hmac_password varchar, p_userdata_password varchar, p_hash_of_headers varchar, p_email_verified varchar, p_first_name varchar, p_last_name varchar ) ;
 
-CREATE OR REPLACE FUNCTION q_auth_v1_idp_login_or_register ( p_email varchar, p_validator varchar, p_claims varchar, p_id_token varchar, p_access_token varchar, p_refresh_token varchar,  p_hmac_password varchar, p_userdata_password varchar, p_hash_of_headers varchar, p_email_verified varchar, p_first_name varchar, p_last_name varchar ) RETURNS text
+CREATE OR REPLACE FUNCTION q_auth_v1_idp_login_or_register ( p_email varchar, p_validator varchar, p_claims varchar, p_id_token varchar, p_access_token varchar, p_refresh_token varchar,  p_hmac_password varchar, p_userdata_password varchar, p_hash_of_headers varchar, p_email_verified varchar, p_first_name varchar, p_last_name varchar, p_sc_id varchar ) RETURNS text
 AS $$
 DECLARE
 	l_2fa_id				uuid;
@@ -9319,6 +9320,8 @@ DECLARE
 	l_client_user_config	text;
 	l_txt					text;
 	l_new_registration		bool;
+	l_parent_user_id 		uuid;
+	x_account_type 			text;
 BEGIN
 	l_debug_on = q_get_config_bool ( 'debug' );
 
@@ -9387,6 +9390,8 @@ BEGIN
 				, validation_method
 				, client_id
 				, role_name
+				, parent_user_id
+				, account_type
 			into
 				  l_user_id
 				, l_email_validated
@@ -9400,12 +9405,14 @@ BEGIN
 				, l_validation_method
 				, l_client_id
 				, l_role_name
+				, l_parent_user_id 		
+				, x_account_type 
 			from email_user
 		;
 
 		if found then
 
-			if parent_user_id is not null then
+			if l_parent_user_id is not null then
 
 				l_fail = true;
 				l_data = '{"status":"error","msg":"Invalid account, a child account of a differnet login account.","code":"m4_count()","location":"m4___file__ m4___line__"}';
@@ -9605,7 +9612,7 @@ BEGIN
 	end if;
 
 	if not l_fail then
-		l_user_config = '[]';
+		l_user_config = '';
 
 		-- q8_user_config.sql
 		select
@@ -9666,17 +9673,7 @@ BEGIN
 			insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... insert into q_qr_valid_xref_id m4___file__ m4___line__' );
 		end if;
 
-		insert into q_qr_valid_xsrf_id (
-			  device_track_id
-			, user_id
-			, xsrf_id
-		) values (
-			  l_device_track_id
-			, l_user_id
-			, p_xsrf_id::uuid
-		);
-
-		l_client_user_config = '[]';
+		l_client_user_config = '{}';
 		SELECT json_agg(t1)
 			INTO l_client_user_config
 			FROM (
@@ -9688,7 +9685,7 @@ BEGIN
 				) as t1
 			;
 		if not found then
-			l_client_user_config = '[]';
+			l_client_user_config = '{}';
 		end if;
 
 		l_data = '{"status":"success"'
@@ -9698,9 +9695,9 @@ BEGIN
 			||', "tmp_token":'   			||coalesce(to_json(l_tmp_token)::text,'""')
 			||', "require_2fa":' 			||coalesce(to_json('n'::text)::text,'""')
 			||', "account_type":'			||coalesce(to_json(l_account_type)::text,'""')
-			||', "privileges":'  			||coalesce(l_privileges,'""') -- $TYPE$ []string
-			||', "user_config":'  			||coalesce(l_user_config,'""') -- $TYPE$ map[string]string
-			||', "client_user_config":'  	||coalesce(l_client_user_config,'""')
+			||', "privileges":'  			||coalesce(l_privileges,'[]') -- $TYPE$ []string
+			||', "user_config":'  			||coalesce(l_user_config,'{}') -- $TYPE$ map[string]string
+			||', "client_user_config":'  	||coalesce(l_client_user_config,'{}') -- $TYPE$ map[string]string
 			||', "first_name":'  			||coalesce(to_json(l_first_name)::text,'""')
 			||', "last_name":'   			||coalesce(to_json(l_last_name)::text,'""')
 			||', "is_new_device_login":' 	||coalesce(to_json(l_is_new_device_login)::text,'"n"')
@@ -9755,14 +9752,162 @@ $$ LANGUAGE plpgsql;
 
 
 
+-- rvStatus, err := callme.CallAuthIdpSsoToken(c, pp.TmpToken, pp.XsrfId, pp.FPData, hashOfHeaders, pp.ScID)
+CREATE OR REPLACE FUNCTION q_auth_v1_idp_sso_token ( p_tmp_token uuid, p_xsrf_id varchar, p_fp_data varchar, p_hash_of_headers varchar, p_sc_id varchar,  p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+AS $$
+DECLARE
+	l_2fa_id				uuid;
+	l_data					text;
+	l_fail					bool;
+  	l_user_id 				uuid;
+	l_account_type			varchar(20);
+	l_auth_token			uuid;
+	l_tmp_token				uuid;	-- when 2fa is on this is returnd as not null (UUID)
+	l_debug_on 				bool;
+	l_email					text;
+	l_client_id				text;
+	l_token					text;
+	l_client_user_config 	text;
+	l_user_config 			text;
+	l_privileges			text;
+	l_first_name			text;
+	l_last_name				text;
+BEGIN
+	l_debug_on = q_get_config_bool ( 'debug' );
+
+	-- Copyright (C) Philip Schlump, 2008-2024.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	l_token = p_tmp_token;
+
+	select t1.user_id, t1.auth_token, account_type, pgp_sym_decrypt(t2.email_enc, p_userdata_password)::text as email, t2.client_id
+		    , pgp_sym_decrypt(t1.first_name_enc,p_userdata_password)::text as first_name
+		    , pgp_sym_decrypt(t1.last_name_enc,p_userdata_password)::text as last_name
+		into l_user_id, l_auth_token, l_account_type, l_email, l_client_id, l_first_name, l_last_name
+		from q_qr_tmp_token as t1
+			join q_qr_users as t2 on ( t1.user_id = t2.user_id )
+		where t1.token = p_tmp_token
+	  	for update
+		;
+
+	if not found then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"Invalid tmp_token - start login process again.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid tmp_token - start login process again.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+	end if;
+		
+	if not l_fail then
+		delete from q_qr_tmp_token
+			where token = p_tmp_token
+			;
+	end if;
+
+	if not l_fail then
+		select json_agg(t0.priv_name)::text
+		into l_privileges
+		from (
+			select json_object_keys(t1.allowed::json)::text  as priv_name
+				from q_qr_role2 as t1
+				where t1.role_name = l_role_name
+			) as t0
+			;
+
+		if not found then
+			if l_debug_on then
+				insert into t_output ( msg ) values ( 'Failed to get the privileges for the user' );
+			end if;
+			l_fail = true;
+			l_data = '{"status":"error","msg":"Unable to get privileges for the user.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+			l_privileges = '[]';
+		end if;
+	end if;
+
+	if not l_fail then
+		l_user_config = '';
+
+		select
+				json_agg(
+					json_build_object(
+						'config_id', config_id,
+						'name', name,
+						'value', value
+					)
+				)::text as data
+			into l_user_config
+			from q_qr_user_config as t1
+			where t1.user_id = l_user_id
+			;
+
+		if not found then
+			l_user_config = '[]';
+		end if;
+	end if;
+
+	if not l_fail then
+		l_client_user_config = '{}';
+		SELECT json_agg(t1)
+			INTO l_client_user_config
+			FROM (
+					select t2.name, t2.value
+					from q_qr_user_config t2
+					where t2.user_id = l_user_id
+					  and t2.client_cfg = 'y'
+					order by 1
+				) as t1
+			;
+		if not found then
+			l_client_user_config = '{}';
+		end if;
+	end if;
+
+	if not l_fail then
+
+		if l_debug_on then
+			insert into t_output ( msg ) values ( 'function ->q_quth_v1_idp_sso_token<-..... Continued ...  m4___file__ m4___line__' );
+			insert into t_output ( msg ) values ( 'calculate l_user_id ->'||coalesce(to_json(l_user_id)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_client_id ->'||coalesce(to_json(l_client_id)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_authy_token ->'||coalesce(to_json(l_authy_token)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_privileges ->'||coalesce(to_json(l_privileges)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_user_config ->'||coalesce(to_json(l_user_config)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_client_user_config ->'||coalesce(to_json(l_client_user_config)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_l_email ->'||coalesce(to_json(l_l_email)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_l_token ->'||coalesce(to_json(l_l_token)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_first_name ->'||coalesce(to_json(l_first_name)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_l_last_name ->'||coalesce(to_json(l_l_last_name)::text,'---null---')||'<-');
+		end if;
+
+		l_data = '{"status":"success"'
+			||', "user_id":'     			||coalesce(to_json(l_user_id)::text,'""')
+			||', "auth_token":'  			||coalesce(to_json(l_auth_token)::text,'""')
+			||', "account_type":'			||coalesce(to_json(l_account_type)::text,'""')
+			||', "privileges":'  			||coalesce(l_privileges,'[]') -- $TYPE$ []string
+			||', "user_config":'  			||coalesce(l_user_config,'{}') -- $TYPE$ map[string]string
+			||', "client_user_config":'  	||coalesce(l_client_user_config,'{}') -- $TYPE$ map[string]string
+			||', "client_id":'     			||coalesce(to_json(l_client_id)::text,'""')
+			||', "email":'  				||coalesce(to_json(l_email)::text,'""')
+			||', "token":'  				||coalesce(to_json(l_token)::text,'""')
+			||', "first_name":'  			||coalesce(to_json(l_first_name)::text,'""')
+			||', "last_name":'   			||coalesce(to_json(l_last_name)::text,'""')
+			||'}';
+
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
 
 
 
 
 
 
--- select q_auth_v1_idp_login_or_register ( 'bob@bob.com' , 'https://test.example.com', '{"claims":"yep"}', 'p_id_token', 'p_access_token', 'p_refresh_token',  'y75lR1HeI/gb4nx2ZBe69D/FtZY=', '4Ti5G3HmJsw+gbDbMKKVs4tnRUU=', 'p_fingerprint', 'p_sc_id', 'p_hash_of_headers', '337eb9f5-95b0-4894-7ac7-2427daad8e22' );
 
+--select q_auth_v1_idp_login_or_register ( 'bob@bob.com', 'https://test.example.com', '{"claims":"yep"}', 'p_id_token', 'p_access_token', 'p_refresh_token', 'y75lR1HeI/gb4nx2ZBe69D/FtZY=', '4Ti5G3HmJsw+gbDbMKKVs4tnRUU=', 'p_hash_of_headers', 'y', 'First', 'Bob' , '337eb9f5-95b0-4894-7ac7-2427daad8e22' );
+--select q_auth_v1_idp_login_or_register ( 'bob@bob.com', 'https://test.example.com', '{"claims":"yep"}', 'p_id_token', 'p_access_token', 'p_refresh_token', 'y75lR1HeI/gb4nx2ZBe69D/FtZY=', '4Ti5G3HmJsw+gbDbMKKVs4tnRUU=', 'p_hash_of_headers', 'y', 'First', 'Bob' , '337eb9f5-95b0-4894-7ac7-2427daad8e22' );
 
 
 
