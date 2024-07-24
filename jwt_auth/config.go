@@ -77,6 +77,14 @@ func SetupConnectToJwtAuth(xctx context.Context, xconn *pgxpool.Pool, gcfg *data
 			Desc: "Count of Successful Logins",
 		},
 		{
+			Key:  "jwt_auth_sso_success_login",
+			Desc: "Count of SSO Successful Logins Part 2",
+		},
+		{
+			Key:  "jwt_auth_pt1_success_login",
+			Desc: "Count of SSO Successful Logins Part 1",
+		},
+		{
 			Key:  "jwt_auth_failed_login_attempts",
 			Desc: "Count of Failed Logins Attempts",
 		},

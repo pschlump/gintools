@@ -9772,6 +9772,7 @@ DECLARE
 	l_privileges			text;
 	l_first_name			text;
 	l_last_name				text;
+	l_role_name				text;
 BEGIN
 	l_debug_on = q_get_config_bool ( 'debug' );
 
@@ -9785,9 +9786,10 @@ BEGIN
 	l_token = p_tmp_token;
 
 	select t1.user_id, t1.auth_token, account_type, pgp_sym_decrypt(t2.email_enc, p_userdata_password)::text as email, t2.client_id
-		    , pgp_sym_decrypt(t1.first_name_enc,p_userdata_password)::text as first_name
-		    , pgp_sym_decrypt(t1.last_name_enc,p_userdata_password)::text as last_name
-		into l_user_id, l_auth_token, l_account_type, l_email, l_client_id, l_first_name, l_last_name
+		    , pgp_sym_decrypt(t2.first_name_enc,p_userdata_password)::text as first_name
+		    , pgp_sym_decrypt(t2.last_name_enc,p_userdata_password)::text as last_name
+			, t2.role_name
+		into l_user_id, l_auth_token, l_account_type, l_email, l_client_id, l_first_name, l_last_name, l_role_name
 		from q_qr_tmp_token as t1
 			join q_qr_users as t2 on ( t1.user_id = t2.user_id )
 		where t1.token = p_tmp_token
@@ -9870,14 +9872,14 @@ BEGIN
 			insert into t_output ( msg ) values ( 'function ->q_quth_v1_idp_sso_token<-..... Continued ...  m4___file__ m4___line__' );
 			insert into t_output ( msg ) values ( 'calculate l_user_id ->'||coalesce(to_json(l_user_id)::text,'---null---')||'<-');
 			insert into t_output ( msg ) values ( 'calculate l_client_id ->'||coalesce(to_json(l_client_id)::text,'---null---')||'<-');
-			insert into t_output ( msg ) values ( 'calculate l_authy_token ->'||coalesce(to_json(l_authy_token)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_auth_token ->'||coalesce(to_json(l_auth_token)::text,'---null---')||'<-');
 			insert into t_output ( msg ) values ( 'calculate l_privileges ->'||coalesce(to_json(l_privileges)::text,'---null---')||'<-');
 			insert into t_output ( msg ) values ( 'calculate l_user_config ->'||coalesce(to_json(l_user_config)::text,'---null---')||'<-');
 			insert into t_output ( msg ) values ( 'calculate l_client_user_config ->'||coalesce(to_json(l_client_user_config)::text,'---null---')||'<-');
-			insert into t_output ( msg ) values ( 'calculate l_l_email ->'||coalesce(to_json(l_l_email)::text,'---null---')||'<-');
-			insert into t_output ( msg ) values ( 'calculate l_l_token ->'||coalesce(to_json(l_l_token)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_email ->'||coalesce(to_json(l_email)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_token ->'||coalesce(to_json(l_token)::text,'---null---')||'<-');
 			insert into t_output ( msg ) values ( 'calculate l_first_name ->'||coalesce(to_json(l_first_name)::text,'---null---')||'<-');
-			insert into t_output ( msg ) values ( 'calculate l_l_last_name ->'||coalesce(to_json(l_l_last_name)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_last_name ->'||coalesce(to_json(l_last_name)::text,'---null---')||'<-');
 		end if;
 
 		l_data = '{"status":"success"'

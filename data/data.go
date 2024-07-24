@@ -96,6 +96,7 @@ type GlobalConfigData struct {
 	ThumbnailType
 	// EthConfigData
 	RedisLog
+	SsoConfigType
 
 	ItemAppURI string `json:"item_app_uri" default:"item_app"`
 }
@@ -258,4 +259,8 @@ type GlobalDataScopeType struct {
 type ParsedInputType struct {
 	StateVars      map[string]string // Per connection state vars, __user_id__ etc. -- Per LOGIN/Browser
 	SavedStateVars map[string]string // uses cookie on client to save a set of state vars to d.b. -> g_quth_saved_state table -- Per USER STATE!
+}
+
+type SsoConfigType struct {
+	RedirectURI string `json:"RedirectURI"`
 }

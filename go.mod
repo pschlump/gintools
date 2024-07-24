@@ -5,6 +5,7 @@ go 1.22.0
 require (
 	github.com/anaskhan96/go-vapidkeys v0.0.0-20171018095305-465221a2246d
 	github.com/aws/aws-sdk-go v1.49.0
+	github.com/coreos/go-oidc/v3 v3.11.0
 	github.com/disintegration/imaging v1.6.2
 	github.com/fatih/structtag v1.2.0
 	github.com/gin-gonic/gin v1.8.1
@@ -26,6 +27,8 @@ require (
 	github.com/pschlump/jsonSyntaxErrorLib v1.0.8
 	github.com/pschlump/mapstructure v0.0.0-20220410160629-64b946ed6bda
 	github.com/pschlump/ms v1.0.4
+	github.com/pschlump/names v0.0.2
+	github.com/pschlump/pluto v0.0.12
 	github.com/pschlump/scany v0.3.1
 	github.com/pschlump/textTemplate v1.12.2
 	github.com/pschlump/uuid v1.0.3
@@ -37,6 +40,7 @@ require (
 	go.uber.org/zap v1.21.0
 	golang.org/x/exp v0.0.0-20230304125523-9ff063c70017
 	golang.org/x/image v0.0.0-20220722155232-062f8c9fd539
+	golang.org/x/oauth2 v0.21.0
 )
 
 require (
@@ -45,6 +49,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/enceve/crypto v0.0.0-20160707101852-34d48bb93815 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-playground/validator/v10 v10.10.0 // indirect
@@ -76,21 +81,19 @@ require (
 	github.com/pschlump/go-isatty v0.0.24 // indirect
 	github.com/pschlump/godebug v1.0.4 // indirect
 	github.com/pschlump/gowords v1.0.1 // indirect
-	github.com/pschlump/names v0.0.2 // indirect
 	github.com/pschlump/picfloat v1.0.0 // indirect
 	github.com/pschlump/pictime v1.0.0 // indirect
-	github.com/pschlump/pluto v0.0.12 // indirect
 	github.com/sendgrid/rest v2.6.9+incompatible // indirect
-	github.com/stretchr/testify v1.8.1 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/crypto v0.17.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/crypto v0.25.0 // indirect
+	golang.org/x/net v0.27.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect

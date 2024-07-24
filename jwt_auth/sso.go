@@ -362,11 +362,23 @@ func (app *SsoAppConfigType) oauth2Config(scopes []string) *oauth2.Config {
 
 // Input for handleSsoToken
 type ApiSsoToken struct {
-	TmpToken string `json:"tmp_token"         form:"tmp_token"       binding:"required,tmp_token"`
-	AmIKnown string `json:"am_i_known" form:"am_i_known"`
-	XsrfId   string `json:"xsrf_id"    form:"xsrf_id"` //     binding:"required"`
-	FPData   string `json:"fp_data"    form:"fp_data"` // fingerprint data
-	ScID     string `json:"scid"       form:"scid"`    // y_id - local storage ID
+	TmpToken string `json:"tmp_token"  form:"tmp_token"       binding:"required"`
+	AmIKnown string `json:"am_i_known" form:"am_i_known"` // -- not yet -- (from `/api/v1/id.json`)
+	XsrfId   string `json:"xsrf_id"    form:"xsrf_id"`    //     binding:"required"`
+	FPData   string `json:"fp_data"    form:"fp_data"`    // -- not yet --  fingerprint data
+	ScID     string `json:"scid"       form:"scid"`       // 	 y_id - local storage ID
+}
+
+// Output returned
+type SsoLoginSuccess struct {
+	Status     string            `json:"status"`
+	TmpToken   string            `json:"tmp_token,omitempty"` // May be "" - used in 2fa part 1 / 2
+	Token      string            `json:"token,omitempty"`     // the JWT Token???
+	FirstName  string            `json:"first_name,omitempty"`
+	LastName   string            `json:"last_name,omitempty"`
+	AcctState  string            `json:"acct_state,omitempty"`
+	UserConfig map[string]string `json:"user_config,omitempty"`
+	Email      string            `json:"email,omitempty"`
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -415,7 +427,7 @@ func (app *SsoAppConfigType) handleSsoToken(c *gin.Context) {
 		}
 		var out LoginError1
 		copier.Copy(&out, &rvStatus)
-		out.Email = "xyzzy@xyzzy.com" /* rvStatus.Email */
+		out.Email = rvStatus.Email
 		// c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 401
 		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out)) // 401
 		return
@@ -424,11 +436,11 @@ func (app *SsoAppConfigType) handleSsoToken(c *gin.Context) {
 	//  TokenHeaderVSCookie string `json:"token_header_vs_cookie" default:"cookie"`
 	if rvStatus.AuthToken != "" {
 
-		theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken, "xyzzy@xyzzy.com" /*rvStatus.Email*/, CookieUsed) // this creates the cookie!
+		theJwtToken, err := CreateJWTSignedCookie(c, rvStatus.AuthToken, rvStatus.Email, CookieUsed) // this creates the cookie!
 		if err != nil {
 			return
 		}
-		dbgo.Fprintf(perReqLog, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, "xyzzy@xyzzy.com" /* rvStatus.Email */)
+		dbgo.Fprintf(perReqLog, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, rvStatus.Email)
 
 		c.Set("__is_logged_in__", "y")
 		c.Set("__user_id__", rvStatus.UserId)
@@ -440,7 +452,7 @@ func (app *SsoAppConfigType) handleSsoToken(c *gin.Context) {
 		c.Set("__user_password__", aCfg.UserdataPassword) // __userdata_password__
 		c.Set("__client_id__", rvStatus.ClientId)
 
-		md.AddCounter("jwt_auth_success_login", 1)
+		md.AddCounter("jwt_sso_auth_success_login", 1)
 
 		if theJwtToken != "" {
 			// "Progressive improvement beats delayed perfection" -- Mark Twain
@@ -459,6 +471,11 @@ func (app *SsoAppConfigType) handleSsoToken(c *gin.Context) {
 			RedisBrodcast(rvStatus.AuthToken, fmt.Sprintf(`{"cmd":"/auth/login","auth_token":%q,"user_id":%q}`, rvStatus.AuthToken, rvStatus.UserId))
 		}
 	}
+
+	var out SsoLoginSuccess
+	copier.Copy(&out, &rvStatus)
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
+
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -897,7 +914,7 @@ func IdpLoginRegister(c *gin.Context, redirectURI string, rawIDToken string, acc
 		c.Set("__user_password__", aCfg.UserdataPassword) // __userdata_password__
 		c.Set("__client_id__", rvStatus.ClientId)
 
-		md.AddCounter("jwt_auth_success_login", 1)
+		md.AddCounter("jwt_pt1_auth_success_login", 1)
 
 		if theJwtToken != "" {
 			// "Progressive improvement beats delayed perfection" -- Mark Twain
