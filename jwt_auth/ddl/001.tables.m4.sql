@@ -2431,11 +2431,17 @@ DECLARE
 	l_allowed bool;
 	l_found text;
 	l_role_name text;
+	l_success boolean;
+	l_msg text;
+	l_debug_on 					bool;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
-	l_data = '{"status":"failed"}';			-- no such privilage granted.
+	l_data = '{"status":"failed","msg":"Account is missing privilage."}';			-- no such privilage granted.
+	l_success = false;
+	l_msg = 'Missing Privilage';
+	l_debug_on = q_get_config_bool ( 'debug' );
 
 	select t1.role_name
 		into l_role_name
@@ -2451,9 +2457,24 @@ BEGIN
 			;
 		if found then
 			if l_allowed then
-				l_data = '{"status":"success"}';
+				l_success = true;
+				l_msg = 'Has Privilage';
 			end if;
 		end if;
+
+	end if;
+
+	if l_success then
+
+		if l_debug_on then
+			insert into t_output ( msg ) values ( 'function ->q_quth_v1_idp_sso_token<-..... Continued ...  m4___file__ m4___line__' );
+			insert into t_output ( msg ) values ( 'calculate p_priv_needed ->'||coalesce(to_json(p_priv_needed)::text,'---null---')||'<-');
+		end if;
+
+		l_data = '{"status":"success"'
+			||', "priv_needed":' 			||coalesce(to_json(p_priv_needed)::text,'""')
+			||', "msg":' 					||coalesce(to_json(l_msg)::text,'""')
+			||'}';
 
 	end if;
 
@@ -2461,6 +2482,77 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+CREATE OR REPLACE FUNCTION q_qr_admin_ListPriv ( p_email varchar, p_hmac_password varchar ) RETURNS text
+AS $$
+DECLARE
+	l_data text;
+	l_allowed bool;
+	l_found text;
+	l_role_name text;
+	l_user_id text;
+	l_privileges text;
+	l_fail boolean;
+	l_debug_on 					bool;
+BEGIN
+	-- Copyright (C) Philip Schlump, 2008-2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+
+	l_debug_on = q_get_config_bool ( 'debug' );
+	l_data = '{"status":"failed","msg":"Account is missing privilage."}';			-- no such privilage granted.
+	l_fail = false;
+
+	select t1.role_name, t1.user_id
+		into l_role_name, l_user_id
+		from q_qr_users as t1
+		where t1.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
+		;
+	if not found then
+		l_data = '{"status":"error","msg":"Unable to get privileges for the user / invalid email.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+		l_fail = true;
+		l_privileges = '[]';
+	end if;
+
+	if not l_fail then
+
+		select json_agg(t0.priv_name)::text
+		into l_privileges
+		from (
+			select json_object_keys(t1.allowed::json)::text  as priv_name
+				from q_qr_role2 as t1
+				where t1.role_name = l_role_name
+			) as t0
+			;
+
+		if not found then
+			l_fail = true;
+			l_data = '{"status":"error","msg":"Unable to get privileges for the user.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+			l_privileges = '[]';
+		end if;
+
+	end if;
+
+	if not l_fail then
+
+		if l_debug_on then
+			insert into t_output ( msg ) values ( 'function ->q_quth_v1_idp_sso_token<-..... Continued ...  m4___file__ m4___line__' );
+			insert into t_output ( msg ) values ( 'calculate l_user_id ->'||coalesce(to_json(l_user_id)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_privileges ->'||coalesce(to_json(l_privileges)::text,'---null---')||'<-');
+			insert into t_output ( msg ) values ( 'calculate l_role_name ->'||coalesce(to_json(l_role_name)::text,'---null---')||'<-');
+		end if;
+
+		l_data = '{"status":"success"'
+			||', "user_id":'     			||coalesce(to_json(l_user_id)::text,'""')
+			||', "privileges":'  			||coalesce(l_privileges,'[]') -- $TYPE$ []string
+			||', "role_name":' 				||coalesce(to_json(l_role_name)::text,'""')
+			||'}';
+
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
 
 
 
@@ -8883,7 +8975,7 @@ drop FUNCTION if exists q_auth_v1_add_privlage_to ( p_user_id uuid,  p_priv_need
 
 
 
--- p_user_id - the user that has the authentication to add a privilage (AutoJob Admin)
+-- p_user_id - the user that has the authentication to add a privilage (AN Admin)
 -- p_add_to_user_id - the user that will receive the privilage
 -- p_priv_needed - the privilage that will be added
 CREATE OR REPLACE FUNCTION q_auth_v1_add_privlage_to ( p_user_id uuid, p_add_to_user_id uuid, p_priv_needed varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
@@ -8916,10 +9008,10 @@ BEGIN
 	end if;
 
 	-- See: https://www.postgresqltutorial.com/postgresql-json-functions/postgresql-jsonb_insert/
-	if not ( q_admin_HasPriv ( p_user_id, 'AutoJob Admin' ) ) then
+	if not ( q_admin_HasPriv ( p_user_id, 'AN Admin' ) ) then
 		l_fail = true;
-		l_data = '{"status":"error","msg":"Not authorized for ''AutoJob Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
-		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id::uuid, 'Not authorized to ''AutoJob Admin''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+		l_data = '{"status":"error","msg":"Not authorized for ''AN Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id::uuid, 'Not authorized to ''AN Admin''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 	end if;
 
 	if not l_fail then 
@@ -9043,10 +9135,10 @@ BEGIN
 	end if;
 
 	-- See: https://www.postgresqltutorial.com/postgresql-json-functions/postgresql-jsonb_insert/
-	if not ( q_admin_HasPriv ( p_user_id, 'AutoJob Admin' ) ) then
+	if not ( q_admin_HasPriv ( p_user_id, 'AN Admin' ) ) then
 		l_fail = true;
-		l_data = '{"status":"error","msg":"Not authorized for ''AutoJob Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
-		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id::uuid, 'Not authorized to ''AutoJob Admin''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+		l_data = '{"status":"error","msg":"Not authorized for ''AN Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id::uuid, 'Not authorized to ''AN Admin''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 	end if;
 
 	if not l_fail then
@@ -9176,10 +9268,10 @@ BEGIN
 	end if;
 
 	-- See: https://www.postgresqltutorial.com/postgresql-json-functions/postgresql-jsonb_insert/
-	if not ( q_admin_HasPriv ( p_user_id, 'AutoJob Admin' ) ) then
+	if not ( q_admin_HasPriv ( p_user_id, 'AN Admin' ) ) then
 		l_fail = true;
-		l_data = '{"status":"error","msg":"Not authorized for ''AutoJob Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
-		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id::uuid, 'Not authorized to ''AutoJob Admin''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+		l_data = '{"status":"error","msg":"Not authorized for ''AN Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id::uuid, 'Not authorized to ''AN Admin''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 	end if;
 
 	if not l_fail then
@@ -9912,6 +10004,47 @@ $$ LANGUAGE plpgsql;
 --select q_auth_v1_idp_login_or_register ( 'bob@bob.com', 'https://test.example.com', '{"claims":"yep"}', 'p_id_token', 'p_access_token', 'p_refresh_token', 'y75lR1HeI/gb4nx2ZBe69D/FtZY=', '4Ti5G3HmJsw+gbDbMKKVs4tnRUU=', 'p_hash_of_headers', 'y', 'First', 'Bob' , '337eb9f5-95b0-4894-7ac7-2427daad8e22' );
 
 
+
+
+
+
+
+CREATE OR REPLACE FUNCTION q_auth_v1_post_register ( p_email varchar, p_data varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+AS $$
+DECLARE
+	l_data					text;
+	l_fail					bool;
+	l_debug_on 				bool;
+BEGIN
+	l_debug_on = q_get_config_bool ( 'debug' );
+
+	-- Copyright (C) Philip Schlump, 2008-2024.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+
+	l_fail = false;
+	l_data = '{"status":"unknown"}';
+
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->q_auth_v1_post_register<-..... Continued ...  m4___file__ m4___line__' );
+		insert into t_output ( msg ) values ( 'p_data ->'||coalesce(to_json(p_data)::text,'---null---')||'<-');
+	end if;
+
+	l_data = a_apply_coupon_for_crdits ( p_email, p_data, p_hmac_password , p_userdata_password );
+
+	if l_debug_on then
+		insert into t_output ( msg ) values ( 'function ->q_auth_v1_post_register<-..... Continued ...  m4___file__ m4___line__' );
+		insert into t_output ( msg ) values ( 'l_data ->'||coalesce(to_json(l_data)::text,'---null---')||'<-');
+	end if;
+
+	if not l_fail then
+		l_data = '{"status":"success"'
+			||'}';
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
 
 
 

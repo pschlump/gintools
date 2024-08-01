@@ -76,7 +76,7 @@ func (em *GenericEmailSender) initializeTimedSender() {
 }
 
 func (em *GenericEmailSender) TemplateAndSend() {
-	em.md.AddCounter("gcail_sender_timed_check_for_email", 1)
+	em.md.AddCounter("email_sender_timed_check_for_email", 1)
 
 	stmt := `
 		select email_send_id::text as "email_send_id",

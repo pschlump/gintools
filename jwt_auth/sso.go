@@ -173,8 +173,8 @@ func NewSSO(ssoCfg *data.SsoConfigType, rootCAs string, debug bool, issuerURL st
 		}() // call the func at this point.
 	}
 
-	dbgo.Printf("%(red)app=%x\n", app)
-	dbgo.Printf("%(red)provider=%x, app.clientID=%s\n", provider, xx.clientID)
+	// dbgo.Printf("%(red)app=%x\n", app)
+	// dbgo.Printf("%(red)provider=%x, app.clientID=%s\n", provider, xx.clientID)
 	xx.provider = provider
 	xx.verifier = provider.Verifier(&oidc.Config{ClientID: xx.clientID})
 

@@ -1,5 +1,7 @@
 package jwt_auth
 
+// xyzzyPriv
+
 // Copyright (C) Philip Schlump, 2016-2018, 2023.
 // MIT Licensed.  See LICENSE.mit file.
 // BSD Licensed.  See LICENSE.bsd file.
@@ -196,8 +198,8 @@ var GinSetupTable = []GinLoginType{
 	{Method: "POST", Path: "/api/v1/auth/has-priv", Fx: authHandlerHasPriv, UseLogin: LoginRequired},                                 //
 	{Method: "POST", Path: "/api/v1/auth/add-priv-to", Fx: authHandlerAddPrivTo, UseLogin: LoginRequired},                            //
 	{Method: "POST", Path: "/api/v1/auth/rm-priv-from", Fx: authHandlerRmPrivFrom, UseLogin: LoginRequired},                          //
-
-	// change2faInfo
+	{Method: "GET", Path: "/api/v1/auth/list-priv", Fx: authHandlerListPriv, UseLogin: LoginRequired},                                //
+	{Method: "POST", Path: "/api/v1/auth/list-priv", Fx: authHandlerListPriv, UseLogin: LoginRequired},                               //
 
 }
 
@@ -624,8 +626,9 @@ type ApiAuthRegister struct {
 	FirstName string `json:"first_name" form:"first_name"  binding:"required"`
 	LastName  string `json:"last_name"  form:"last_name"   binding:"required"`
 	Pw        string `json:"password"   form:"password"    binding:"required"`
-	AgreeTOS  string `json:"agree_tos" form:"agree_tos"`
+	AgreeTOS  string `json:"agree_tos"  form:"agree_tos"`
 	AgreeEULA string `json:"agree_eula" form:"agree_eula"`
+	Data      string `json:"data"       form:"data"`
 }
 
 // Output returned
@@ -721,6 +724,26 @@ func authHandleRegister(c *gin.Context) {
 	err = SaveState(cookieValue, RegisterResp.UserId, c)
 	if err != nil {
 		return
+	}
+
+	dbgo.Printf("%(yellow)%(LF) post register: email=%s data=%s\n", pp.Email, pp.Data)
+	if pp.Data != "" {
+		// CREATE OR REPLACE FUNCTION a_apply_coupon_for_crdits ( p_email varchar, p_coupon varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
+		// rv, err := callme.CallAuthPostRegister(c, pp.Email, pp.Data, aCfg.EncryptionPassword, aCfg.UserdataPassword)
+		/*
+			rv, err := callme.CallQQrAdminPostRegister(c, pp.Email, pp.Data)
+
+			if err != nil {
+				c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, gin.H{ // 400
+					"status": "error",
+					"msg":    fmt.Sprintf("Error: %s", err),
+				}))
+				return
+			}
+		*/
+		dbgo.Printf("%(yellow)%(LF) post register: email=%s data=%s\n", pp.Email, pp.Data)
+		rv, err := callme.CallAuthPostRegister(c, pp.Email, pp.Data)
+		dbgo.Printf("%(yellow)%(LF) post register: %s %s\n", err, dbgo.SVarI(rv))
 	}
 
 	// ---------------------------------------------------------------------------------------------------------------------
@@ -5113,13 +5136,15 @@ type ApiHasPriv struct {
 }
 
 type HasPrivSuccess struct {
-	Status string `json:"status"`
+	Status     string `json:"status"`
+	PrivNeeded string `json:"priv_needed,omitempty"`
+	Msg        string `json:"msg"`
 }
 
 // {Method: "GET", Path: "/api/v1/auth/has-priv", Fx: authHandlerHasPriv, UseLogin: LoginRequired},                                   //
 
 // authHandlerHasPriv godoc
-// @Summary get the privlatge for an account
+// @Summary check if an an account has a privilage
 // @Schemes
 // @Description Return status success if the account has the privilage
 // @Tags auth
@@ -5155,6 +5180,72 @@ func authHandlerHasPriv(c *gin.Context) {
 	}
 
 	var out HasPrivSuccess
+	copier.Copy(&out, &rv)
+	out.Status = rv.Status
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
+
+}
+
+type ApiListPriv struct {
+	ForEmail string `json:"for_email"   form:"for_email"  binding:"required,email"`
+}
+
+type ListPrivSuccess struct {
+	Status     string   `json:"status"`
+	UserId     string   `json:"user_id,omitempty"`
+	Privileges []string `json:"privileges,omitempty"`
+	RoleName   string   `json:"role_name,omitempty"`
+}
+
+// # {Method: "POST", Path: "/api/v1/auth/list-priv", Fx: authHandlerListPriv, UseLogin: LoginRequired},                                 //
+
+// authHandlerListPriv godoc
+// @Summary list the privilages that an account has
+// @Schemes
+// @Description Return status success if the account has the privilage
+// @Tags auth
+// @Accept json,x-www-form-urlencoded
+// @Param   for_email      formData    string     true        "For Email Address"
+// @Param   priv           formData    string     true        "Priv to check"
+// @Produce json
+// @Success 200 {object} jwt_auth.UpdateAcctStateSuccess
+// @Failure 400 {object} jwt_auth.StdErrorReturn
+// @Failure 401 {object} jwt_auth.StdErrorReturn
+// @Failure 406 {object} jwt_auth.StdErrorReturn
+// @Failure 500 {object} jwt_auth.StdErrorReturn
+// @Router /api/v1/auth/has-priv [get]
+func authHandlerListPriv(c *gin.Context) {
+	var pp ApiListPriv
+	if err := BindFormOrJSON(c, &pp); err != nil {
+		return
+	}
+
+	perReqLog := tf.GetLogFilePtr(c)
+
+	pp.ForEmail = cleanupEmail(pp.ForEmail)
+
+	// xyzzyPriv
+	/*
+	   type RvQQrAdminListPriv struct {
+	   	StdErrorReturn
+	   	UserId     string   `json:"user_id,omitempty"`
+	   	Privileges []string `json:"privileges,omitempty"`
+	   	RoleName   string   `json:"role_name,omitempty"`
+	   }
+	*/
+	// func CallQQrAdminListPriv(c *gin.Context, email string) (rv RvQQrAdminListPriv, err error) {
+	rv, err := callme.CallQQrAdminListPriv(c, pp.ForEmail)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, gin.H{ // 400
+			"status": "error",
+			"msg":    fmt.Sprintf("Error: %s", err),
+		}))
+		return
+	}
+
+	var out ListPrivSuccess
+	copier.Copy(&out, &rv)
 	out.Status = rv.Status
 	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
 

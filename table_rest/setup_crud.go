@@ -378,23 +378,31 @@ func ValidatePrivs2(c *gin.Context, RequiredAuthPrivs []string) error {
 	}
 
 	hasPriv := GetMapStringBool(c, "__privs_map__")
+	email, ok := c.Get("__login_email_addr__")
+	if !ok {
+		email = "--error unknown email--"
+	}
+	user_id, ok := c.Get("__user_id__")
+	if !ok {
+		user_id = "--error unknown user_id--"
+	}
 
 	for _, needPriv := range RequiredAuthPrivs {
 		// lookup privs in list - if user has theses then - if missing - return nil
 		if gotIt, ok := hasPriv[needPriv]; ok && gotIt {
-			// dbgo.Printf("%(cyan) at:%(LF) - user has %s\n", needPriv)
+			dbgo.Fprintf(os.Stderr, "%(cyan) at:%(LF) - user has ->%s<- privilege, email=%s, user_id=%s \n", needPriv, email, user_id)
 		} else {
 			err := fmt.Errorf("Missing Required Privilege ->%s<-", needPriv)
-			dbgo.Fprintf(os.Stderr, "\n\n%(red) at:%(LF) - user missing privilege ->%s<- -- early exit, returning Error:%s\n\n", needPriv, err)
+			dbgo.Fprintf(os.Stderr, "\n\n%(red) at:%(LF) - user missing privilege ->%s<- -- early exit, returning Error:%s, email=%s, user_id=%s\n\n", needPriv, err, email, user_id)
 			dbgo.Fprintf(logFilePtr, "\n{\"msg\":\"at:%(LF) - user missing privilege ->%s<- -- early exit, returning Error:%s\"}\n\n", needPriv, err)
 			log_enc.LogPrivError(c, needPriv, fmt.Sprintf("%s", err))
 			return err
 		}
 	}
 
-	if db812 {
-		dbgo.Fprintf(logFilePtr, "{\"msg\":\"at:%(LF) - login not required - privilege passed\"}\n")
-	}
+	//if db812 {
+	//	dbgo.Fprintf(logFilePtr, "{\"msg\":\"at:%(LF) - login not required - privilege passed\"}\n")
+	//}
 	return nil // All privilege tests passed, return success
 }
 
