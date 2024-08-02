@@ -1,6 +1,6 @@
 module github.com/pschlump/gintools/tools/db-connection-test
 
-go 1.22.0
+go 1.22.5
 
 require (
 	github.com/jackc/pgx/v4 v4.12.1-0.20210724153913-640aa07df17c

@@ -1,6 +1,6 @@
 module github.com/pschlump/gintools/tools/gen-email-key
 
-go 1.22.0
+go 1.22.5
 
 require (
 	github.com/pschlump/HashStrings v0.1.5

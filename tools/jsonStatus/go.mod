@@ -1,6 +1,6 @@
 module github.com/pschlump/gintools/tools/jsonStatus
 
-go 1.22.0
+go 1.22.5
 
 require (
 	github.com/pschlump/check-json-syntax v1.0.10
