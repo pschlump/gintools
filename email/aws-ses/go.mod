@@ -1,6 +1,6 @@
 module github.com/pschlump/gintools/email/aws-ses
 
-go 1.22.5
+go 1.23.0
 
 require github.com/aws/aws-sdk-go v1.44.283
 

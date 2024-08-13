@@ -1,6 +1,6 @@
 module github.com/pschlump/gintools
 
-go 1.22.5
+go 1.23.0
 
 require (
 	github.com/anaskhan96/go-vapidkeys v0.0.0-20171018095305-465221a2246d
