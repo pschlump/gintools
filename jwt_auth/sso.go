@@ -821,7 +821,7 @@ Chlib2JldWg3Ym54bWZrd2k2ZWlzMjVtNXVlEhlodnV6anN3d2k2cmV3NW52bGs2eWdhazNi
 type ClaimsType struct {
 	Validator     string `json:"iss"`
 	Email         string `json:"email"`
-	EmailVerified bool   `json:"email_verified"`
+	EmailVerified bool   `json:"verified_email"`
 	Name          string `json:"name"`
 }
 
@@ -935,6 +935,173 @@ func IdpLoginRegister(c *gin.Context, redirectURI string, rawIDToken string, acc
 	}
 
 	return rvStatus.TmpToken
+}
+
+// const db8 = false
+type OAuth20ClaimsType struct {
+	Id            string `json:"id"`
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"verified_email"`
+	Picture       string `json:"picture"`
+}
+
+/*
+	UserInfo: {
+	  "id": "101983930229230661870",
+	  "email": "pschlump@gmail.com",
+	  "verified_email": true,
+	  "picture": "https://lh3.googleusercontent.com/a-/ALV-UjW5r2574-arc8H1FICKlkS4JdeuVgw5MtyTadJ7xxt-raNy7mlU=s96-c"
+	}
+*/
+type SsoLoginError struct {
+	StdErrorReturn
+}
+
+func OAuth2LoginRegister(c *gin.Context, authority, redirectURI string, rawIDToken string, accessToken string, RefreshToken string, userData string) (err error) {
+
+	/*
+		type RvAuthIdpLoginOrRegister struct {
+			jwt_auth.StdErrorReturn
+			UserId           string `json:"user_id,omitempty"`
+			AuthToken        string `json:"auth_token,omitempty"`
+			TmpToken         string `json:"tmp_token,omitempty"`
+			Require2Fa       string `json:"require_2fa,omitempty"`
+			AccountType      string `json:"account_type,omitempty"`
+			Privileges       string `json:"privileges,omitempty"`
+			UserConfig       string `json:"user_config,omitempty"`
+			ClientUserConfig string `json:"client_user_config,omitempty"`
+			FirstName        string `json:"first_name,omitempty"`
+			LastName         string `json:"last_name,omitempty"`
+			ClientId         string `json:"client_id,omitempty"`
+			AcctState        string `json:"acct_state,omitempty"`
+		}
+	*/
+	perReqLog := tf.GetLogFilePtr(c)
+	err = nil
+
+	var vt OAuth20ClaimsType
+	err = json.Unmarshal([]byte(userData), &vt)
+	if err != nil {
+		// Blow out - Error -
+		var Resp SsoLoginError
+		Resp.Status = "error"
+		Resp.Msg = "Failed to authenticate"
+		Resp.LogUUID = GenUUID()
+		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, Resp.StdErrorReturn))
+		return fmt.Errorf("Sign On Authority (%s) returned a garbled or unreadable responce: %s", authority, err)
+	}
+
+	hashOfHeaders := HeaderFingerprint(c)
+	emailVerified := "n"
+	if vt.EmailVerified {
+		emailVerified = "y"
+	}
+
+	if emailVerified == "n" {
+		// Blow out - can not accept a non-verified email address
+		var Resp SsoLoginError
+		Resp.Status = "error"
+		Resp.Msg = "Email must be verified"
+		Resp.LogUUID = GenUUID()
+		dbgo.Printf("AT:%(LF) data ->%s<- parsed ->%s<-\n", userData, dbgo.SVarI(vt))
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, Resp.StdErrorReturn))
+		return fmt.Errorf("Email Not Verified at %s, can not be used for login until verified.", authority)
+	}
+
+	dbgo.Printf("%(greenw)AT: %(yellow)%(LF)\n")
+	for name, values := range c.Request.Header {
+		// Loop over all values for the name.
+		for _, value := range values {
+			dbgo.Printf("     %(red)Header: ->%s<- Value ->%s<-\n", name, value)
+		}
+	}
+
+	firstName, lastName := "?", "?"
+	// if vt.Name != "" {
+	// 	got := names.ParseFullName(vt.Name)
+	// 	firstName, lastName = got.First, got.Last
+	// }
+
+	// X-WebScoket-Connection-ID=7f4ac098-73b0-47eb-9322-4dfcb9918e44
+	// ScId := "337eb9f5-95b0-4894-7ac7-2427daad8e22"
+	ScId, err := c.Cookie("X-WebScoket-Connection-ID")
+	if err != nil || ScId == "" {
+		ScId = "337eb9f5-95b0-4894-7ac7-2427daad8e22"
+		// xyzzy - Blow out - Must have this to mark device
+	}
+
+	// func CallAuthIdpLoginOrRegister(c *gin.Context, email string, validator string, claims string, idToken string, accessToken string, refreshToken string, hashOfHeaders string, emailVerified string, firstName string, lastName string) (rv RvAuthIdpLoginOrRegister, err error) {
+	rvStatus, err := callme.CallAuthIdpLoginOrRegister(c, vt.Email, authority, userData, vt.Id, vt.Id, "", hashOfHeaders, emailVerified, firstName, lastName, ScId)
+	if err != nil {
+		md.AddCounter("jwt_auth_failed_login_attempts", 1)
+		return fmt.Errorf("Database error occured")
+	}
+
+	stmt := "q_auth_v1_idp_login_or_register (  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12 )"
+	if rvStatus.Status != "success" {
+
+		md.AddCounter("jwt_auth_failed_login_attempts", 1)
+		rvStatus.LogUUID = GenUUID()
+
+		if logger != nil {
+			fields := []zapcore.Field{
+				zap.String("message", "Stored Procedure (q_auth_v1_idp_login_or_register) error return"),
+				zap.String("go_location", dbgo.LF()),
+			}
+			fields = AppendStructToZapLog(fields, rvStatus)
+			logger.Error("failed-to-login", fields...)
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+		} else {
+			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+		}
+		var out LoginError1
+		copier.Copy(&out, &rvStatus)
+		out.Email = vt.Email
+		// c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 401
+		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, out)) // 401
+		return fmt.Errorf("Not Authorized")
+	}
+
+	//  TokenHeaderVSCookie string `json:"token_header_vs_cookie" default:"cookie"`
+	if rvStatus.AuthToken != "" {
+
+		theJwtToken, e1 := CreateJWTSignedCookie(c, rvStatus.AuthToken, vt.Email, CookieUsed) // this creates the cookie!
+		if err != nil {
+			return e1
+		}
+		dbgo.Fprintf(perReqLog, "%(green)!! Creating COOKIE Token, Logged In !!  at:%(LF): AuthToken=%s jwtCookieToken=%s email=%s\n", rvStatus.AuthToken, theJwtToken, vt.Email)
+
+		c.Set("__is_logged_in__", "y")
+		c.Set("__user_id__", rvStatus.UserId)
+		c.Set("__auth_token__", rvStatus.AuthToken)
+		rv, mr := ConvPrivs2(perReqLog, rvStatus.Privileges)
+		c.Set("__privs__", rv)
+		c.Set("__privs_map__", mr)
+		c.Set("__email_hmac_password__", aCfg.EncryptionPassword)
+		c.Set("__user_password__", aCfg.UserdataPassword) // __userdata_password__
+		c.Set("__client_id__", rvStatus.ClientId)
+
+		md.AddCounter("jwt_pt1_auth_success_login", 1)
+
+		if theJwtToken != "" {
+			// "Progressive improvement beats delayed perfection" -- Mark Twain
+			if aCfg.TokenHeaderVSCookie == "cookie" {
+				rvStatus.Token = ""
+				c.Set("__jwt_token__", "")
+				c.Set("__jwt_cookie_only__", "yes")
+			} else { // header or both
+				rvStatus.Token = theJwtToken
+				c.Set("__jwt_token__", theJwtToken)
+			}
+		}
+
+		// xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
+		if gCfg.RedisUsePubSub == "yes" {
+			RedisBrodcast(rvStatus.AuthToken, fmt.Sprintf(`{"cmd":"/auth/login","auth_token":%q,"user_id":%q}`, rvStatus.AuthToken, rvStatus.UserId))
+		}
+	}
+
+	return nil
 }
 
 // const db8 = false

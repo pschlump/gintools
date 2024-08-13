@@ -4924,7 +4924,8 @@ func RedisGetCachedToken(AuthToken, UserdataPassword string, perReqLog io.WriteC
 // DB Reutrn Data
 type RvUpdateAcctStateType struct {
 	StdErrorReturn
-	AcctState string `json:"acct_state,omitempty"`
+	AcctState   string `json:"acct_state,omitempty"`
+	AccountType string `json:"acctount_type,omitempty"`
 }
 
 // Input for login
@@ -4935,8 +4936,9 @@ type ApiUpdateAcctState struct {
 
 // Output returned
 type UpdateAcctStateSuccess struct {
-	Status    string `json:"status"`
-	AcctState string `json:"acct_state"`
+	Status      string `json:"status"`
+	AcctState   string `json:"acct_state"`
+	AccountType string `json:"acctount_type,omitempty"`
 }
 
 // authHandlerUpdateAcctState updates the acct_state field in the q_qr_auth_users table for the current user.
@@ -5043,37 +5045,13 @@ func authHandlerGetAcctState(c *gin.Context) {
 
 	//                                     1                2                        3
 	// FUNCTION q_auth_v1_get_acct_state ( p_email varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
-	stmt := "q_auth_v1_get_acct_state ( $1, $2, $3 )"
-	//                                                 1          2                        3
-	rv, err := CallDatabaseJSONFunction(c, stmt, ".!!", pp.Email, aCfg.EncryptionPassword, aCfg.UserdataPassword)
+	rv, err := callme.CallAuthGetAcctState(c, pp.Email)
 	if err != nil {
 		return
 	}
 	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 
-	var rvStatus RvUpdateAcctStateType
-	err = json.Unmarshal([]byte(rv), &rvStatus)
-	if rvStatus.Status != "success" {
-		rvStatus.LogUUID = GenUUID()
-
-		if logger != nil {
-			fields := []zapcore.Field{
-				zap.String("message", "Stored Procedure (q_auth_v1_update_acct_state) error return"),
-				zap.String("go_location", dbgo.LF()),
-			}
-			fields = AppendStructToZapLog(fields, rvStatus)
-			logger.Error("failed-to-failed-to-report-2fa-status", fields...)
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-		} else {
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
-		}
-		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 401
-		return
-	}
-
-	var out UpdateAcctStateSuccess
-	copier.Copy(&out, &rvStatus)
-	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, out))
+	c.JSON(http.StatusOK, LogJsonReturned(perReqLog, rv))
 }
 
 type ApiSetEmailRedirect struct {

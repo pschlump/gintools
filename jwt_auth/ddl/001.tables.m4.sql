@@ -3,6 +3,8 @@
 -- MIT Licensed.  See LICENSE.mit file.
 -- BSD Licensed.  See LICENSE.bsd file.
 
+-- xyzzySSO_Multi
+
 -- xyzzyPartialReg
 -- xyzzyOnSuccessfulX
 
@@ -1360,7 +1362,7 @@ BEGIN
 			RAISE NOTICE 'Table constraint q_qr_users_account_type_check already exists';
 	END;
 	BEGIN
-		ALTER TABLE q_qr_users ADD CONSTRAINT  q_qr_users_account_type_check check ( account_type in ( 'login', 'un/pw', 'token', 'other', 'sso' ) );
+		ALTER TABLE q_qr_users ADD CONSTRAINT  q_qr_users_account_type_check check ( account_type in ( 'login', 'un/pw', 'token', 'other', 'sso', 'sso|login' ) );
 		-- account_type			varchar(20) default 'login' not null check ( account_type in ( 'login', 'un/pw', 'token', 'other', 'sso' ) ),
 	EXCEPTION
 		WHEN duplicate_table THEN	-- postgres raises duplicate_table at surprising times. Ex.: for UNIQUE constraints.
@@ -1422,7 +1424,7 @@ CREATE TABLE if not exists q_qr_users (
 	login_success 			int default 0 not null,
 	login_2fa_failures 		int default 10 not null,
 	parent_user_id 			uuid,
-	account_type			varchar(20) default 'login' not null check ( account_type in ( 'login', 'un/pw', 'token', 'other', 'sso' ) ),
+	account_type			varchar(20) default 'login' not null check ( account_type in ( 'login', 'un/pw', 'token', 'other', 'sso', 'sso|login' ) ),
 	require_2fa 			varchar(1) default 'y' not null,
 	secret_2fa 				varchar(20),
 	setup_complete_2fa 		varchar(1) default 'n' not null,					-- Must be 'y' to login / set by q_auth_v1_validate_2fa_token
@@ -3284,7 +3286,7 @@ BEGIN
 			, l_n6_flag
 		from user_row
 		where parent_user_id is null
-		  and account_type = 'login'
+		  and account_type in ( 'login', 'sso|login' )
 		  and ( start_date < current_timestamp or start_date is null )
 		  and ( end_date > current_timestamp or end_date is null )
 		  and email_validated = 'y'
@@ -3420,7 +3422,7 @@ BEGIN
 		from user_row as t1
 		where password_reset_token = p_recovery_token::uuid
 		  and parent_user_id is null
-		  and account_type = 'login'
+		  and account_type in ( 'login', 'sso|login' )
 		  and ( start_date < current_timestamp or t1.start_date is null )
 		  and ( end_date > current_timestamp or t1.end_date is null )
 		  and email_validated = 'y'
@@ -3522,7 +3524,7 @@ BEGIN
 			, l_n6_flag
 		from user_row as t1
 		where password_reset_time > current_timestamp
-		  and account_type = 'login'
+		  and account_type in ( 'login', 'sso|login' )
 		  and ( start_date < current_timestamp or t1.start_date is null )
 		  and ( end_date > current_timestamp or t1.end_date is null )
 		  and email_validated = 'y'
@@ -3679,7 +3681,7 @@ BEGIN
 			from user_row
 			where
 					(
-							account_type = 'login'
+							account_type in ( 'login', 'sso|login' )
 						and password_hash = crypt(p_pw, password_hash)
 						and parent_user_id is null
 						and validation_method = 'un/pw'
@@ -5404,7 +5406,7 @@ BEGIN
 				  and ( t8.end_date > current_timestamp or t8.end_date is null )
 				  and (
 						(
-								t8.account_type = 'login'
+								t8.account_type in ( 'login', 'sso|login' )
 							and t8.password_hash = crypt(p_pw, password_hash)
 							and t8.parent_user_id is null
 							and t8.email_validated = 'y'
@@ -5865,7 +5867,7 @@ BEGIN
 			from email_user
 		    where
 				(
-					    account_type = 'login'
+					    account_type in ( 'login', 'sso|login' )
 					and password_hash = crypt(p_pw, password_hash)
 					and parent_user_id is null
 				)  or (
@@ -5878,6 +5880,8 @@ BEGIN
 					and parent_user_id is not null
 				)
 		;
+
+		-- xyzzySSO_Multi
 
 		if found then
 			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Username/Password Found:'||p_email, 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
@@ -5924,6 +5928,14 @@ BEGIN
 				l_fail = true;
 				l_data = '{"status":"error","msg":"Invalid Username or Password","code":"m4_count()","location":"m4___file__ m4___line__"}'; -- return no such account or password
 				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Username(email) Not Found:'||p_email, 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+			end if;
+
+			if not l_fail then -- AAA
+				if not l_account_type in ( 'sso|login', 'un/pw', 'login' ) then
+					l_fail = true;
+					l_data = '{"status":"error","msg":"Invalid Username or Password / Invalid type of account of '||coalesce(l_account_type,'--null--')||'","code":"m4_count()","location":"m4___file__ m4___line__"}'; -- return no such account or password
+					insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Username(email) Not Found / invalid account typeof '||coalesce(l_account_type,'--null--')||' '||p_email, 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+				end if;
 			end if;
 
 			if not l_fail then -- AAA
@@ -6299,14 +6311,14 @@ BEGIN
 			||'}';
 
 		if l_debug_on then
-			insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... data==success m4___file__ m4___line__' );
+			insert into t_output ( msg ) values ( 'function ->q_quth_v1_idp_login_or_register<-..... Continued ... data==success m4___file__ m4___line__' );
 		end if;
 
 	else
 		if l_user_id is not null then
 			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Login Failure email:'||p_email, 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 			if l_debug_on then
-				insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<-..... Continued ... --- has user_id, status=failed/error --- m4___file__ m4___line__' );
+				insert into t_output ( msg ) values ( 'function ->q_quth_v1_idp_login_or_register<-..... Continued ... --- has user_id, status=failed/error --- m4___file__ m4___line__' );
 			end if;
 			if l_failed_login_timeout is not null then
 				update q_qr_users
@@ -6527,7 +6539,7 @@ BEGIN
 			, l_last_name
 		from q_qr_users as t1
 		where t1.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
-			and	account_type = 'login'
+			and	account_type in ( 'login', 'sso|login' )
 			and password_hash = crypt(p_pw, password_hash)
 			and parent_user_id is null
 		;
@@ -6655,7 +6667,7 @@ BEGIN
 			, l_email
 		from q_qr_users
 		where user_id = p_parent_user_id
-			and account_type = 'login'
+			and account_type in ( 'login', 'sso|login' )
 		;
 		if not found then
 			l_fail = true;
@@ -6862,7 +6874,7 @@ BEGIN
 			, l_email
 		from q_qr_users
 		where user_id = p_parent_user_id
-			and account_type = 'login'
+			and account_type in ( 'login', 'sso|login' )
 		;
 		if not found then
 			l_fail = true;
@@ -8859,6 +8871,7 @@ DECLARE
 	l_debug_on 				bool;
 
 	l_acct_state	        text;
+	l_account_type	        text;
 	l_email_hmac			bytea;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2023.
@@ -8875,9 +8888,8 @@ BEGIN
 	end if;
 
 	l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
-	select
-			  t1.acct_state
-		into l_acct_state
+	select t1.acct_state, t1.account_type			
+		into l_acct_state, l_account_type
 		from q_qr_users as t1
 		where t1.email_hmac = l_email_hmac
 		;
@@ -8891,6 +8903,7 @@ BEGIN
 
 		l_data = '{"status":"success"'
 			||', "acct_state":' 		      	||coalesce(to_json(l_acct_state)::text,'""')
+			||', "account_type":' 		      	||coalesce(to_json(l_account_type)::text,'""')
 			||'}';
 
 	end if;
@@ -9431,7 +9444,7 @@ BEGIN
 	l_token = '';
 
 	if l_debug_on then
-		insert into t_output ( msg ) values ( 'function ->q_quth_v1_login<- m4___file__ m4___line__' );
+		insert into t_output ( msg ) values ( 'function ->q_quth_v1_idp_login_or_register<- m4___file__ m4___line__' );
 		insert into t_output ( msg ) values ( '  p_email ->'||coalesce(to_json(p_email)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_validator ->'||coalesce(to_json(p_validator)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_claims ->'||coalesce(to_json(p_claims)::text,'---null---')||'<-');
@@ -9443,6 +9456,14 @@ BEGIN
 		insert into t_output ( msg ) values ( '  p_hash_of_headers ->'||coalesce(to_json(p_hash_of_headers)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  p_email_verified ->'||coalesce(to_json(p_email_verified)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  ' );
+	end if;
+
+	RAISE NOTICE 'At Top' ;
+
+	if p_email_verified = 'n' then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"Invalid must have a validated email address..","code":"m4_count()","location":"m4___file__ m4___line__"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid must have a validated email address.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 	end if;
 
 	-- validation_method		varchar(10) default 'un/pw' not null check ( validation_method in ( 'un/pw', 'sip', 'srp6a', 'hw-key' ) ),
@@ -9504,26 +9525,50 @@ BEGIN
 
 		if found then
 
+			RAISE NOTICE 'Found Row' ;
+
+			if l_email_validated = 'n' then
+				l_email_validated = 'y';
+			end if;
+
 			if l_parent_user_id is not null then
 
 				l_fail = true;
 				l_data = '{"status":"error","msg":"Invalid account, a child account of a differnet login account.","code":"m4_count()","location":"m4___file__ m4___line__"}';
-				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'Invalid account, a child account of a different login account.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid account, a child account of a different login account.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 
-			elsif x_account_type = 'sso' then
+			elsif x_account_type in ( 'sso', 'sso|login' ) then
 
 				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'SSO Login Account Found:'||p_email, 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 
+			elsif x_account_type = 'login' then
+
+				x_account_type = 'sso|login';
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'SSO/Login Account Found:'||p_email, 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+
+				-- insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Local account_type = "login" Email Login Account Found:'||p_email, 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+				-- l_fail = true;
+				-- l_data = '{"status":"error","msg":"An account with this email already exists, try logging in with a email/password.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+				-- insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'An account with this email already exists, try logging in with a email/password.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+
+				-- xyzzySSO_Multi 
+				-- Attempting to login to a local un/pw account with a SSO account with the sam email.
+				-- If "is-validated" and if data supplied "is-validated" then allow as a login, update accout to include sso -> account_type -> sso|login
+
 			else 
+
+				-- insert into t_output ( msg ) values ( '******************************* x_account_type='||x_account_type );
 
 				l_fail = true;
 				l_data = '{"status":"error","msg":"Invalid account type, try logging in with a email/password.","code":"m4_count()","location":"m4___file__ m4___line__"}';
-				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_bad_user_id, 'Invalid account type, try logging in with a email/password.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+				insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid account type, try logging in with a email/password.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 
 			end if;
 
 		else
 
+			RAISE NOTICE 'New Row' ;
+			
 			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'New Registration:'||p_email, 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 
 			-- register them
@@ -9604,7 +9649,7 @@ BEGIN
 					, p_id_token
 					, p_access_token
 					, p_refresh_token
-					, l_account_type		-- sso
+					, 'sso'	-- account_type
 					, p_email_verified
 				);
 
@@ -9663,13 +9708,13 @@ BEGIN
 		end if;
 	end if;
 
-	if not l_fail then
-		if l_validation_method != 'sso' then
-			l_fail = true;
-			l_data = '{"status":"error","msg":"Account is not a sso (single sign on) authetication method","code":"m4_count()","location":"m4___file__ m4___line__"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account is not a sso (single singn on) autetication method', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
-		end if;
-	end if;
+	--if not l_fail then
+	--	if not l_validation_method in ( 'sso', 'sso|login' ) then
+	--		l_fail = true;
+	--		l_data = '{"status":"error","msg":"Account is not a sso (single sign on) authetication method","code":"m4_count()","location":"m4___file__ m4___line__"}';
+	--		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Account is not a sso (single singn on) autetication method', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+	--	end if;
+	--end if;
 
 	if not l_fail then
 		l_auth_token = uuid_generate_v4();
@@ -9734,7 +9779,7 @@ BEGIN
 			insert into t_output ( msg ) values ( 'calculate l_client_id ->'||coalesce(to_json(l_client_id)::text,'---null---')||'<-');
 		end if;
 
-		-- xyzzyInsertNew - Move to - end where update4
+		-- xyzzyInsertNew - Move to - end where update
 		if not l_new_registration then
 
 			-- all of these fieds are set/created with insert if this is a 'registration' operation (above).
@@ -9744,12 +9789,15 @@ BEGIN
 					, login_failures = 0
 					, login_success = login_success + 1
 					, privileges = l_privileges
-					, email_verify_token = null
 					, validator = p_validator
 					, claims = p_claims
 					, id_token = p_id_token
 					, access_token = p_access_token
 					, refresh_token = p_refresh_token
+					, account_type = x_account_type 
+					, email_validated = 'y'
+					, email_verify_expire = null
+					, email_verify_token = null
 				where user_id = l_user_id
 				;
 
@@ -9837,6 +9885,47 @@ BEGIN
 	RETURN l_data;
 END;
 $$ LANGUAGE plpgsql;
+
+
+-- 
+-- delete from t_output;
+-- select q_auth_v1_idp_login_or_register ( 'pschlump22@gmail.com','google','{\n  \"id\": \"101983930229230661870\",\n  \"email\": \"pschlump22@gmail.com\",\n  \"verified_email\": true,\n  \"picture\": \"https://lh3.googleusercontent.com/a-/ALV-UjW5r2574-arc8H1FICKlkS4JdeuVgw5MtyTadJ7xxt-raNy7mlU=s96-c\"\n}\n',
+-- 	'101983930229230661870','101983930229230661870','','y75lR1HeI/gb4nx2ZBe69D/FtZY=','4Ti5G3HmJsw+gbDbMKKVs4tnRUU=','f43ed731e8741106d0de91a63a16a8a327af1fdccd90a0b3a95683d8da3cac21','y','?','?','337eb9f5-95b0-4894-7ac7-2427daad8e22' );
+-- select msg from t_output;
+-- 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
