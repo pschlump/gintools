@@ -8,8 +8,6 @@ package jwt_auth
 
 // xyzzyLogoutForced - send message via websockt to log out all of this user.
 
-// xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
-
 //	1. Change Name 			/api/v1/auth/change-name
 //	2. Change Email Address	/api/v1/auth/change-email-addrss, .../can-chagne-email -> success/failed
 // xyzzy770000 TODO --------------------------- change account info
@@ -17,10 +15,6 @@ package jwt_auth
 //		- stored proc needs to be implemented
 //		- admin page
 // xyzzy551 - Change Email NOT Tested
-
-// =======================================================================================
-
-// xyzzy99 - AuthEmailToken           string `json:"auth_email_token" default:"uuid"`                                          // "uuid"|"n6" - if n6 then a 6 digit numer is used.
 
 // =======================================================================================
 
@@ -396,6 +390,7 @@ func authHandleLogin(c *gin.Context) {
 
 	hashOfHeaders := HeaderFingerprint(c)
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 
 	// dbgo.DbFprintf("dump-qr-encode-string", perReqLog, "%(Yellow)Encoding  ->%s<- intooo QR.png at:%(LF)\n", InputString)
 	// if dbgo.IsDbOn("dump-login-info") {
@@ -431,9 +426,9 @@ func authHandleLogin(c *gin.Context) {
 			}
 			fields = AppendStructToZapLog(fields, rvStatus)
 			logger.Error("failed-to-login", fields...)
-			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", "xyzzyPerUserPw", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 		} else {
-			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", "xyzzyPerUserPw", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 		}
 		var out LoginError1
 		copier.Copy(&out, &rvStatus)
@@ -477,7 +472,7 @@ func authHandleLogin(c *gin.Context) {
 			}
 		}
 
-		// xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
+		// gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
 		if gCfg.RedisUsePubSub == "yes" {
 			RedisBrodcast(rvStatus.AuthToken, fmt.Sprintf(`{"cmd":"/auth/login","auth_token":%q,"user_id":%q}`, rvStatus.AuthToken, rvStatus.UserId))
 		}
@@ -574,6 +569,7 @@ func AppendStructToZapLog(fields []zapcore.Field, input interface{}) []zapcore.F
 
 func ValidateXsrfId(c *gin.Context, XsrfId string) (err error) {
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 	stmt := "q_auth_v1_validate_xsrf_id ( $1, $2, $3 )"
 	rv, err := CallDatabaseJSONFunction(c, stmt, "e!!", XsrfId, aCfg.EncryptionPassword, aCfg.UserdataPassword)
 	if err != nil {
@@ -585,7 +581,7 @@ func ValidateXsrfId(c *gin.Context, XsrfId string) (err error) {
 	err = json.Unmarshal([]byte(rv), &rvStatus)
 	if rvStatus.Status != "success" {
 		rvStatus.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+		log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 401
 		return fmt.Errorf("Invalid Xref ID")
 	}
@@ -659,6 +655,7 @@ type RegisterSuccess struct {
 func authHandleRegister(c *gin.Context) {
 	var err error
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 	var pp ApiAuthRegister
 	var RegisterResp RvRegisterType
 	if err := BindFormOrJSON(c, &pp); err != nil {
@@ -703,7 +700,7 @@ func authHandleRegister(c *gin.Context) {
 	if RegisterResp.Status != "success" {
 		time.Sleep(1500 * time.Millisecond)
 		RegisterResp.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "ee!ee!..ee", "xyzzyPerUserPw", SVar(RegisterResp), pp.Email, pp.Pw /*aCfg.EncryptionPassword,*/, pp.FirstName, pp.LastName /*, aCfg.UserdataPassword*/, secret, gCfg.AuthEmailToken, pp.AgreeEULA, pp.AgreeTOS)
+		log_enc.LogStoredProcError(c, stmt, "ee!ee!..ee", perUserKey, SVar(RegisterResp), pp.Email, pp.Pw /*aCfg.EncryptionPassword,*/, pp.FirstName, pp.LastName /*, aCfg.UserdataPassword*/, secret, gCfg.AuthEmailToken, pp.AgreeEULA, pp.AgreeTOS)
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, RegisterResp.StdErrorReturn))
 		return
 	}
@@ -875,6 +872,7 @@ func authHandleRegisterClientAdmin(c *gin.Context) {
 	pp.Pw = cleanupPw(pp.Pw)
 
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 
 	if IsXDBOn("authHandleRegister:error01") {
 		RegisterResp.LogUUID = GenUUID()
@@ -900,7 +898,7 @@ func authHandleRegisterClientAdmin(c *gin.Context) {
 	err = json.Unmarshal([]byte(rv), &RegisterResp)
 	if RegisterResp.Status != "success" {
 		RegisterResp.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "ee!ee!!", "xyzzyPerUserPw", SVar(RegisterResp), pp.Email, pp.Pw /*aCfg.EncryptionPassword,*/, pp.FirstName, pp.LastName /*, aCfg.UserdataPassword*/, secret, pp.Token)
+		log_enc.LogStoredProcError(c, stmt, "ee!ee!!", perUserKey, SVar(RegisterResp), pp.Email, pp.Pw /*aCfg.EncryptionPassword,*/, pp.FirstName, pp.LastName /*, aCfg.UserdataPassword*/, secret, pp.Token)
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, RegisterResp.StdErrorReturn))
 		return
 	}
@@ -1087,6 +1085,7 @@ func authHandlerEmailConfirm(c *gin.Context) {
 	pp.Email = cleanupEmail(pp.Email)
 
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 
 	rv, stmt, err := ConfirmEmailAccount(c, pp.EmailVerifyToken)
 	if err != nil {
@@ -1098,7 +1097,7 @@ func authHandlerEmailConfirm(c *gin.Context) {
 	err = json.Unmarshal([]byte(rv), &rvEmailConfirm)
 	if rvEmailConfirm.Status != "success" {
 		rvEmailConfirm.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvEmailConfirm))
+		log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvEmailConfirm))
 		// c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog,rvEmailConfirm.StdErrorReturn)) // 400
 		c.Writer.WriteHeader(http.StatusSeeOther) // 303
 		to := gCfg.BaseServerURL + gCfg.AuthConfirmEmailErrorURI + "/error-token.html?msg=" + url.QueryEscape(rvEmailConfirm.Msg)
@@ -1112,7 +1111,7 @@ func authHandlerEmailConfirm(c *gin.Context) {
 		dbgo.Printf("Redirect/location-error.html: ->%(yellow)%s%(reset)<-\n", html)
 		fmt.Fprintf(c.Writer, html)
 
-		// xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
+		// gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
 		if gCfg.RedisUsePubSub == "yes" {
 			RedisBrodcast(rvEmailConfirm.AuthToken, fmt.Sprintf(`{"cmd":"/auth/email-confirm", "auth_token":%q, "user_id":%q, "email":%q, "tmp_token":%q}`, rvEmailConfirm.AuthToken, rvEmailConfirm.UserId, rvEmailConfirm.Email, rvEmailConfirm.TmpToken))
 		}
@@ -1209,6 +1208,7 @@ func authHandlerValidateEmailConfirm(c *gin.Context) {
 		return
 	}
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 
 	rv, stmt, err := ConfirmEmailAccount(c, pp.EmailVerifyToken)
 	if err != nil {
@@ -1220,7 +1220,7 @@ func authHandlerValidateEmailConfirm(c *gin.Context) {
 	err = json.Unmarshal([]byte(rv), &rvEmailConfirm)
 	if rvEmailConfirm.Status != "success" {
 		rvEmailConfirm.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvEmailConfirm))
+		log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvEmailConfirm))
 		c.JSON(http.StatusNotAcceptable, LogJsonReturned(perReqLog, rvEmailConfirm.StdErrorReturn)) // 406
 		return
 	}
@@ -1285,6 +1285,7 @@ func authHandleChangePassword(c *gin.Context) {
 	pp.OldPw = cleanupPw(pp.OldPw)
 
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 
 	if pp.NewPw == pp.OldPw {
 		// should be a log call - with a log_enc.LogInputValidationError... call...
@@ -1312,7 +1313,7 @@ func authHandleChangePassword(c *gin.Context) {
 		if err != nil || rvSecret.Status != "success" {
 			rvSecret.LogUUID = GenUUID()
 			dbgo.Printf("%(red)%(LF) -- err:%s rvSecret=%s\n", err, dbgo.SVarI(rvSecret))
-			log_enc.LogStoredProcError(c, stmt, "e.", "xyzzyPerUserPw", SVar(rvSecret), fmt.Sprintf("%s", err))
+			log_enc.LogStoredProcError(c, stmt, "e.", perUserKey, SVar(rvSecret), fmt.Sprintf("%s", err))
 			c.JSON(http.StatusNotAcceptable, LogJsonReturned(perReqLog, rvSecret.StdErrorReturn)) // 406
 			return
 		}
@@ -1320,7 +1321,7 @@ func authHandleChangePassword(c *gin.Context) {
 		if rvSecret.Require2fa == "y" && pp.X2FaPin == "" {
 			rvSecret.LogUUID = GenUUID()
 			dbgo.Printf("%(red)%(LF) -- err:%s rvSecret=%s\n", err, dbgo.SVarI(rvSecret))
-			log_enc.LogStoredProcError(c, stmt, "e.", "xyzzyPerUserPw", SVar(rvSecret), fmt.Sprintf("%s", err))
+			log_enc.LogStoredProcError(c, stmt, "e.", perUserKey, SVar(rvSecret), fmt.Sprintf("%s", err))
 			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvSecret.StdErrorReturn)) // 400
 			return
 		}
@@ -1408,7 +1409,7 @@ func authHandleChangePassword(c *gin.Context) {
 		err = json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
-			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus)) // 400
 			return
 		}
@@ -1488,6 +1489,7 @@ func authHandleRecoverPassword01Setup(c *gin.Context) {
 	pp.Email = cleanupEmail(pp.Email)
 
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 
 	// create or replace function q_auth_v1_recover_password_01_setup ( p_un varchar, p_hmac_password varchar, p_userdata_password varchar )
 	stmt := "q_auth_v1_recover_password_01_setup ( $1, $2, $3 )"
@@ -1501,7 +1503,7 @@ func authHandleRecoverPassword01Setup(c *gin.Context) {
 	err := json.Unmarshal([]byte(rv), &rvStatus)
 	if err != nil || rvStatus.Status != "success" {
 		rvStatus.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+		log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 400
 		return
 	}
@@ -1608,6 +1610,7 @@ func authHandleRecoverPassword02FetchInfo(c *gin.Context) {
 	pp.Email = cleanupEmail(pp.Email)
 
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 
 	// create or replace function q_auth_v1_recover_password_02_fetch_info ( p_un varchar, p_recovery_token varchar, p_hmac_password varchar, p_userdata_password varchar )
 	stmt := "q_auth_v1_recover_password_02_fetch_info ( $1, $2, $3, $4 )"
@@ -1621,7 +1624,7 @@ func authHandleRecoverPassword02FetchInfo(c *gin.Context) {
 	err := json.Unmarshal([]byte(rv), &rvStatus)
 	if err != nil || rvStatus.Status != "success" {
 		rvStatus.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+		log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 400
 		return
 	}
@@ -1686,6 +1689,7 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 	pp.NewPwAgain = cleanupPw(pp.NewPwAgain)
 
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 
 	// Check x2faPin for validity for this account.
 	stmt := "q_auth_v1_2fa_get_secret ( $1, $2 )"
@@ -1700,7 +1704,7 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 	if err != nil || rvSecret.Status != "success" {
 		rvSecret.LogUUID = GenUUID()
 		dbgo.Printf("%(red)%(LF) -- err:%s rvSecret=%s\n", err, dbgo.SVarI(rvSecret))
-		log_enc.LogStoredProcError(c, stmt, "e.", "xyzzyPerUserPw", SVar(rvSecret), fmt.Sprintf("%s", err))
+		log_enc.LogStoredProcError(c, stmt, "e.", perUserKey, SVar(rvSecret), fmt.Sprintf("%s", err))
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvSecret.StdErrorReturn)) // 400
 		return
 	}
@@ -1709,7 +1713,7 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 	if rvSecret.Require2fa == "y" && pp.X2FaPin == "" {
 		rvSecret.LogUUID = GenUUID()
 		dbgo.Printf("%(red)%(LF) -- err:%s rvSecret=%s\n", err, dbgo.SVarI(rvSecret))
-		log_enc.LogStoredProcError(c, stmt, "e.", "xyzzyPerUserPw", SVar(rvSecret), fmt.Sprintf("%s", err))
+		log_enc.LogStoredProcError(c, stmt, "e.", perUserKey, SVar(rvSecret), fmt.Sprintf("%s", err))
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvSecret.StdErrorReturn)) // 400
 		return
 	}
@@ -1796,7 +1800,7 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 	err = json.Unmarshal([]byte(rv), &rvStatus)
 	if err != nil || rvStatus.Status != "success" {
 		rvStatus.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+		log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 400
 		return
 	}
@@ -1844,6 +1848,7 @@ func authHandleRecoverPassword03SetPassword(c *gin.Context) {
 // @Router /api/v1/auth/logout [post]
 func authHandleLogout(c *gin.Context) {
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 	var UserId, AuthToken string
 	var pp ApiEmailOptional
 	if err := BindFormOrJSONOptional(c, &pp); err != nil {
@@ -1874,12 +1879,12 @@ func authHandleLogout(c *gin.Context) {
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
-			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus)) // 400
 			return
 		}
 
-		// xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
+		// gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
 		if gCfg.RedisUsePubSub == "yes" {
 			RedisBrodcast(AuthToken, fmt.Sprintf(`{"cmd":"/auth/logout","auth_token":%q,"user_id":%q}`, AuthToken, UserId))
 		}
@@ -2231,6 +2236,7 @@ func authHandleValidate2faToken(c *gin.Context) {
 	pp.Email = cleanupEmail(pp.Email)
 
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 
 	// AmIKnown         string `json:"am_i_known" form:"am_i_known"` //
 	// XsrfId           string `json:"xsrf_id"    form:"xsrf_id"`    // From Login
@@ -2250,7 +2256,7 @@ func authHandleValidate2faToken(c *gin.Context) {
 		if rvEmailConfirm.Status != "success" {
 			md.AddCounter("jwt_auth_failed_login_attempts", 1)
 			rvEmailConfirm.LogUUID = GenUUID()
-			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvEmailConfirm))
+			log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvEmailConfirm))
 			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvEmailConfirm.StdErrorReturn)) // 400
 			return
 		}
@@ -2270,7 +2276,7 @@ func authHandleValidate2faToken(c *gin.Context) {
 		md.AddCounter("jwt_auth_failed_login_attempts", 1)
 		rvSecret.LogUUID = GenUUID()
 		dbgo.Printf("%(red)%(LF) -- err:%s rvSecret=%s\n", err, dbgo.SVarI(rvSecret))
-		log_enc.LogStoredProcError(c, stmt, "e.", "xyzzyPerUserPw", SVar(rvSecret), fmt.Sprintf("%s", err))
+		log_enc.LogStoredProcError(c, stmt, "e.", perUserKey, SVar(rvSecret), fmt.Sprintf("%s", err))
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvSecret.StdErrorReturn)) // 400
 		return
 	}
@@ -2278,7 +2284,7 @@ func authHandleValidate2faToken(c *gin.Context) {
 	if rvSecret.Require2fa == "y" && pp.X2FaPin == "" {
 		rvSecret.LogUUID = GenUUID()
 		dbgo.Printf("%(red)%(LF) -- err:%s rvSecret=%s\n", err, dbgo.SVarI(rvSecret))
-		log_enc.LogStoredProcError(c, stmt, "e.", "xyzzyPerUserPw", SVar(rvSecret), fmt.Sprintf("%s", err))
+		log_enc.LogStoredProcError(c, stmt, "e.", perUserKey, SVar(rvSecret), fmt.Sprintf("%s", err))
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvSecret.StdErrorReturn)) // 400
 		return
 	}
@@ -2373,7 +2379,7 @@ func authHandleValidate2faToken(c *gin.Context) {
 
 	dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 
-	// xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
+	// gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
 
 	// rv, stmt, err := ConfirmEmailAccount(c, pp.EmailVerifyToken)
 	// create or replace function q_auth_v1_validate_2fa_token ( p_un varchar, p_2fa_secret varchar, p_hmac_password varchar )
@@ -2393,7 +2399,7 @@ func authHandleValidate2faToken(c *gin.Context) {
 		md.AddCounter("jwt_auth_failed_login_attempts", 1)
 		dbgo.Fprintf(perReqLog, "%(LF): rv=%s\n", rv)
 		rvStatus.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+		log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 400
 		return
 	}
@@ -2472,6 +2478,7 @@ func authHandleDeleteAccount(c *gin.Context) {
 		return
 	}
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 	_, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
@@ -2490,7 +2497,7 @@ func authHandleDeleteAccount(c *gin.Context) {
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
-			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus)) // 400
 			return
 		}
@@ -2562,6 +2569,7 @@ func authHandleRegisterUnPw(c *gin.Context) {
 	pp.Email = cleanupEmail(pp.Email)
 
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 	UserId, _, AuthToken := GetAuthToken(c)
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
@@ -2580,7 +2588,7 @@ func authHandleRegisterUnPw(c *gin.Context) {
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
-			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus)) // 400
 			return
 		}
@@ -2637,6 +2645,7 @@ func authHandleRegisterToken(c *gin.Context) {
 
 	UserId, _, AuthToken := GetAuthToken(c)
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 
 	if AuthToken != "" { // if user is logged in then logout - else - just ignore.
 
@@ -2654,7 +2663,7 @@ func authHandleRegisterToken(c *gin.Context) {
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
-			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus)) // 400
 			return
 		}
@@ -2728,6 +2737,7 @@ type ChangeEmailSuccess struct {
 // @Router /api/v1/auth/change-email-address [post]
 func authHandleChangeEmailAddress(c *gin.Context) {
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 	var pp ApiAuthChangeEmail
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
@@ -2756,7 +2766,7 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 		if err != nil || rvSecret.Status != "success" {
 			rvSecret.LogUUID = GenUUID()
 			dbgo.Printf("%(red)%(LF) -- err:%s rvSecret=%s\n", err, dbgo.SVarI(rvSecret))
-			log_enc.LogStoredProcError(c, stmt, "e.", "xyzzyPerUserPw", SVar(rvSecret), fmt.Sprintf("%s", err))
+			log_enc.LogStoredProcError(c, stmt, "e.", perUserKey, SVar(rvSecret), fmt.Sprintf("%s", err))
 			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvSecret.StdErrorReturn)) // 400
 			return
 		}
@@ -2764,7 +2774,7 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 		if rvSecret.Require2fa == "y" && pp.X2FaPin == "" {
 			rvSecret.LogUUID = GenUUID()
 			dbgo.Printf("%(red)%(LF) -- err:%s rvSecret=%s\n", err, dbgo.SVarI(rvSecret))
-			log_enc.LogStoredProcError(c, stmt, "e.", "xyzzyPerUserPw", SVar(rvSecret), fmt.Sprintf("%s", err))
+			log_enc.LogStoredProcError(c, stmt, "e.", perUserKey, SVar(rvSecret), fmt.Sprintf("%s", err))
 			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvSecret.StdErrorReturn)) // 400
 			return
 		}
@@ -2853,7 +2863,7 @@ func authHandleChangeEmailAddress(c *gin.Context) {
 		err = json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
-			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus)) // 400
 			return
 		}
@@ -3002,6 +3012,7 @@ type ApiAdminChangePassword struct {
 // @Router /api/v1/auth/change-password-admin [post]
 func authHandleChangePasswordAdmin(c *gin.Context) {
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 	var pp ApiAdminChangePassword
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
@@ -3029,7 +3040,7 @@ func authHandleChangePasswordAdmin(c *gin.Context) {
 		err := json.Unmarshal([]byte(rv), &rvStatus)
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
-			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus)) // 400
 			return
 		}
@@ -3098,6 +3109,7 @@ type RegenOTPSuccess struct {
 // @Router /api/v1/auth/regen-otp [post]
 func authHandleRegenOTP(c *gin.Context) {
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 	var pp ApiAuthLogin
 	/*
 	   type ApiAuthLogin struct {
@@ -3129,7 +3141,7 @@ func authHandleRegenOTP(c *gin.Context) {
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
 			dbgo.Fprintf(perReqLog, "%(LF) email >%s< AuthToken >%s<\n", pp.Email, AuthToken)
-			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 400
 			return
 		}
@@ -3218,6 +3230,7 @@ type ApiAuthRefreshToken struct {
 // @Router /api/v1/auth/refresh-token [post]
 func authHandleRefreshToken(c *gin.Context) {
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 	var pp ApiAuthRefreshToken
 	if err := BindFormOrJSON(c, &pp); err != nil {
 		return
@@ -3252,7 +3265,7 @@ func authHandleRefreshToken(c *gin.Context) {
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
 			// dbgo.Fprintf(perReqLog, "%(LF) email >%s< AuthToken >%s<\n", pp.Email, AuthToken)
-			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 400
 			return
 		}
@@ -3387,6 +3400,7 @@ func authHandleResendRegistrationEmail(c *gin.Context) {
 	pp.Email = cleanupEmail(pp.Email)
 
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 
 	var secret string
 	secret = ""
@@ -3413,7 +3427,7 @@ func authHandleResendRegistrationEmail(c *gin.Context) {
 	err = json.Unmarshal([]byte(rv), &RegisterResp)
 	if RegisterResp.Status != "success" {
 		RegisterResp.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "ee", "xyzzyPerUserPw", SVar(RegisterResp), pp.Email, pp.TmpToken /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
+		log_enc.LogStoredProcError(c, stmt, "ee", perUserKey, SVar(RegisterResp), pp.Email, pp.TmpToken /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, RegisterResp.StdErrorReturn))
 		return
 	}
@@ -3532,6 +3546,7 @@ type GetUserConfigSuccess struct {
 // @Router /api/v1/auth/get-user-config [post]
 func authHandleGetUserConfig(c *gin.Context) {
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 
 	var DBGetUserDataResp RvGetUserConfigType
 
@@ -3556,7 +3571,7 @@ func authHandleGetUserConfig(c *gin.Context) {
 	err = json.Unmarshal([]byte(rv), &DBGetUserDataResp)
 	if DBGetUserDataResp.Status != "success" {
 		DBGetUserDataResp.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(DBGetUserDataResp), UserId /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
+		log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(DBGetUserDataResp), UserId /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, DBGetUserDataResp.StdErrorReturn))
 		return
 	}
@@ -3590,6 +3605,7 @@ type ApiSetUserConfig struct {
 // @Router /api/v1/auth/set-user-config [post]
 func authHandleSetUserConfig(c *gin.Context) {
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 
 	var pp ApiSetUserConfig
 	if err := BindFormOrJSON(c, &pp); err != nil {
@@ -3619,7 +3635,7 @@ func authHandleSetUserConfig(c *gin.Context) {
 	err = json.Unmarshal([]byte(rv), &DBGetUserDataResp)
 	if DBGetUserDataResp.Status != "success" {
 		DBGetUserDataResp.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(DBGetUserDataResp), UserId /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
+		log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(DBGetUserDataResp), UserId /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, DBGetUserDataResp.StdErrorReturn))
 		return
 	}
@@ -3974,7 +3990,7 @@ func GenerateSecret() string {
 func ConfirmEmailAccount(c *gin.Context, EmailVerifyToken string) (rv, stmt string, err error) {
 
 	perReqLog := tf.GetLogFilePtr(c)
-	// xyzzyRedisUsePubSub gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
+	// gCfg.RedisUsePubSub   string `json:"redis_use_pub_sub" default:"no"`
 
 	//                          1                             2                        3                            4
 	// q_auth_v1_email_verify ( p_email_verify_token varchar, p_hmac_password varchar, p_userdata_password varchar, p_n6_flag varchar ) RETURNS text
@@ -4432,6 +4448,7 @@ type RvValidUseToken struct {
 func CheckTmpAuthToken(c *gin.Context, AToken string) (UserId, AuthToken string, err error) {
 
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 	var DBValidUseToken RvValidUseToken
 	var rv string
 
@@ -4447,7 +4464,7 @@ func CheckTmpAuthToken(c *gin.Context, AToken string) (UserId, AuthToken string,
 	err = json.Unmarshal([]byte(rv), &DBValidUseToken)
 	if DBValidUseToken.Status != "success" {
 		DBValidUseToken.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(DBValidUseToken), AToken)
+		log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(DBValidUseToken), AToken)
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, DBValidUseToken.StdErrorReturn))
 		return
 	}
@@ -4465,6 +4482,7 @@ type RvCreateUseToken struct {
 func CreateTmpAuthToken(c *gin.Context, UserId string) (AToken string, err error) {
 
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 	var DBCreateUseToken RvCreateUseToken
 	var rv string
 
@@ -4482,7 +4500,7 @@ func CreateTmpAuthToken(c *gin.Context, UserId string) (AToken string, err error
 	err = json.Unmarshal([]byte(rv), &DBCreateUseToken)
 	if DBCreateUseToken.Status != "success" {
 		DBCreateUseToken.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(DBCreateUseToken), UserId)
+		log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(DBCreateUseToken), UserId)
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, DBCreateUseToken.StdErrorReturn))
 		return
 	}
@@ -4547,6 +4565,7 @@ func authHandleValidateToken(c *gin.Context) {
 		return
 	}
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 
 	// validate inputs AmIKnown, if "" - then 401 - pass to q_auth_v1_refresh_token
 
@@ -4577,7 +4596,7 @@ func authHandleValidateToken(c *gin.Context) {
 		if err != nil || rvStatus.Status != "success" {
 			rvStatus.LogUUID = GenUUID()
 			// dbgo.Fprintf(perReqLog, "%(LF) email >%s< AuthToken >%s<\n", pp.Email, AuthToken)
-			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 			c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 400
 			return
 		}
@@ -4717,6 +4736,7 @@ func authHandlerRequires2fa(c *gin.Context) {
 	pp.Email = cleanupEmail(pp.Email)
 
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 
 	time.Sleep(5000 * time.Millisecond) // Slow down to prevent searching for valid email
 
@@ -4742,9 +4762,9 @@ func authHandlerRequires2fa(c *gin.Context) {
 			}
 			fields = AppendStructToZapLog(fields, rvStatus)
 			logger.Error("failed-to-failed-to-report-2fa-status", fields...)
-			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 		} else {
-			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 		}
 		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 401
 		return
@@ -4976,6 +4996,7 @@ func authHandlerUpdateAcctState(c *gin.Context) {
 	pp.Email = cleanupEmail(pp.Email)
 
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
 
 	//                                        1                2                     3                        4
 	// FUNCTION q_auth_v1_update_acct_state ( p_email varchar, p_acct_state varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text
@@ -4999,9 +5020,9 @@ func authHandlerUpdateAcctState(c *gin.Context) {
 			}
 			fields = AppendStructToZapLog(fields, rvStatus)
 			logger.Error("failed-to-failed-to-report-2fa-status", fields...)
-			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 		} else {
-			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", perUserKey, SVar(rvStatus))
 		}
 		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 401
 		return
