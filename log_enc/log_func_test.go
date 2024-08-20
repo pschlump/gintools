@@ -83,7 +83,7 @@ func Test_EncryptLogData(t *testing.T) {
 			EncPat:           "e.!e",
 			EncData:          []interface{}{"aaa", "bbb", "ccc", "ddd"},
 			NotExpect:        "[]",
-			Expect:           `["---Encrypted---aaa---End---","bbb","---skipped---","---Encrypted---ddd---End---"]`,
+			Expect:           `["$$$Encrypted$$$aaa$$$End$$$","bbb","$$$skipped$$$","$$$Encrypted$$$ddd$$$End$$$"]`,
 			UseLogEncryption: "dev-dummy",
 			Db8:              false,
 		},
@@ -95,12 +95,14 @@ func Test_EncryptLogData(t *testing.T) {
 
 	os.MkdirAll("./out", 0755)
 
-	gCfg = &data.GlobalConfigData{}
-	gCfg.LogEncryptionPassword = "test-password-00001"
+	gCfg = &data.BaseConfigType{}
+	xx := &data.AppConfig{}
+	xx.LogEncryptionPassword = "test-password-00001"
+	_ = xx
 
 	for ii, test := range tests {
 
-		gCfg.UseLogEncryption = test.UseLogEncryption
+		xx.UseLogEncryption = test.UseLogEncryption
 		db8 = test.Db8
 
 		if logFilePtr != nil {

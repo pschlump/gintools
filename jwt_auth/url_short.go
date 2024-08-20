@@ -55,7 +55,7 @@ func UrlShortCreateHandler(c *gin.Context) {
 	err = json.Unmarshal([]byte(rv), &rvStatus)
 	if rvStatus.Status != "success" {
 		rvStatus.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+		log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
 		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 401
 		return
 	}
@@ -101,7 +101,7 @@ func UrlShortHandler(c *gin.Context) {
 	err = json.Unmarshal([]byte(rv), &rvStatus)
 	if rvStatus.Status != "success" {
 		rvStatus.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+		log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
 		c.JSON(http.StatusUnauthorized, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 401
 		return
 	}

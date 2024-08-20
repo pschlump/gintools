@@ -49,7 +49,7 @@ func DoGetHeader(uri string, hdr []HeaderType, args ...string) (status int, rv s
 		Timeout: timeout,
 	}
 	req, err := http.NewRequest("GET", url_q, nil)
-	req.Header.Add("User-Agent", "load2fa")
+	req.Header.Add("User-Agent", "get-cookie-test")
 	for _, hh := range hdr {
 		req.Header.Add(hh.Name, hh.Value)
 	}

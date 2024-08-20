@@ -8,7 +8,7 @@ require (
 	github.com/pschlump/ReadConfig v1.0.8
 	github.com/pschlump/dbgo v1.0.9
 	github.com/pschlump/filelib v1.0.12
-	github.com/pschlump/gintools v1.0.58
+	github.com/pschlump/gintools v1.0.62
 	github.com/pschlump/htotp v1.0.2
 	github.com/pschlump/json v1.12.1
 	github.com/pschlump/scany v0.3.1

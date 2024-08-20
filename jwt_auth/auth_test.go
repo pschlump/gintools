@@ -102,7 +102,7 @@ func TestAppendStructToZapLog(t *testing.T) {
 
 var db8113 = false
 
-func TestEmailCleanup() {
+func TestEmailCleanup(t *testing.T) {
 
 	orig := " Admin@WiR.com"
 	expect := "admin@wir.com"
@@ -112,7 +112,7 @@ func TestEmailCleanup() {
 	}
 
 	expect = "Admin@WiR.com"
-	got = cleanpPw(orig)
+	got = cleanupPw(orig)
 	if expect != got {
 		t.Errorf("cleanupEmail did not work, expected %s got %s\n", expect, got)
 	}

@@ -61,15 +61,17 @@ func LogApacheReq(data string) {
 	)
 }
 
-// func EncryptLogData(pat string, vars ...interface{}) string {
-
 // Log a SQL error.
 func LogSQLError(c *gin.Context, stmt string, err error, encPat string, data ...interface{}) {
+	perUserPw := aCfg.LogEncryptionPassword
+	if c != nil {
+		perUserPw = getPerUserKey(c)
+	}
 	if c == nil {
 		LogIt("SQLError",
 			"stmt", stmt,
 			"error", errToString(err),
-			// "data", EncryptLogData(encPat, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
+			"data", EncryptLogData(encPat, perUserPw, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
 			"data", dbgo.SVar(data),
 			"AT", dbgo.LF(-2),
 		)
@@ -83,7 +85,7 @@ func LogSQLError(c *gin.Context, stmt string, err error, encPat string, data ...
 		"stmt", stmt,
 		"error", errToString(err),
 		"request_id", requestId,
-		// "data", EncryptLogData(encPat, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
+		"data", EncryptLogData(encPat, perUserPw, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
 		"data", dbgo.SVar(data),
 		"AT", dbgo.LF(-2),
 	)
@@ -94,11 +96,15 @@ func LogSQLError(c *gin.Context, stmt string, err error, encPat string, data ...
 }
 
 func LogSQLErrorNoErr(c *gin.Context, stmt string, err error, encPat string, data ...interface{}) {
+	perUserPw := aCfg.LogEncryptionPassword
+	if c != nil {
+		perUserPw = getPerUserKey(c)
+	}
 	if c == nil {
 		LogIt("SQLError",
 			"stmt", stmt,
 			"error", errToString(err),
-			// "data", EncryptLogData(encPat, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
+			"data", EncryptLogData(encPat, perUserPw, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
 			"data", dbgo.SVar(data),
 			"AT", dbgo.LF(-2),
 		)
@@ -112,18 +118,35 @@ func LogSQLErrorNoErr(c *gin.Context, stmt string, err error, encPat string, dat
 		"stmt", stmt,
 		"error", errToString(err),
 		"request_id", requestId,
-		// "data", EncryptLogData(encPat, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
+		"data", EncryptLogData(encPat, perUserPw, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
 		"data", dbgo.SVar(data),
 		"AT", dbgo.LF(-2),
 	)
 }
 
+func getPerUserKey(c *gin.Context) (perUserPw string) {
+	if c == nil {
+		perUserPw = aCfg.LogEncryptionPassword
+		return
+	}
+	tmp, _ := c.Get("__per_user_key__")
+	var ok bool
+	perUserPw, ok = tmp.(string)
+	if !ok || perUserPw == "" {
+		perUserPw = aCfg.LogEncryptionPassword
+	}
+	return
+}
+
 // LogStoredProcError(www, req, stmt, SVar(RegisterResp), pp.Un, pp.Pw /*gCfg.EncryptionPassword,*/, pp.RealName /*, gCfg.UserdataPassword*/)
-func LogStoredProcError(c *gin.Context, stmt string, encPat string, data ...interface{}) {
+func LogStoredProcError(c *gin.Context, stmt, encPat, perUserPw string, data ...interface{}) {
+	if perUserPw == "" && c != nil {
+		perUserPw = getPerUserKey(c)
+	}
 	if c == nil {
 		LogIt("StoredProcError",
 			"stmt", stmt,
-			// "data", EncryptLogData(encPat, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
+			"data", EncryptLogData(encPat, perUserPw, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
 			"data", dbgo.SVar(data),
 			"AT", dbgo.LF(-2),
 		)
@@ -134,7 +157,7 @@ func LogStoredProcError(c *gin.Context, stmt string, encPat string, data ...inte
 		"url", c.Request.RequestURI,
 		"method", c.Request.Method,
 		"stmt", stmt,
-		// "data", EncryptLogData(encPat, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
+		"data", EncryptLogData(encPat, perUserPw, data...), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
 		"data", dbgo.SVar(data),
 		"request_id", requestId,
 		"AT", dbgo.LF(-2),
@@ -265,6 +288,10 @@ func LogPrivError(c *gin.Context, priv_missing, msg string) {
 
 // log_enc.LogSQLPrivilage(c, aPriv, ".", user_id) // Don't need to encyprt user_id
 func LogSQLPrivelage(c *gin.Context, priv_missing, encPat string, user_id string) {
+	perUserPw := aCfg.LogEncryptionPassword
+	if c != nil {
+		perUserPw = getPerUserKey(c)
+	}
 	requestId := c.GetString("__request_id__")
 	LogIt("MissingPrivilege",
 		"url", c.Request.RequestURI,
@@ -273,7 +300,7 @@ func LogSQLPrivelage(c *gin.Context, priv_missing, encPat string, user_id string
 		"request_id", requestId,
 		"msg", "Misging Privelage",
 		// "user_id", user_id,
-		"user_id", EncryptLogData(encPat, user_id), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
+		"user_id", EncryptLogData(encPat, perUserPw, user_id), // "data", dbgo.SVar(PreProcessData(data)), // "data", SVar(data),
 		"AT", dbgo.LF(-2),
 	)
 	c.JSON(http.StatusForbidden, gin.H{ // 403

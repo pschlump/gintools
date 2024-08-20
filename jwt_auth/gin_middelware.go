@@ -94,6 +94,7 @@ func CookieHeaderAuthMiddleware(ginSetupTable []GinLoginType) gin.HandlerFunc {
 			//	respondWithError(c, http.StatusUnauthorized, "Not Authorized") // 401
 			//	return
 			//}
+			// xyzzy - associate User with RequesstId in d.b.
 			c.Next()
 			return
 		}
@@ -106,6 +107,7 @@ func CookieHeaderAuthMiddleware(ginSetupTable []GinLoginType) gin.HandlerFunc {
 				//	"status": "error",
 				//	"msg":    "401 not authorized",
 				//})
+				// xyzzy - associate User with RequesstId in d.b.
 				return
 			}
 		case LoginOptional:

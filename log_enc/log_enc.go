@@ -25,6 +25,9 @@ var aCfg *data.AppConfig
 
 var logFilePtr io.WriteCloser = os.Stderr // var logFilePtr *os.File = os.Stderr
 
+const EncPrefixStart = "$$$Encrypted$$$"
+const EncPrefixEnd = "$$$End$$$"
+
 // func SetupLogEnc(gcfg *data.GlobalConfigData, log *os.File) {
 // func SetupLogEnc(gcfg *data.BaseConfigType, acfg *data.AppConfig, log *os.File) {
 func SetupLogEnc(gcfg *data.BaseConfigType, acfg *data.AppConfig, log io.WriteCloser) {
@@ -37,32 +40,36 @@ func EncryptLogItem(vv interface{}) string {
 	if aCfg.UseLogEncryption == "no" {
 		return fmt.Sprintf("%s", vv)
 	}
+	perUserKey := aCfg.LogEncryptionPassword
 	fx := func(vi interface{}) string {
 		if aCfg.UseLogEncryption == "dev-dummy" {
-			return (fmt.Sprintf("---Encrypted---%s---End---", vi))
+			return (fmt.Sprintf("%s%s%s", EncPrefixStart, vi, EncPrefixEnd))
 		} else if aCfg.UseLogEncryption == "b64-dummy" {
-			return (fmt.Sprintf("---Encrypted---%s---End---", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s", vi)))))
+			return (fmt.Sprintf("%s%s%s", EncPrefixStart, base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s", vi))), EncPrefixEnd))
 		} else if aCfg.UseLogEncryption == "yes" {
-			return (fmt.Sprintf("---Encrypted---%s---End---", EncryptTextToB64([]byte(aCfg.LogEncryptionPassword), []byte(fmt.Sprintf("%s", vi)))))
+			return (fmt.Sprintf("%s%s%s", EncPrefixStart, EncryptTextToB64([]byte(perUserKey), []byte(fmt.Sprintf("%s", vi))), EncPrefixEnd))
 		}
 		return fmt.Sprintf("%s", vi)
 	}
 	return fx(vv)
 }
 
-func EncryptLogData(pat string, vars ...interface{}) string {
+func EncryptLogData(pat, perUserKey string, vars ...interface{}) string {
 	if aCfg.UseLogEncryption == "no" {
 		return dbgo.SVar(vars)
+	}
+	if perUserKey == "" {
+		perUserKey = aCfg.LogEncryptionPassword
 	}
 	tmp := make([]interface{}, 0, len(vars))
 	i := 0
 	fx := func(vi interface{}) {
 		if aCfg.UseLogEncryption == "dev-dummy" {
-			tmp = append(tmp, fmt.Sprintf("---Encrypted---%s---End---", vi))
+			tmp = append(tmp, fmt.Sprintf("%s%s%s", EncPrefixStart, vi, EncPrefixEnd))
 		} else if aCfg.UseLogEncryption == "b64-dummy" {
-			tmp = append(tmp, fmt.Sprintf("---Encrypted---%s---End---", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s", vi)))))
+			tmp = append(tmp, fmt.Sprintf("%s%s%s", EncPrefixStart, base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s", vi))), EncPrefixEnd))
 		} else if aCfg.UseLogEncryption == "yes" {
-			tmp = append(tmp, fmt.Sprintf("---Encrypted---%s---End---", EncryptTextToB64([]byte(aCfg.LogEncryptionPassword), []byte(fmt.Sprintf("%s", vi)))))
+			tmp = append(tmp, fmt.Sprintf("%s%s%s", EncPrefixStart, EncryptTextToB64([]byte(perUserKey), []byte(fmt.Sprintf("%s", vi))), EncPrefixEnd))
 		}
 	}
 
@@ -153,6 +160,19 @@ func EncryptTextToB64Indexable(key, iv, text []byte) string {
 	}
 
 	return base64.StdEncoding.EncodeToString(enc)
+}
+
+func DecryptB64ToText(b64str string, key []byte) (rv string, err error) {
+	text, err := base64.StdEncoding.DecodeString(b64str)
+	if err != nil {
+		return
+	}
+	tmp, err := DecryptText(key, []byte(text))
+	if err != nil {
+		return
+	}
+	rv = string(tmp)
+	return
 }
 
 func EncryptTextIndexable(key, xiv, text []byte) ([]byte, error) {

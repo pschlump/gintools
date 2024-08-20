@@ -583,11 +583,9 @@ BEGIN
 		if not found then
 			insert into q_qr_valid_xsrf_id ( xsrf_id ) values ( p_id );
 		end if;
-	end if;
-
-	if not found then
-			l_fail = true;
-			l_data = '{"status":"error","msg":"Invalid Application - Please Reinstall on Application Menu Last Item","code":"m4_count()","location":"m4___file__ m4___line__"}';
+	else
+		l_fail = true;
+		l_data = '{"status":"error","msg":"Invalid Application - Invalid Referer header","code":"m4_count()","location":"m4___file__ m4___line__"}';
 	end if;
 
 	if not l_fail then
@@ -1351,6 +1349,7 @@ alter table if exists q_qr_users add column if not exists claims			text;
 alter table if exists q_qr_users add column if not exists id_token			text;
 alter table if exists q_qr_users add column if not exists access_token			text;
 alter table if exists q_qr_users add column if not exists refresh_token			text;
+alter table if exists q_qr_users add column if not exists per_user_key			text;
 
 DO $$
 BEGIN
@@ -1439,6 +1438,7 @@ CREATE TABLE if not exists q_qr_users (
 	id_token 				text,
 	access_token 			text,
 	refresh_token 			text,
+	per_user_key			text,												-- 32 byte per-user encryption key (AES)
 	updated 				timestamp, 									 		-- Project update timestamp (YYYYMMDDHHMMSS timestamp).
 	created 				timestamp default current_timestamp not null 		-- Project creation timestamp (YYYYMMDDHHMMSS timestamp).
 );
@@ -3681,7 +3681,7 @@ BEGIN
 			from user_row
 			where
 					(
-							account_type in ( 'login', 'sso|login' )
+							account_type in ( 'login', 'sso|login', 'sso' )
 						and password_hash = crypt(p_pw, password_hash)
 						and parent_user_id is null
 						and validation_method = 'un/pw'
@@ -3932,6 +3932,7 @@ DECLARE
 	l_admin_email			text;
 	l_n6					text;
 	v_cnt 					int;
+	l_per_user_key			text;
 BEGIN
 	l_debug_on = q_get_config_bool ( 'debug' );
 	l_admin_email = q_get_config ( 'admin.user' );
@@ -3959,6 +3960,9 @@ BEGIN
 	-- l_tmp = uuid_generate_v4()::text;
 	-- l_secret_2fa = substr(l_tmp,0,7) || substr(l_tmp,10,4);
 	l_secret_2fa = p_secret;
+
+	SELECT array_to_string(array(select substr('ABCDEF0123456789',((random()*(16-1)+1)::integer),1) from generate_series(1,32)),'')
+		into l_per_user_key;
 
 	if l_debug_on then
 		insert into t_output ( msg ) values ( 'function ->q_quth_v1_register<- m4___file__ m4___line__' );
@@ -4062,6 +4066,7 @@ BEGIN
 			, require_2fa
 			, role_name
 			, n6_flag
+			, per_user_key			
 		) VALUES (
 		 	  q_auth_v1_hmac_encode ( p_email, p_hmac_password )
 		    , pgp_sym_encrypt(p_email, p_userdata_password)
@@ -4079,6 +4084,7 @@ BEGIN
 			, l_require_2fa
 			, 'role:user'
 			, l_n6
+			, l_per_user_key
 		) returning user_id into l_user_id  ;
 
 		if l_debug_on then
@@ -5284,7 +5290,6 @@ BEGIN
 	delete from q_qr_auth_log where user_id = p_user_id;
 	delete from q_qr_auth_tokens where user_id = p_user_id;
 	delete from q_qr_one_time_password where user_id = p_user_id;
-	--delete from q_qr_user_role where user_id = p_user_id;
 	delete from q_qr_auth_log where user_id = p_user_id;
 	delete from q_qr_tmp_token where user_id = p_user_id;
 	delete from q_qr_user_config where user_id = p_user_id;
@@ -5293,7 +5298,6 @@ BEGIN
 	delete from q_qr_auth_log where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
 	delete from q_qr_auth_tokens where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
 	delete from q_qr_one_time_password where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
-	--delete from q_qr_user_role where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
 	delete from q_qr_auth_log where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
 	delete from q_qr_tmp_token where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
 	delete from q_qr_user_config where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
@@ -5304,6 +5308,48 @@ BEGIN
 	RETURN ( 'User Deleted '||p_user_id::text );
 END;
 $$ LANGUAGE plpgsql;
+
+
+-- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION q_auth_v1_expire_user ( p_user_id uuid ) RETURNS text
+AS $$
+BEGIN
+	-- Copyright (C) Philip Schlump, 2008-2023.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+
+	-- delete from q_qr_auth_log where user_id = p_user_id;
+	delete from q_qr_auth_tokens where user_id = p_user_id;
+	delete from q_qr_one_time_password where user_id = p_user_id;
+	-- delete from q_qr_auth_log where user_id = p_user_id;
+	delete from q_qr_tmp_token where user_id = p_user_id;
+	-- delete from q_qr_user_config where user_id = p_user_id;
+
+	delete from q_qr_n6_email_verify where email_verify_token = ( select email_verify_token from q_qr_users where user_id = p_user_id );
+	delete from q_qr_auth_log where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
+	delete from q_qr_auth_tokens where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
+	delete from q_qr_one_time_password where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
+	delete from q_qr_auth_log where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
+	delete from q_qr_tmp_token where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
+	delete from q_qr_user_config where user_id = ( select user_id from q_qr_users where parent_user_id = p_user_id );
+	delete from q_qr_users where parent_user_id = p_user_id;	-- delete child accounts
+
+	-- delete from q_qr_users where user_id = p_user_id;
+	update q_qr_users 
+		set
+			acct_state				= 'other',
+			password_hash 			= crypt( ' VCxO1tDVGIjiqQMosw+bdowDBEw= BDPwInkypXQJUE34uO8S+TSdmto= ', password_hash),
+			end_date				= current_timestamp - interval '1 minute',
+			email_verify_token		= null,
+			email_verify_expire 	= null
+		where use_id = p_user_id
+		;
+
+	RETURN ( 'User Deleted '||p_user_id::text );
+END;
+$$ LANGUAGE plpgsql;
+
 
 
 
@@ -5733,6 +5779,7 @@ DECLARE
 	l_is_new_device_msg		text;
 	l_device_track_id		uuid;
 	l_client_user_config	text;
+	l_per_user_key			text;
 BEGIN
 	l_debug_on = q_get_config_bool ( 'debug' );
 
@@ -5827,6 +5874,7 @@ BEGIN
 				, client_id
 				, acct_state
 				, role_name
+				, per_user_key
 			from q_qr_users
 			where email_hmac = l_email_hmac
 		)
@@ -5847,6 +5895,7 @@ BEGIN
 				, client_id
 				, acct_state
 				, role_name
+				, per_user_key
 			into
 				  l_user_id
 				, l_email_validated
@@ -5864,6 +5913,7 @@ BEGIN
 				, l_client_id
 				, l_acct_state
 				, l_role_name
+				, l_per_user_key
 			from email_user
 		    where
 				(
@@ -5905,6 +5955,7 @@ BEGIN
 				, client_id
 				, acct_state
 				, role_name
+				, per_user_key
 			into l_user_id
 				, l_email_validated
 				, l_setup_complete_2fa
@@ -5921,6 +5972,7 @@ BEGIN
 				, l_client_id
 				, l_acct_state
 				, l_role_name
+				, l_per_user_key
 			from q_qr_users
 			where email_hmac = l_email_hmac
 			;
@@ -5992,6 +6044,7 @@ BEGIN
 		insert into t_output ( msg ) values ( '  l_otp_hmac             = ->'||coalesce(to_json(l_otp_hmac)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  l_one_time_password_id = ->'||coalesce(to_json(l_one_time_password_id)::text,'---null---')||'<-');
 		insert into t_output ( msg ) values ( '  l_role_name            = ->'||coalesce(to_json(l_role_name)::text,'---null---')||'<-');
+		insert into t_output ( msg ) values ( '  l_per_user_key            = ->'||coalesce(to_json(l_per_user_key)::text,'---null---')||'<-');
 	end if;
 
 	if l_role_name is null then
@@ -6308,6 +6361,7 @@ BEGIN
 			||', "client_id":'     			||coalesce(to_json(l_client_id)::text,'""')
 			||', "acct_state":'     		||coalesce(to_json(l_acct_state)::text,'""')
 			||', "is_new_device_msg":' 		||coalesce(to_json(l_is_new_device_msg)::text,'"--not-set--')
+			||', "per_user_key":' 			||coalesce(to_json(l_per_user_key)::text,'""')
 			||'}';
 
 		if l_debug_on then
@@ -7428,6 +7482,7 @@ DECLARE
 	l_login_2fa_failures 	int;
 	l_role_name				text;
 	l_junk					text;
+	l_per_user_key			text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -7458,6 +7513,7 @@ BEGIN
 			, t1.acct_state
 			, t1.login_2fa_failures
 			, t1.role_name
+			, t1.per_user_key
 		into l_user_id
 			, l_secret_2fa
 			, l_email_validated
@@ -7465,6 +7521,7 @@ BEGIN
 			, l_acct_state
 			, l_login_2fa_failures
 			, l_role_name
+			, l_per_user_key
 		from q_qr_users as t1
 			join q_qr_tmp_token as t2 on ( t1.user_id = t2.user_id )
 		where t1.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
@@ -7591,6 +7648,7 @@ BEGIN
 			||', "x2fa_validated":'  	||coalesce(to_json(l_x2fa_validated)::text,'""')
 			||', "acct_state":'  	 	||coalesce(to_json(l_acct_state)::text,'""')
 			||', "login_2fa_remain":'  	||coalesce(to_json(l_login_2fa_failures)::text,'""')
+			||', "per_user_key":'  		||coalesce(to_json(l_per_user_key)::text,'""')
 			||'}';
 	end if;
 
@@ -7705,6 +7763,7 @@ DECLARE
 	l_secret_2fa 			varchar(20);
 	l_client_id				uuid;
 	l_require_2fa 			varchar(1);
+	l_per_user_key			text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2008-2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -7718,11 +7777,13 @@ BEGIN
 			, user_id
 			, client_id
 			, require_2fa
+			, per_user_key
 		into
 			  l_secret_2fa
 			, l_user_id
 			, l_client_id
 			, l_require_2fa
+			, l_per_user_key
 		from q_qr_users as t2
 		where t2.email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password )
 		;
@@ -7738,6 +7799,7 @@ BEGIN
 			||', "user_id":'          ||coalesce(to_json(l_user_id)::text,'""')
 			||', "client_id":'        ||coalesce(to_json(l_client_id)::text,'""')
 			||', "require_2fa":' 	  ||coalesce(to_json(l_require_2fa)::text,'""')
+			||', "per_user_key":' 	  ||coalesce(to_json(l_per_user_key)::text,'""')
 			||'}';
 	end if;
 
@@ -7781,7 +7843,8 @@ BEGIN
 	l_user_id = p_user_id::uuid;
 
 	if not l_fail then
-		-- (fixed) xyzzy-Slow!! - better to do select count - and verify where before update.
+		-- Note: sso or sso|login type acounts can not change email because it is "tied" to an
+		-- outside source as the PK on auth.
 		l_email_hmac = q_auth_v1_hmac_encode ( p_old_email, p_hmac_password );
 		with user_row as (
 			select
@@ -7811,7 +7874,7 @@ BEGIN
 			  and ( t8.end_date > current_timestamp or t8.end_date is null )
 			  and (
 					(
-							t8.account_type in ( 'login', 'sso' )
+							t8.account_type = 'login'
 						and t8.password_hash = crypt(p_pw, password_hash)
 						and t8.parent_user_id is null
 					    and t8.email_validated = 'y'
@@ -7847,8 +7910,8 @@ BEGIN
 			;
 		if not found then
 			l_fail = true;
-			l_data = '{"status":"error","msg":"Invalid Username or Account not valid or email not validated","code":"m4_count()","location":"m4___file__ m4___line__"}';
-			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Account not valid or email not validated', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+			l_data = '{"status":"error","msg":"Invalid Username or Account not valid for email address change.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+			insert into q_qr_auth_log ( user_id, activity, code, location ) values ( l_user_id, 'Invalid Username or Account not valid for email address change.', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
 		end if;
 	end if;
 
@@ -8201,6 +8264,7 @@ END; $$
 LANGUAGE 'plpgsql';
 
 
+DROP FUNCTION if exists q_qr_validate_user_auth_token(uuid,character varying);
 
 CREATE OR REPLACE FUNCTION q_qr_validate_user_auth_token ( p_auth_token uuid, p_userdata_password varchar ) RETURNS TABLE (
         user_id uuid,
@@ -8208,11 +8272,12 @@ CREATE OR REPLACE FUNCTION q_qr_validate_user_auth_token ( p_auth_token uuid, p_
         client_id text,
         email text,
 		expires timestamp,
-		seconds_till_expires bigint
+		seconds_till_expires bigint,
+		per_user_key text
 	)
 AS $$
 BEGIN
-	-- Copyright (C) Philip Schlump, 2008-2023.
+	-- Copyright (C) Philip Schlump, 2008-2024.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
 	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
 
@@ -8225,12 +8290,13 @@ BEGIN
 	--				left join q_qr_user_to_priv as t3 on ( t1.user_id = t3.user_id )
 
     RETURN QUERY
-		select t5.user_id, json_keys_agg(t5.allowed) as "privileges", t5.client_id, t5.email, t5.expires, t5.seconds_till_expires
+		select t5.user_id, json_keys_agg(t5.allowed) as "privileges", t5.client_id, t5.email, t5.expires, t5.seconds_till_expires, t5.per_user_key
 		from (
 			select t1.user_id as "user_id", t4.allowed, coalesce(t1.client_id::text,'')::text as client_id
 				 , pgp_sym_decrypt(t1.email_enc, p_userdata_password)::text as email
 				 , min(t2.expires) as expires
 				 , ceil(EXTRACT(EPOCH FROM min(t2.expires)))::bigint - ceil(extract(epoch from now()))::bigint as seconds_till_expires
+				 , t1.per_user_key
 			from q_qr_users as t1
 				join q_qr_auth_tokens as t2 on ( t1.user_id = t2.user_id )
 				left join q_qr_role2 as t4 on ( t1.role_name = t4.role_name )
@@ -8724,6 +8790,7 @@ DECLARE
 	l_user_id				uuid;
 	l_sc_id					text;		-- ScID, scid
 	l_auth_token			text;
+	l_per_user_key			text;
 BEGIN
 	-- Copyright (C) Philip Schlump, 2023.
 	-- BSD 3 Clause Licensed.  See LICENSE.bsd
@@ -8745,7 +8812,8 @@ BEGIN
 			  t3.sc_id
 			, t3.token as auth_token
 			, t1.user_id
-		into l_sc_id, l_auth_token, l_user_id
+			, t2.per_user_key
+		into l_sc_id, l_auth_token, l_user_id, l_per_user_key
 		from q_qr_tmp_token as t1
 			join q_qr_users as t2 on ( t1.user_id = t2.user_id )
 			join q_qr_auth_tokens as t3 on ( t1.user_id = t3.user_id and t1.auth_token = t3.token )
@@ -8766,6 +8834,7 @@ BEGIN
 			||', "auth_token":' 		||coalesce(to_json(l_auth_token)::text,'""')
 			||', "user_id":' 			||coalesce(to_json(l_user_id)::text,'""')
 			||', "sc_id":' 				||coalesce(to_json(l_sc_id)::text,'""')
+			||', "per_user_key":' 		||coalesce(to_json(l_per_user_key)::text,'""')
 			||'}';
 
 	end if;
@@ -10139,5 +10208,152 @@ $$ LANGUAGE plpgsql;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE TABLE IF NOT EXISTS q_qr_track_request_id (
+	id 						uuid DEFAULT uuid_generate_v4() not null primary key,
+	user_id					uuid not null,
+	request_id 				uuid not null,
+	updated 				timestamp,
+	created 				timestamp default current_timestamp not null
+);
+comment on table q_qr_track_request_id is 'Track User RequestId - Copyright (C) Philip Schlump, 2024. -- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()';
+
+m4_updTrig(q_qr_track_request_id)
+
+create index if not exists q_qr_track_request_id_p1 on q_qr_track_request_id ( user_id );
+create index if not exists q_qr_track_request_id_p2 on q_qr_track_request_id ( request_id, user_id );
+
+
+
+
+
+
+
+
+CREATE OR REPLACE FUNCTION q_auth_v1_track_req_id ( p_user_id uuid, p_request_id uuid,  p_hmac_password varchar, p_userdata_password varchar ) RETURNS text	
+AS $$
+DECLARE
+	l_data				text;
+	l_fail				bool;
+BEGIN
+	-- Copyright (C) Philip Schlump, 2024.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+
+	l_data = '{"status":"success"}';
+	l_fail = false;
+
+	insert into q_qr_track_request_id ( user_id, request_id ) values ( p_user_id, p_request_id );
+
+	if not l_fail then
+
+		l_data = '{"status":"success"'
+			||'}';
+
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
+
+
+-- create or replace function q_auth_v1_get_user_config ( p_email varchar, p_requst_id varchar, varchar, p_hmac_password varchar, p_userdata_password varchar )
+-- stmt := "q_auth_v1_get_per_user_key ( $1, $2, $3, $4 )"
+drop FUNCTION if exists q_auth_v1_get_per_user_key ( p_email varchar, p_request_id varchar, p_hmac_password varchar, p_userdata_password varchar ) ;
+
+CREATE OR REPLACE FUNCTION q_auth_v1_get_per_user_key ( p_user_id uuid, p_email varchar, p_request_id varchar, p_hmac_password varchar, p_userdata_password varchar ) RETURNS text	
+AS $$
+DECLARE
+	l_data				text;
+	l_fail				bool;
+	l_email				text;
+	l_per_user_key		text;
+	l_user_id			uuid;
+	l_email_hmac				bytea;
+BEGIN
+	-- Copyright (C) Philip Schlump, 2024.
+	-- BSD 3 Clause Licensed.  See LICENSE.bsd
+	-- version: m4_ver_version() tag: m4_ver_tag() build_date: m4_ver_date()
+
+	l_data = '{"status":"success"}';
+	l_fail = false;
+
+	if not ( q_admin_HasPriv ( p_user_id, 'AN Admin' ) ) then
+		l_fail = true;
+		l_data = '{"status":"error","msg":"Not authorized for ''AN Admin''","code":"m4_count()","location":"m4___file__ m4___line__"}';
+		insert into q_qr_auth_log ( user_id, activity, code, location ) values ( p_user_id::uuid, 'Not authorized to ''AN Admin''', 'm4_counter()', 'File:m4___file__ Line No:m4___line__');
+	end if;
+
+	if p_email != '' then
+		l_email = p_email;
+		l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
+		select t1.user_id, t1.per_user_key
+			into l_user_id, l_per_user_key
+			from q_qr_users as t1
+			where t1.email_hmac = l_email_hmac
+			;
+		if not found then
+			l_fail = true;
+			l_data = '{"status":"error","msg":"Unable to get info for user.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+		end if;
+	end if;
+
+	if p_request_id != '' then
+		select user_id
+			into l_user_id
+			from q_qr_track_request_id 
+			where request_id = p_request_id::uuid
+			;
+		if found then
+			select t1.per_user_key, pgp_sym_decrypt(t1.email_enc, p_userdata_password)::text as email
+				into l_per_user_key, l_email
+				from q_qr_users as t1
+				where t1.user_id = l_user_id
+				;
+		else
+			if p_email != '' then
+				l_email_hmac = q_auth_v1_hmac_encode ( p_email, p_hmac_password );
+				select t1.user_id, t1.per_user_key
+					into l_user_id, l_per_user_key
+					from q_qr_users as t1
+					where t1.email_hmac = l_email_hmac
+					;
+				if not found then
+					l_fail = true;
+					l_data = '{"status":"error","msg":"Unable to get info for user.","code":"m4_count()","location":"m4___file__ m4___line__"}';
+				end if;
+			end if;
+		end if;
+	end if;
+
+	if not l_fail then
+
+		l_data = '{"status":"success"'
+			||', "email":'  				||coalesce(to_json(l_email)::text,'""')
+			||', "per_user_key":'  			||coalesce(to_json(l_per_user_key)::text,'""')
+			||', "user_id":'  				||coalesce(to_json(l_user_id)::text,'""')
+			||'}';
+
+	end if;
+
+	RETURN l_data;
+END;
+$$ LANGUAGE plpgsql;
 
 -- vim: set noai ts=4 sw=4:

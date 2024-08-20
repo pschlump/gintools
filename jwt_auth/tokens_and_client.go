@@ -138,7 +138,7 @@ func authHandleCreateRegistrationToken(c *gin.Context) {
 	err = json.Unmarshal([]byte(rv), &DBGetUserDataResp)
 	if DBGetUserDataResp.Status != "success" {
 		DBGetUserDataResp.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", SVar(DBGetUserDataResp), UserId, pp.AdminEmail, gCfg.BaseServerURL /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
+		log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(DBGetUserDataResp), UserId, pp.AdminEmail, gCfg.BaseServerURL /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, DBGetUserDataResp.StdErrorReturn))
 		return
 	}
@@ -225,7 +225,7 @@ func authHandleCreateClient(c *gin.Context) {
 	err = json.Unmarshal([]byte(rv), &DBGetUserDataResp)
 	if DBGetUserDataResp.Status != "success" {
 		DBGetUserDataResp.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", SVar(DBGetUserDataResp), UserId /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
+		log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(DBGetUserDataResp), UserId /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, DBGetUserDataResp.StdErrorReturn))
 		return
 	}
@@ -305,7 +305,7 @@ func authHandleGetRegistrationToken(c *gin.Context) {
 	err = json.Unmarshal([]byte(rv), &DBData)
 	if DBData.Status != "success" {
 		DBData.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "e", SVar(DBData), UserId /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
+		log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(DBData), UserId /*aCfg.EncryptionPassword,*/ /*, aCfg.UserdataPassword*/)
 		c.JSON(http.StatusBadRequest, LogJsonReturned(perReqLog, DBData.StdErrorReturn))
 		return
 	}

@@ -421,9 +421,9 @@ func (app *SsoAppConfigType) handleSsoToken(c *gin.Context) {
 			}
 			fields = AppendStructToZapLog(fields, rvStatus)
 			logger.Error("failed-to-login", fields...)
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
 		} else {
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
 		}
 		var out LoginError1
 		copier.Copy(&out, &rvStatus)
@@ -883,9 +883,9 @@ func IdpLoginRegister(c *gin.Context, redirectURI string, rawIDToken string, acc
 			}
 			fields = AppendStructToZapLog(fields, rvStatus)
 			logger.Error("failed-to-login", fields...)
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
 		} else {
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
 		}
 		var out LoginError1
 		copier.Copy(&out, &rvStatus)
@@ -1050,9 +1050,9 @@ func OAuth2LoginRegister(c *gin.Context, authority, redirectURI string, rawIDTok
 			}
 			fields = AppendStructToZapLog(fields, rvStatus)
 			logger.Error("failed-to-login", fields...)
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
 		} else {
-			log_enc.LogStoredProcError(c, stmt, "e", SVar(rvStatus))
+			log_enc.LogStoredProcError(c, stmt, "e", "xyzzyPerUserPw", SVar(rvStatus))
 		}
 		var out LoginError1
 		copier.Copy(&out, &rvStatus)

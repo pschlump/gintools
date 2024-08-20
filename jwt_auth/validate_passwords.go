@@ -168,7 +168,7 @@ func SetupNewInstall() (err error) {
 	err = json.Unmarshal([]byte(rv), &resp)
 	if resp.Status != "success" {
 		resp.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(nil, stmt, ".", SVar(resp))
+		log_enc.LogStoredProcError(nil, stmt, ".", "xyzzyPerUserPw", SVar(resp))
 		return
 	}
 
@@ -195,7 +195,7 @@ func ValidatePasswords() (err error) {
 	dbgo.Printf("%(red)%s\n", dbgo.SVarI(resp))
 	if resp.Status != "success" {
 		resp.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(nil, stmt, ".", SVar(resp))
+		log_enc.LogStoredProcError(nil, stmt, ".", "xyzzyPerUserPw", SVar(resp))
 		err = fmt.Errorf("Falied to initialize properly - bad passwords")
 		return
 	}

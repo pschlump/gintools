@@ -75,7 +75,7 @@ func authHandleSipRegister(c *gin.Context) {
 	err = json.Unmarshal([]byte(rv), &RegisterResp)
 	if RegisterResp.Status != "success" {
 		RegisterResp.LogUUID = GenUUID()
-		log_enc.LogStoredProcError(c, stmt, "ee!ee!!", SVar(RegisterResp), pp.Email, pp.Validator /*aCfg.EncryptionPassword,*/, pp.FirstName, pp.LastName /*, aCfg.UserdataPassword*/, secret) // xyzzy - Encrypted Log File Data
+		log_enc.LogStoredProcError(c, stmt, "ee!ee!!", "xyzzyPerUserPw", SVar(RegisterResp), pp.Email, pp.Validator /*aCfg.EncryptionPassword,*/, pp.FirstName, pp.LastName /*, aCfg.UserdataPassword*/, secret) // xyzzy - Encrypted Log File Data
 		c.JSON(http.StatusBadRequest, RegisterResp.StdErrorReturn)
 		return
 	}
