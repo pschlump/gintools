@@ -8,6 +8,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -26,6 +27,7 @@ var aCfg *data.AppConfig
 var logFilePtr io.WriteCloser = os.Stderr // var logFilePtr *os.File = os.Stderr
 
 const EncPrefixStart = "$$$Encrypted$$$"
+const EncPythonPrefixStart = "$$$PyEnc$$$"
 const EncPrefixEnd = "$$$End$$$"
 
 // func SetupLogEnc(gcfg *data.GlobalConfigData, log *os.File) {
@@ -36,11 +38,13 @@ func SetupLogEnc(gcfg *data.BaseConfigType, acfg *data.AppConfig, log io.WriteCl
 	aCfg = acfg
 }
 
-func EncryptLogItem(vv interface{}) string {
+func EncryptLogItem(perUserKey string, vv interface{}) string {
 	if aCfg.UseLogEncryption == "no" {
 		return fmt.Sprintf("%s", vv)
 	}
-	perUserKey := aCfg.LogEncryptionPassword
+	if perUserKey == "" {
+		perUserKey = aCfg.LogEncryptionPassword
+	}
 	fx := func(vi interface{}) string {
 		if aCfg.UseLogEncryption == "dev-dummy" {
 			return (fmt.Sprintf("%s%s%s", EncPrefixStart, vi, EncPrefixEnd))
@@ -100,7 +104,7 @@ func EncryptLogData(pat, perUserKey string, vars ...interface{}) string {
 	return dbgo.SVar(tmp)
 }
 
-var prefix = "Marrrry had a littttle lambb, ItS FleEse was White a gold"
+var Prefix = "Marrrry had a littttle lambb, ItS FleEse was White a gold"
 
 func EncryptTextToB64(key, text []byte) string {
 
@@ -112,9 +116,22 @@ func EncryptTextToB64(key, text []byte) string {
 	return base64.StdEncoding.EncodeToString(enc)
 }
 
+func KeyToBase64(key []byte) string {
+	key = PrepKey(string(key))
+	return base64.StdEncoding.EncodeToString(key)
+}
+
+func PrepKey(keyStr string) (key []byte) {
+	h := sha256.New()
+	h.Write([]byte(Prefix))
+	key = h.Sum([]byte(keyStr))
+	key = key[0:16]
+	return key
+}
+
 func EncryptText(key, text []byte) ([]byte, error) {
 	// use SHA256 of "key" to generate real key.  Add a "fixed salt" for hash PJS
-	tkey := HashStrings.HashStrings(prefix, string(key))
+	tkey := HashStrings.HashStrings(Prefix, string(key))
 	rkey := ([]byte(tkey))[0:32]
 	block, err := aes.NewCipher(rkey)
 	if err != nil {
@@ -132,7 +149,7 @@ func EncryptText(key, text []byte) ([]byte, error) {
 }
 
 func DecryptText(key, text []byte) ([]byte, error) {
-	tkey := HashStrings.HashStrings(prefix, string(key))
+	tkey := HashStrings.HashStrings(Prefix, string(key))
 	rkey := ([]byte(tkey))[0:32]
 	block, err := aes.NewCipher(rkey)
 	if err != nil {
@@ -177,7 +194,7 @@ func DecryptB64ToText(b64str string, key []byte) (rv string, err error) {
 
 func EncryptTextIndexable(key, xiv, text []byte) ([]byte, error) {
 	// use SHA256 of "key" to generate real key.  Add a "fixed salt" for hash PJS
-	tkey := HashStrings.HashStrings(prefix, string(key))
+	tkey := HashStrings.HashStrings(Prefix, string(key))
 	rkey := ([]byte(tkey))[0:32]
 	block, err := aes.NewCipher(rkey)
 	if err != nil {

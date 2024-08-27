@@ -58,16 +58,103 @@ func CallDatabaseFunction(c *gin.Context, out interface{}, fCall string, encPat 
 	return
 }
 
-// CallDatabaseJSONFunction will call the named fucntion with the set of parameters.
-func CallDatabaseJSONFunction(c *gin.Context, fCall string, encPat string, data ...interface{}) (rv string, err error) {
+func CallDatabaseFunctionEnc(c *gin.Context, out interface{}, fCall string, encPat, paramPat, returnPat string, data ...interface{}) (err error) {
+
 	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
+	var rv string
+
+	// -------------------------------------------------------------------------------------------------------------------------------------------------
+	//rv, err = CallDatabaseJSONFunctionEnc(c, fCall, encPat, dataPat, retPat, data...)
+	//if err != nil {
+	//	return
+	//}
+
+	// -------------------------------------------------------------------------------------------------------------------------------------------------
+
 	var v2 []*SQLStringType
 	stmt := "select " + fCall + " as \"x\""
 	if conn == nil {
 		dbgo.Fprintf(perReqLog, "!!!!! connection is nil at:%(LF)\n")
 		os.Exit(1)
 	}
-	dbgo.Fprintf(perReqLog, "%(yellow)[    Database Call]:%(reset) ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
+	if paramPat != "" {
+		dbgo.Fprintf(perReqLog, "[    Database Call] Encrypted\n")
+		dbgo.Fprintf(perReqLog, "%s\n",
+			log_enc.EncryptLogItem(perUserKey,
+				fmt.Sprintf("[    Database Call] ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2)),
+			),
+		)
+	} else {
+		dbgo.Fprintf(perReqLog, "[    Database Call] ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
+	}
+	start := time.Now()
+	err = pgxscan.Select(ctx, conn, &v2, stmt, data...)
+	elapsed := time.Since(start) // elapsed time.Duration
+	if err != nil {
+		if elapsed > (1 * time.Millisecond) {
+			dbgo.Fprintf(perReqLog, "    %(red)Error on select stmt ->%s<- %(red)elapsed:%s%(reset) at:%s %s\n", stmt, elapsed, dbgo.LF(-1), dbgo.LF(-2))
+		} else {
+			dbgo.Fprintf(perReqLog, "    %(red)Error on select stmt ->%s<- elapsed:%s at:%s %s\n", stmt, elapsed, dbgo.LF(-1), dbgo.LF(-2))
+		}
+		log_enc.LogSQLError(c, stmt, err, encPat, data...)
+		return ErrHttpStatusSqlError
+	}
+	if len(v2) > 0 {
+		if returnPat != "" {
+			dbgo.Fprintf(perReqLog, "[    Database Return] Encrypted\n")
+			dbgo.Fprintf(perReqLog, "%s\n",
+				log_enc.EncryptLogItem(perUserKey,
+					dbgo.Sprintf("    %(yellow)Call Returns:%(reset) %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed),
+				),
+			)
+		} else {
+			dbgo.Fprintf(perReqLog, "    %(yellow)Call Returns:%(reset) %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
+		}
+		rv = v2[0].X
+	} else {
+		dbgo.Fprintf(perReqLog, "    %(yellow)Call ---no rows returned--- Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
+		rv = "{}"
+	}
+
+	// -------------------------------------------------------------------------------------------------------------------------------------------------
+
+	var rvStatus RvCallErrorType
+
+	err = json.Unmarshal([]byte(rv), out)
+	if err != nil {
+
+		if returnPat != "" {
+			dbgo.Fprintf(perReqLog, "[    Database Call] Encrypted\n")
+			dbgo.Fprintf(perReqLog, "%s\n",
+				log_enc.EncryptLogItem(perUserKey,
+					dbgo.Sprintf("Unable to unmarshal %s, ->%s<- %(LF)\n", err, rv),
+				),
+			)
+		} else {
+			dbgo.Fprintf(perReqLog, "Unable to unmarshal %s, ->%s<- %(LF)\n", err, rv)
+		}
+
+		rvStatus.LogUUID = GenUUID()
+		if c != nil {
+			c.JSON(http.StatusInternalServerError, LogJsonReturned(perReqLog, rvStatus.StdErrorReturn)) // 500
+		}
+		return ErrHttpStatusInternalServerError
+	}
+
+	return
+}
+
+// CallDatabaseJSONFunction will call the named fucntion with the set of parameters.
+func CallDatabaseJSONFunction(c *gin.Context, fCall string, encPat string, data ...interface{}) (rv string, err error) {
+	perReqLog := tf.GetLogFilePtr(c)
+	// perUserKey := GetPerUserKey(c)
+	var v2 []*SQLStringType
+	stmt := "select " + fCall + " as \"x\""
+	if conn == nil {
+		dbgo.Fprintf(perReqLog, "!!!!! connection is nil at:%(LF)\n")
+		os.Exit(1)
+	}
 	dbgo.Fprintf(perReqLog, "[    Database Call] ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2))
 	start := time.Now()
 	err = pgxscan.Select(ctx, conn, &v2, stmt, data...)
@@ -78,17 +165,46 @@ func CallDatabaseJSONFunction(c *gin.Context, fCall string, encPat string, data 
 		} else {
 			dbgo.Fprintf(perReqLog, "    %(red)Error on select stmt ->%s<- data %s elapsed:%s at:%s %s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1), dbgo.LF(-2))
 		}
-		// dbgo.Fprintf(perReqLog, "    Error on select stmt ->%s<- data %s elapsed:%s at:%s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1))
 		log_enc.LogSQLError(c, stmt, err, encPat, data...)
 		return "", ErrHttpStatusSqlError
 	}
 	if len(v2) > 0 {
 		dbgo.Fprintf(perReqLog, "    %(yellow)Call Returns:%(reset) %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
-		// dbgo.Fprintf(perReqLog, "    Call Returns: %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed)
 		return v2[0].X, nil
 	}
 	dbgo.Fprintf(perReqLog, "    %(yellow)Call ---no rows returned--- Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
-	// dbgo.Fprintf(perReqLog, "    Call Empty ---no rows returned--- elapsed:%s at:%(LF)\n", elapsed)
+	return "{}", nil
+}
+
+// CallDatabaseJSONFunctionEnc will call the named fucntion with the set of parameters.
+func CallDatabaseJSONFunctionEnc(c *gin.Context, fCall string, encPat, dataPat, retPat string, data ...interface{}) (rv string, err error) {
+	perReqLog := tf.GetLogFilePtr(c)
+	perUserKey := GetPerUserKey(c)
+	_ = perUserKey
+	var v2 []*SQLStringType
+	stmt := "select " + fCall + " as \"x\""
+	if conn == nil {
+		dbgo.Fprintf(perReqLog, "!!!!! connection is nil at:%(LF)\n")
+		os.Exit(1)
+	}
+	dbgo.Fprintf(perReqLog, "[    Database Call] ->%s<- data ->%s<- from/at:%s\n", stmt, dbgo.SVar(data), dbgo.LF(2)) // <<<<<<<<<<<<<<<<<<<<<<<< SVarEnc(data,dataPat)
+	start := time.Now()
+	err = pgxscan.Select(ctx, conn, &v2, stmt, data...)
+	elapsed := time.Since(start) // elapsed time.Duration
+	if err != nil {
+		if elapsed > (1 * time.Millisecond) {
+			dbgo.Fprintf(perReqLog, "    %(red)Error on select stmt ->%s<- data %s %(red)elapsed:%s%(reset) at:%s %s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1), dbgo.LF(-2)) // <<<<<<<<<<<<<<<<<<<<<<<< SvarEnc(data,dataPat)
+		} else {
+			dbgo.Fprintf(perReqLog, "    %(red)Error on select stmt ->%s<- data %s elapsed:%s at:%s %s\n", stmt, dbgo.SVar(data), elapsed, dbgo.LF(-1), dbgo.LF(-2)) // <<<<<<<<<<<<<<<<<<<<<<<< SvarEnc(data,dataPat)
+		}
+		log_enc.LogSQLError(c, stmt, err, encPat, data...) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<< mod to enc data
+		return "", ErrHttpStatusSqlError
+	}
+	if len(v2) > 0 {
+		dbgo.Fprintf(perReqLog, "    %(yellow)Call Returns:%(reset) %s elapsed:%s at:%(LF)\n", v2[0].X, elapsed) // <<<<<<<<<<<<<<<<<<<<<<<<<<< hm
+		return v2[0].X, nil
+	}
+	dbgo.Fprintf(perReqLog, "    %(yellow)Call ---no rows returned--- Return%(reset) elapsed:%s at:%(LF)\n", elapsed)
 	return "{}", nil
 }
 
